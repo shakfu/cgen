@@ -1,61 +1,53 @@
-"""
-cfile core
-"""
+"""Cfile core."""
+
 from typing import Union, Any
 
 
 class Element:
-    """
-    A code element, for example an expression
-    """
+    """A code element, for example an expression."""
 
 
 class Directive(Element):
-    """
-    Preprocessor directive
-    """
+    """Preprocessor directive."""
+
     def __init__(self, adjust: int = 0) -> None:
         self.adjust = adjust
 
 
 class IncludeDirective(Directive):
-    """
-    Include directive
-    """
-    def __init__(self, path_to_file: str, system: bool = False, adjust: int = 0) -> None:
+    """Include directive."""
+
+    def __init__(
+        self, path_to_file: str, system: bool = False, adjust: int = 0
+    ) -> None:
         super().__init__(adjust)
         self.path_to_file = path_to_file
         self.system = system
 
 
 class IfdefDirective(Directive):
-    """
-    Ifdef preprocessor directive
-    """
+    """Ifdef preprocessor directive."""
+
     def __init__(self, identifier: str, adjust: int = 0) -> None:
         super().__init__(adjust)
         self.identifier = identifier
 
 
 class IfndefDirective(Directive):
-    """
-    Ifndef preprocessor directive
-    """
+    """Ifndef preprocessor directive."""
+
     def __init__(self, identifier: str, adjust: int = 0) -> None:
         super().__init__(adjust)
         self.identifier = identifier
 
 
 class EndifDirective(Directive):
-    """
-    Endif preprocessor directive
-    """
+    """Endif preprocessor directive."""
 
 
 class DefineDirective(Directive):
-    """
-    Preprocessor define directive
-    """
+    """Preprocessor define directive."""
+
     def __init__(self, left: str, right: str | None = None, adjust: int = 0) -> None:
         super().__init__(adjust)
         self.left = left
@@ -63,18 +55,19 @@ class DefineDirective(Directive):
 
 
 class Extern(Element):
-    """
-    Extern declaration
-    """
+    """Extern declaration."""
+
     def __init__(self, language: str) -> None:
         self.language = language
 
 
 class Comment(Element):
     """
-    Comment base
+    Comment base.
+
     adjust: Adds spaces before comment begins to allow right-adjustment
     """
+
     def __init__(self, text: str | list[str], adjust: int = 1) -> None:
         self.text = text
         self.adjust = adjust
@@ -82,47 +75,47 @@ class Comment(Element):
 
 class BlockComment(Comment):
     """
-    Block Comment
+    Block Comment.
+
     width: When > 0, sets the number of asterisks used on first and last line.
            Also puts the text between first and last line.
     line_start: Combine with width > 0. Puts this string at beginning of each line
                 inside the comment
     """
-    def __init__(self,
-                 text: str | list[str],
-                 adjust: int = 1, width: int = 0,
-                 line_start: str = "", ) -> None:
+
+    def __init__(
+        self,
+        text: str | list[str],
+        adjust: int = 1,
+        width: int = 0,
+        line_start: str = "",
+    ) -> None:
         super().__init__(text, adjust)
         self.width = width
         self.line_start = line_start
 
 
 class LineComment(Comment):
-    """
-    Line Comment
-    """
+    """Line Comment."""
 
 
 class Whitespace(Element):
-    """
-    Whitespace
-    """
+    """Whitespace."""
+
     def __init__(self, width) -> None:
         self.width = width
 
 
 class Blank(Whitespace):
-    """
-    Blank line
-    """
+    """Blank line."""
+
     def __init__(self) -> None:
         super().__init__(0)
 
 
 class Line(Element):
-    """
-    Adds a newline once all inner parts have been written
-    """
+    """Adds a newline once all inner parts have been written."""
+
     def __init__(self, parts: str | Element | list) -> None:
         if isinstance(parts, (str, Element)):
             self.parts = [parts]
@@ -133,23 +126,23 @@ class Line(Element):
 
 
 class DataType(Element):
-    """
-    Base class for all data types
-    """
+    """Base class for all data types."""
+
     def __init__(self, name: str | None) -> None:
         self.name = name
 
 
 class Type(DataType):
-    """
-    Data type
-    """
-    def __init__(self,
-                 base_type: Union[str, "Type"],
-                 const: bool = False,
-                 pointer: bool = False,
-                 volatile: bool = False,
-                 array: int | None = None) -> None:  # Only used for typedefs to other array types
+    """Data type."""
+
+    def __init__(
+        self,
+        base_type: Union[str, "Type"],
+        const: bool = False,
+        pointer: bool = False,
+        volatile: bool = False,
+        array: int | None = None,
+    ) -> None:  # Only used for typedefs to other array types
         super().__init__(None)
         self.base_type = base_type
         self.const = const
@@ -158,9 +151,7 @@ class Type(DataType):
         self.array = array
 
     def qualifier(self, name) -> bool:
-        """
-        Returns the status of named qualifier
-        """
+        """Returns the status of named qualifier."""
         if name == "const":
             return self.const
         if name == "volatile":
@@ -171,16 +162,21 @@ class Type(DataType):
 
 class StructMember(Element):
     """
-    Struct element. This is similar to Variable
+    Struct element.
+
+    This is similar to Variable
     but doesn't support type qualifier such as static
     or extern
     """
-    def __init__(self,
-                 name: str,
-                 data_type: DataType | str,
-                 const: bool = False,    # Pointer qualifier only
-                 pointer: bool = False,
-                 array: int | None = None) -> None:
+
+    def __init__(
+        self,
+        name: str,
+        data_type: DataType | str,
+        const: bool = False,  # Pointer qualifier only
+        pointer: bool = False,
+        array: int | None = None,
+    ) -> None:
         self.name = name
         self.const = const
         self.pointer = pointer
@@ -194,10 +190,11 @@ class StructMember(Element):
 
 
 class Struct(DataType):
-    """
-    A struct definition
-    """
-    def __init__(self, name: str | None, members: StructMember | list[StructMember] | None = None) -> None:
+    """A struct definition."""
+
+    def __init__(
+        self, name: str | None, members: StructMember | list[StructMember] | None = None
+    ) -> None:
         super().__init__(name)
         self.members: list[StructMember] = []
         if members is not None:
@@ -210,38 +207,39 @@ class Struct(DataType):
                 raise TypeError('Invalid argument type for "elements"')
 
     def append(self, member: StructMember) -> None:
-        """
-        Appends new element to the struct definition
-        """
+        """Appends new element to the struct definition."""
         if not isinstance(member, StructMember):
-            raise TypeError(f'Invalid type, expected "StructMember", got {str(type(member))}')
+            raise TypeError(
+                f'Invalid type, expected "StructMember", got {str(type(member))}'
+            )
         self.members.append(member)
 
-    def make_member(self,
-                    name: str,
-                    data_type: str | Type,
-                    const: bool = False,  # Pointer qualifier only
-                    pointer: bool = False,
-                    array: int | None = None) -> StructMember:
-        """
-        Creates a new StructMember and appends it to the list of elements
-        """
+    def make_member(
+        self,
+        name: str,
+        data_type: str | Type,
+        const: bool = False,  # Pointer qualifier only
+        pointer: bool = False,
+        array: int | None = None,
+    ) -> StructMember:
+        """Creates a new StructMember and appends it to the list of elements."""
         member = StructMember(name, data_type, const, pointer, array)
         self.members.append(member)
         return member
 
 
 class TypeDef(DataType):
-    """
-    Type definition (typedef)
-    """
-    def __init__(self,
-                 name: str,
-                 base_type: Union[str, "DataType", "Declaration"],
-                 const: bool = False,
-                 pointer: bool = False,
-                 volatile: bool = False,
-                 array: int | None = None) -> None:
+    """Type definition (typedef)."""
+
+    def __init__(
+        self,
+        name: str,
+        base_type: Union[str, "DataType", "Declaration"],
+        const: bool = False,
+        pointer: bool = False,
+        volatile: bool = False,
+        array: int | None = None,
+    ) -> None:
         super().__init__(name)
         self.const = const
         self.volatile = volatile
@@ -254,17 +252,17 @@ class TypeDef(DataType):
             self.base_type = Type(base_type)
         elif isinstance(base_type, Declaration):
             if not isinstance(base_type.element, DataType):
-                err_msg = f'base_type: Declaration must declare a type, not {str(type(base_type.element))}'
+                err_msg = f"base_type: Declaration must declare a type, not {str(type(base_type.element))}"
             self.base_type = base_type
         else:
-            err_msg = 'base_type: Invalid type, expected "str" | "DataType" | "Declaration",'
-            err_msg += ' got {str(type(base_type))}'
+            err_msg = (
+                'base_type: Invalid type, expected "str" | "DataType" | "Declaration",'
+            )
+            err_msg += " got {str(type(base_type))}"
             raise TypeError(err_msg)
 
     def qualifier(self, name) -> bool:
-        """
-        Returns the status of named qualifier
-        """
+        """Returns the status of named qualifier."""
         if name == "const":
             return self.const
         if name == "volatile":
@@ -274,17 +272,18 @@ class TypeDef(DataType):
 
 
 class Variable(Element):
-    """
-    Variable declaration
-    """
-    def __init__(self,
-                 name: str,
-                 data_type: str | DataType,
-                 const: bool = False,    # Only used as pointer qualifier
-                 pointer: bool = False,
-                 extern: bool = False,
-                 static: bool = False,
-                 array: int | None = None) -> None:
+    """Variable declaration."""
+
+    def __init__(
+        self,
+        name: str,
+        data_type: str | DataType,
+        const: bool = False,  # Only used as pointer qualifier
+        pointer: bool = False,
+        extern: bool = False,
+        static: bool = False,
+        array: int | None = None,
+    ) -> None:
         self.name = name
         self.const = const
         self.pointer = pointer
@@ -299,9 +298,7 @@ class Variable(Element):
             raise TypeError(str(type(data_type)))
 
     def qualifier(self, name) -> bool:
-        """
-        Returns the status of named qualifier
-        """
+        """Returns the status of named qualifier."""
         if name == "const":
             return self.const  # pointer qualifier, not the same as as type qualifier
         if name == "static":
@@ -313,16 +310,17 @@ class Variable(Element):
 
 
 class Function(Element):
-    """
-    Function declaration
-    """
-    def __init__(self,
-                 name: str,
-                 return_type: str | DataType | None = None,
-                 static: bool = False,
-                 const: bool = False,  # const function (as seen in C++)
-                 extern: bool = False,
-                 params: Variable | list[Variable] | None = None) -> None:
+    """Function declaration."""
+
+    def __init__(
+        self,
+        name: str,
+        return_type: str | DataType | None = None,
+        static: bool = False,
+        const: bool = False,  # const function (as seen in C++)
+        extern: bool = False,
+        params: Variable | list[Variable] | None = None,
+    ) -> None:
         self.name = name
         self.static = static
         self.const = const
@@ -344,38 +342,40 @@ class Function(Element):
                     self.append(param)
 
     def append(self, param: Variable) -> "Function":
-        """
-        Adds new function parameter
-        """
+        """Adds new function parameter."""
         if not isinstance(param, (Variable)):
             raise TypeError("Expected Variable or FunctionPtr object")
         self.params.append(param)
         return self
 
-    def make_param(self,
-                   name: str,
-                   data_type: str | Type,
-                   const: bool = False,
-                   pointer: bool = False,
-                   array: int | None = None) -> "Function":
-        """
-        Creates new Variable from arguments and adds as parameter
-        """
+    def make_param(
+        self,
+        name: str,
+        data_type: str | Type,
+        const: bool = False,
+        pointer: bool = False,
+        array: int | None = None,
+    ) -> "Function":
+        """Creates new Variable from arguments and adds as parameter."""
         param = Variable(name, data_type, const=const, pointer=pointer, array=array)
         return self.append(param)
 
 
 class Declaration(Element):
     """
-    A declaration element
+    A declaration element.
+
     Valid sub-elements:
     - Variable
     - DataType (including struct)
     - Function
     """
-    def __init__(self,
-                 element: Union[Variable, Function, DataType],
-                 init_value: Any | None = None) -> None:
+
+    def __init__(
+        self,
+        element: Union[Variable, Function, DataType],
+        init_value: Any | None = None,
+    ) -> None:
         if isinstance(element, (Variable, Function, DataType)):
             self.element = element
             self.init_value = None
@@ -388,10 +388,11 @@ class Declaration(Element):
 
 
 class FunctionCall(Element):
-    """
-    Function call expression
-    """
-    def __init__(self, name: str, args: list[int | float | str | Element] | None = None) -> None:
+    """Function call expression."""
+
+    def __init__(
+        self, name: str, args: list[int | float | str | Element] | None = None
+    ) -> None:
         self.name = name
         self.args: list[str | Element] = []
         if args is not None:
@@ -399,9 +400,7 @@ class FunctionCall(Element):
                 self.append(arg)
 
     def append(self, arg: int | float | str | Element) -> "FunctionCall":
-        """
-        Appends argument to function call, can be chained
-        """
+        """Appends argument to function call, can be chained."""
         if isinstance(arg, (int, float)):
             self.args.append(str(arg))
         elif isinstance(arg, (str, Element)):
@@ -412,11 +411,9 @@ class FunctionCall(Element):
 
 
 class FunctionReturn(Element):
-    """
-    Function return expression
-    """
-    def __init__(self,
-                 expression: int | float | bool | str | Element) -> None:
+    """Function return expression."""
+
+    def __init__(self, expression: int | float | bool | str | Element) -> None:
         self.expression: str | Element
         if isinstance(expression, bool):
             self.expression = "true" if expression else "false"
@@ -429,9 +426,8 @@ class FunctionReturn(Element):
 
 
 class Assignment(Element):
-    """
-    Assignment has a left-hand-side and right-hand-side expressions
-    """
+    """Assignment has a left-hand-side and right-hand-side expressions."""
+
     def __init__(self, lhs: Any, rhs: Any) -> None:
         self.lhs = self._check_and_convert(lhs)
         self.rhs = self._check_and_convert(rhs)
@@ -448,9 +444,8 @@ class Assignment(Element):
 
 
 class Statement(Element):
-    """
-    A statement can contain one or more expressions
-    """
+    """A statement can contain one or more expressions."""
+
     def __init__(self, expression: Any) -> None:
         parts = []
         if isinstance(expression, (list, tuple)):
@@ -472,17 +467,15 @@ class Statement(Element):
 
 
 class StringLiteral(Element):
-    """
-    String literal
-    """
+    """String literal."""
+
     def __init__(self, text: str) -> None:
         self.text = text
 
 
 class Sequence:
-    """
-    A sequence of statements, comments or whitespace
-    """
+    """A sequence of statements, comments or whitespace."""
+
     def __init__(self) -> None:
         self.elements: list[Union[Comment, Statement, "Sequence"]] = []
 
@@ -490,16 +483,12 @@ class Sequence:
         return len(self.elements)
 
     def append(self, elem: Any) -> "Sequence":
-        """
-        Appends one element to this sequence
-        """
+        """Appends one element to this sequence."""
         self.elements.append(elem)
         return self
 
     def extend(self, seq) -> "Sequence":
-        """
-        Extends this sequence with items from another sequence
-        """
+        """Extends this sequence with items from another sequence."""
         if isinstance(seq, Sequence):
             self.elements.extend(seq.elements)
         else:
@@ -508,6 +497,4 @@ class Sequence:
 
 
 class Block(Sequence):
-    """
-    A sequence wrapped in braces
-    """
+    """A sequence wrapped in braces."""

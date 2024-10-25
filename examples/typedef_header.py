@@ -21,11 +21,11 @@ code.append(C.blank())
 os_task_tag = C.struct("os_task_tag")
 code.append([C.statement(os_task_tag), C.line_comment("Forward declaration")])
 code.append(C.blank())
-struct = C.struct("os_alarm_cfg_tag",
-                  members=[C.struct_member("taskPtr", os_task_tag, pointer=True),
-                           C.struct_member("eventMask", "uint32_t"),
-                           C.struct_member("initDelayMs", "uint32_t"),
-                           C.struct_member("periodMs", "uint32_t")])
+struct = C.struct("os_alarm_cfg_tag", members=[
+    C.struct_member("taskPtr", os_task_tag, pointer=True),
+    C.struct_member("eventMask", "uint32_t"),
+    C.struct_member("initDelayMs", "uint32_t"),
+    C.struct_member("periodMs", "uint32_t")])
 code.append(C.statement(C.declaration(C.typedef("os_alarm_cfg_t", C.declaration(struct)))))
 code.append(C.blank())
 code.append(C.ifndef("__cplusplus"))
