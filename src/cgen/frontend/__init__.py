@@ -9,9 +9,101 @@ Key components:
 - Type inference and validation
 - Static constraint checking
 - Python subset validation
+- Static IR generation
 """
 
-# Import stubs for future implementation
+# AST Analysis Framework
+from .ast_analyzer import (
+    ASTAnalyzer,
+    AnalysisResult,
+    FunctionInfo,
+    VariableInfo,
+    TypeInfo,
+    StaticComplexity,
+    NodeType,
+    analyze_python_code,
+    analyze_python_file
+)
+
+# Type Inference System
+from .type_inference import (
+    TypeInferenceEngine,
+    InferenceResult,
+    InferenceMethod,
+    TypeConstraint
+)
+
+# Static Constraint Checking
+from .constraint_checker import (
+    StaticConstraintChecker,
+    ConstraintReport,
+    ConstraintViolation,
+    ConstraintSeverity,
+    ConstraintCategory
+)
+
+# Python Subset Validation
+from .subset_validator import (
+    StaticPythonSubsetValidator,
+    ValidationResult,
+    FeatureRule,
+    SubsetTier,
+    FeatureStatus
+)
+
+# Static IR
+from .static_ir import (
+    IRModule,
+    IRFunction,
+    IRVariable,
+    IRStatement,
+    IRExpression,
+    IRType,
+    IRDataType,
+    IRBuilder,
+    build_ir_from_code
+)
+
 __all__ = [
-    # Will be implemented in Phase 2
+    # AST Analysis
+    "ASTAnalyzer",
+    "AnalysisResult",
+    "FunctionInfo",
+    "VariableInfo",
+    "TypeInfo",
+    "StaticComplexity",
+    "NodeType",
+    "analyze_python_code",
+    "analyze_python_file",
+
+    # Type Inference
+    "TypeInferenceEngine",
+    "InferenceResult",
+    "InferenceMethod",
+    "TypeConstraint",
+
+    # Constraint Checking
+    "StaticConstraintChecker",
+    "ConstraintReport",
+    "ConstraintViolation",
+    "ConstraintSeverity",
+    "ConstraintCategory",
+
+    # Subset Validation
+    "StaticPythonSubsetValidator",
+    "ValidationResult",
+    "FeatureRule",
+    "SubsetTier",
+    "FeatureStatus",
+
+    # Static IR
+    "IRModule",
+    "IRFunction",
+    "IRVariable",
+    "IRStatement",
+    "IRExpression",
+    "IRType",
+    "IRDataType",
+    "IRBuilder",
+    "build_ir_from_code",
 ]
