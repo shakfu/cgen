@@ -7,7 +7,7 @@ import os
 # Add the src directory to the path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
-from cfile.py2c import PythonToCConverter, convert_python_to_c, UnsupportedFeatureError, TypeMappingError
+from cgen.core.py2c import PythonToCConverter, convert_python_to_c, UnsupportedFeatureError, TypeMappingError
 
 
 class TestPythonToCConverter(unittest.TestCase):
