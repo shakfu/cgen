@@ -2,7 +2,7 @@
 
 ## Executive Summary
 
-This plan outlines the transformation of the current `cfile` library into a comprehensive three-layer code generation platform called **CGen**, implementing the revolutionary architecture where unconstrained Python at code-generation-time optimizes static Python into highly efficient C code.
+This plan outlines the transformation of the current `cfile` library into a comprehensive three-layer code generation platform called **CGen**, implementing the revolutionary architecture where unconstrained Python at code-generation-time optimizes static Python into highly efficient and readable C code.
 
 ## Project Vision and Goals
 
@@ -15,6 +15,7 @@ Create a revolutionary code generation platform that breaks through traditional 
 3. **Intelligence**: Use unlimited computational resources for optimization
 4. **Extensibility**: Enable domain-specific optimizations and plugins
 5. **Reliability**: Ensure mathematical correctness and provable safety
+6. **Readability**: Ensure that the generated C code is readable and straightforward to understand.
 
 ### Success Metrics
 - 10-100x performance improvement over CPython for computational code
