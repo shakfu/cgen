@@ -248,16 +248,16 @@ class Writer(Formatter):
     def _format_block_comment(
         self, lines: list[str], wrap_text: bool, width: int, line_start: str
     ) -> None:
-        self._write(f"/{'*'*width}")
+        self._write(f"/{'*' * width}")
         if wrap_text:
             self._eol()
             for line in lines:
                 self._write_line(line_start + line)
-            self._write_line(f"{'*'*(width+1)}/")
+            self._write_line(f"{'*' * (width + 1)}/")
         else:
             for line in lines[:-1]:
                 self._write_line(line_start + line)
-            self._write(lines[-1] + f"{'*'*width}/")
+            self._write(lines[-1] + f"{'*' * width}/")
 
     def _write_declaration(self, elem: core.Declaration) -> None:
         """Declares type, typedef, variable or function."""
@@ -341,6 +341,43 @@ class Writer(Formatter):
                 result += " *"
         return result
 
+    def _format_pointer_spacing(self, has_pointer: bool, is_const: bool, data_type: Any) -> str:
+        """Format pointer spacing according to style options."""
+        result = ""
+        if has_pointer:
+            if is_const:
+                if self.style.space_around_pointer_qualifiers == c_style.SpaceLocation.DEFAULT:
+                    if self.style.pointer_alignment == c_style.Alignment.LEFT:
+                        result += "* const "
+                    elif self.style.pointer_alignment == c_style.Alignment.RIGHT:
+                        result += "*const "
+                    elif self.style.pointer_alignment == c_style.Alignment.MIDDLE:
+                        result += " * const "
+                    else:
+                        raise ValueError(self.style.pointer_alignment)
+                else:
+                    raise NotImplementedError(
+                        "Only default space location supported for pointer qualifiers"
+                    )
+            else:
+                if self.style.pointer_alignment == c_style.Alignment.LEFT:
+                    result += "* "
+                elif self.style.pointer_alignment == c_style.Alignment.RIGHT:
+                    if isinstance(data_type, core.Type) and data_type.pointer:
+                        result += "*"
+                    else:
+                        result += " *"
+                elif self.style.pointer_alignment == c_style.Alignment.MIDDLE:
+                    result += " * "
+                else:
+                    raise ValueError(self.style.pointer_alignment)
+        elif isinstance(data_type, core.Type):
+            if not (data_type.pointer and self.style.pointer_alignment == c_style.Alignment.RIGHT):
+                result += " "
+        else:
+            result += " "
+        return result
+
     def _write_variable_usage(self, elem: core.Variable) -> None:
         """Writes variable usage."""
         self._write(elem.name)
@@ -362,45 +399,8 @@ class Writer(Formatter):
             self._write_typedef_usage(elem.data_type)
         else:
             raise NotImplementedError(str(type(elem.data_type)))
-        result = ""
-        if elem.pointer:
-            if elem.const:
-                if (
-                    self.style.space_around_pointer_qualifiers
-                    == c_style.SpaceLocation.DEFAULT
-                ):
-                    if self.style.pointer_alignment == c_style.Alignment.LEFT:
-                        result += "* const "
-                    elif self.style.pointer_alignment == c_style.Alignment.RIGHT:
-                        result += "*const "
-                    elif self.style.pointer_alignment == c_style.Alignment.MIDDLE:
-                        result += " * const "
-                    else:
-                        raise ValueError(self.style.pointer_alignment)
-                else:
-                    raise NotImplementedError(
-                        "Only default space location supported for pointer qualifiers"
-                    )
-            else:
-                if self.style.pointer_alignment == c_style.Alignment.LEFT:
-                    result += "* "
-                elif self.style.pointer_alignment == c_style.Alignment.RIGHT:
-                    if isinstance(elem.data_type, core.Type) and elem.data_type.pointer:
-                        result += "*"
-                    else:
-                        result += " *"
-                elif self.style.pointer_alignment == c_style.Alignment.MIDDLE:
-                    result += " * "
-                else:
-                    raise ValueError(self.style.pointer_alignment)
-        elif isinstance(elem.data_type, core.Type):
-            if not (
-                elem.data_type.pointer
-                and self.style.pointer_alignment == c_style.Alignment.RIGHT
-            ):
-                result += " "
-        else:
-            result += " "
+
+        result = self._format_pointer_spacing(elem.pointer, elem.const, elem.data_type)
         result += elem.name
         if elem.array is not None:
             result += f"[{elem.array}]"
@@ -427,43 +427,8 @@ class Writer(Formatter):
             self._write_declaration(elem.base_type)
         else:
             raise NotImplementedError(str(type(elem.base_type)))
-        result = ""
-        if elem.pointer:
-            if elem.const:
-                if (
-                    self.style.space_around_pointer_qualifiers
-                    == c_style.SpaceLocation.DEFAULT
-                ):
-                    if self.style.pointer_alignment == c_style.Alignment.LEFT:
-                        result += "* const "
-                    elif self.style.pointer_alignment == c_style.Alignment.RIGHT:
-                        result += "*const "
-                    elif self.style.pointer_alignment == c_style.Alignment.MIDDLE:
-                        result += " * const "
-                    else:
-                        raise ValueError(self.style.pointer_alignment)
-                else:
-                    raise NotImplementedError(
-                        "Only default space location supported for pointer qualifiers"
-                    )
-            else:
-                if self.style.pointer_alignment == c_style.Alignment.LEFT:
-                    result += "* "
-                elif self.style.pointer_alignment == c_style.Alignment.RIGHT:
-                    if isinstance(elem.base_type, core.Type) and elem.base_type.pointer:
-                        result += "*"
-                    else:
-                        result += " *"
-                elif self.style.pointer_alignment == c_style.Alignment.MIDDLE:
-                    result += " * "
-                else:
-                    raise ValueError(self.style.pointer_alignment)
-        else:
-            if not (
-                (isinstance(elem.base_type, core.Type) and elem.base_type.pointer)
-                and (self.style.pointer_alignment == c_style.Alignment.RIGHT)
-            ):
-                result += " "
+
+        result = self._format_pointer_spacing(elem.pointer, elem.const, elem.base_type)
         assert elem.name is not None
         result += elem.name
         if elem.array is not None:
@@ -617,44 +582,8 @@ class Writer(Formatter):
             self._write_struct_usage(elem.data_type)
         else:
             raise NotImplementedError(str(type(elem.data_type)))
-        result = ""
-        if elem.pointer:
-            if elem.const:
-                if (
-                    self.style.space_around_pointer_qualifiers
-                    == c_style.SpaceLocation.DEFAULT
-                ):
-                    if self.style.pointer_alignment == c_style.Alignment.LEFT:
-                        result += "* const "
-                    elif self.style.pointer_alignment == c_style.Alignment.RIGHT:
-                        result += "*const "
-                    elif self.style.pointer_alignment == c_style.Alignment.MIDDLE:
-                        result += " * const "
-                    else:
-                        raise ValueError(self.style.pointer_alignment)
-                else:
-                    raise NotImplementedError(
-                        "Only default space location supported for pointer qualifiers"
-                    )
-            else:
-                if self.style.pointer_alignment == c_style.Alignment.LEFT:
-                    result += "* "
-                elif self.style.pointer_alignment == c_style.Alignment.RIGHT:
-                    if isinstance(elem.data_type, core.Type) and elem.data_type.pointer:
-                        result += "*"
-                    else:
-                        result += " *"
-                elif self.style.pointer_alignment == c_style.Alignment.MIDDLE:
-                    result += " * "
-                else:
-                    raise ValueError(self.style.pointer_alignment)
-        else:
-            if not (
-                isinstance(elem.data_type, core.Type)
-                and elem.data_type.pointer
-                and (self.style.pointer_alignment == c_style.Alignment.RIGHT)
-            ):
-                result += " "
+
+        result = self._format_pointer_spacing(elem.pointer, elem.const, elem.data_type)
         result += elem.name
         if elem.array is not None:
             result += f"[{elem.array}]"
@@ -671,21 +600,21 @@ class Writer(Formatter):
 
     def _write_define_directive(self, elem: core.DefineDirective) -> None:
         if elem.right is not None:
-            self._write(f"#{' '*elem.adjust}define {elem.left} {elem.right}")
+            self._write(f"#{' ' * elem.adjust}define {elem.left} {elem.right}")
         else:
-            self._write(f"#{' '*elem.adjust}define {elem.left}")
+            self._write(f"#{' ' * elem.adjust}define {elem.left}")
         self.last_element = ElementType.DIRECTIVE
 
     def _write_ifdef_directive(self, elem: core.IfdefDirective) -> None:
-        self._write(f"#{' '*elem.adjust}ifdef {elem.identifier}")
+        self._write(f"#{' ' * elem.adjust}ifdef {elem.identifier}")
         self.last_element = ElementType.DIRECTIVE
 
     def _write_ifndef_directive(self, elem: core.IfndefDirective) -> None:
-        self._write(f"#{' '*elem.adjust}ifndef {elem.identifier}")
+        self._write(f"#{' ' * elem.adjust}ifndef {elem.identifier}")
         self.last_element = ElementType.DIRECTIVE
 
     def _write_endif_directive(self, elem: core.EndifDirective) -> None:
-        self._write(f"#{' '*elem.adjust}endif")
+        self._write(f"#{' ' * elem.adjust}endif")
         self.last_element = ElementType.DIRECTIVE
 
     def _write_extern(self, elem: core.Extern) -> None:

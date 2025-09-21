@@ -1,6 +1,17 @@
 """Cfile core."""
 
+import re
 from typing import Union, Any
+
+
+def _validate_c_identifier(name: str, context: str = "identifier") -> None:
+    """Validate that a string is a valid C identifier."""
+    if not isinstance(name, str):
+        raise TypeError(f"{context} must be a string, got {type(name)}")
+    if not name:
+        raise ValueError(f"{context} cannot be empty")
+    if not re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', name):
+        raise ValueError(f"'{name}' is not a valid C {context}")
 
 
 class Element:
@@ -144,6 +155,13 @@ class Type(DataType):
         array: int | None = None,
     ) -> None:  # Only used for typedefs to other array types
         super().__init__(None)
+        if isinstance(base_type, str):
+            if not base_type.strip():
+                raise ValueError("type name cannot be empty")
+        elif not isinstance(base_type, Type):
+            raise TypeError(f"base_type must be str or Type, got {type(base_type)}")
+        if array is not None and (not isinstance(array, int) or array < 0):
+            raise ValueError("array size must be a non-negative integer or None")
         self.base_type = base_type
         self.const = const
         self.volatile = volatile
@@ -177,6 +195,9 @@ class StructMember(Element):
         pointer: bool = False,
         array: int | None = None,
     ) -> None:
+        _validate_c_identifier(name, "struct member name")
+        if array is not None and (not isinstance(array, int) or array < 0):
+            raise ValueError("array size must be a non-negative integer or None")
         self.name = name
         self.const = const
         self.pointer = pointer
@@ -186,7 +207,7 @@ class StructMember(Element):
         elif isinstance(data_type, str):
             self.data_type = Type(data_type)
         else:
-            raise TypeError(str(type(data_type)))
+            raise TypeError(f"data_type must be str or DataType, got {type(data_type)}")
 
 
 class Struct(DataType):
@@ -195,6 +216,8 @@ class Struct(DataType):
     def __init__(
         self, name: str | None, members: StructMember | list[StructMember] | None = None
     ) -> None:
+        if name is not None:
+            _validate_c_identifier(name, "struct name")
         super().__init__(name)
         self.members: list[StructMember] = []
         if members is not None:
@@ -204,7 +227,7 @@ class Struct(DataType):
                 for member in members:
                     self.append(member)
             else:
-                raise TypeError('Invalid argument type for "elements"')
+                raise TypeError("members must be StructMember, list of StructMembers, or None")
 
     def append(self, member: StructMember) -> None:
         """Appends new element to the struct definition."""
@@ -258,7 +281,7 @@ class TypeDef(DataType):
             err_msg = (
                 'base_type: Invalid type, expected "str" | "DataType" | "Declaration",'
             )
-            err_msg += " got {str(type(base_type))}"
+            err_msg += f" got {str(type(base_type))}"
             raise TypeError(err_msg)
 
     def qualifier(self, name) -> bool:
@@ -284,6 +307,9 @@ class Variable(Element):
         static: bool = False,
         array: int | None = None,
     ) -> None:
+        _validate_c_identifier(name, "variable name")
+        if array is not None and (not isinstance(array, int) or array < 0):
+            raise ValueError("array size must be a non-negative integer or None")
         self.name = name
         self.const = const
         self.pointer = pointer
@@ -295,7 +321,7 @@ class Variable(Element):
         elif isinstance(data_type, str):
             self.data_type = Type(data_type)
         else:
-            raise TypeError(str(type(data_type)))
+            raise TypeError(f"data_type must be str or DataType, got {type(data_type)}")
 
     def qualifier(self, name) -> bool:
         """Returns the status of named qualifier."""
@@ -321,6 +347,7 @@ class Function(Element):
         extern: bool = False,
         params: Variable | list[Variable] | None = None,
     ) -> None:
+        _validate_c_identifier(name, "function name")
         self.name = name
         self.static = static
         self.const = const
@@ -332,7 +359,7 @@ class Function(Element):
         elif return_type is None:  # None is a synomym for void
             self.return_type = Type("void")
         else:
-            raise TypeError(str(type(return_type)))
+            raise TypeError(f"return_type must be str, DataType, or None, got {type(return_type)}")
         self.params: list[Variable] = []
         if params is not None:
             if isinstance(params, Variable):
@@ -340,6 +367,8 @@ class Function(Element):
             elif isinstance(params, list):
                 for param in params:
                     self.append(param)
+            else:
+                raise TypeError("params must be Variable, list of Variables, or None")
 
     def append(self, param: Variable) -> "Function":
         """Adds new function parameter."""

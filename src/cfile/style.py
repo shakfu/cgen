@@ -10,9 +10,9 @@ class BreakBeforeBraces(Enum):
     ALLMAN = 0  # Always break
     ALWAYS = 0  # same as ALLMAN
     ATTACH = 1  # Always attach braces to surrounding context
-    NEVER = 1   # Same as ATTACH
+    NEVER = 1  # Same as ATTACH
     CUSTOM = 2  # Custom control using BraceWrapping object
-    LINUX = 3   # Like ATTACH but break before function
+    LINUX = 3  # Like ATTACH but break before function
 
 
 class SpaceLocation(Enum):
@@ -96,8 +96,7 @@ class StyleOptions:
         break_before_braces: BreakBeforeBraces = BreakBeforeBraces.ALLMAN,
         indent_width: int = 4,
         indent_char: str = " ",
-        brace_wrapping: BraceWrapping
-        | None = None,  # Only used when break_before_braces is CUSTOM
+        brace_wrapping: BraceWrapping | None = None,  # Only used when break_before_braces is CUSTOM
         pointer_alignment: Alignment = Alignment.LEFT,
         space_around_pointer_qualifiers: SpaceLocation = SpaceLocation.DEFAULT,
         type_qualifier_order: list[str] | tuple[str] | None = None,
