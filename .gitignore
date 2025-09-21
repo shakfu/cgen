@@ -1,3 +1,4 @@
+.DS_Store
 .venv/
 build/
 dist/
@@ -5,3 +6,13 @@ sandbox/
 usage_tests/
 **/cfile.egg-info/
 **/__pycache__/
+
+# cache
+.*_cache
+
+# editors
+.vscode
+
+# claude
+.claude
+CLAUDE.md
