@@ -119,6 +119,7 @@ Examples:
         analyze_parser.add_argument("--subset", action="store_true", help="Show subset validation")
         analyze_parser.add_argument("--ir", action="store_true", help="Show static IR")
         analyze_parser.add_argument("--all", action="store_true", help="Show all analysis results")
+        analyze_parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
 
     def _add_verify_command(self, subparsers):
         """Add verify command."""
@@ -602,7 +603,8 @@ Examples:
         ast_node = ast.parse(code)
         analyzer = ASTAnalyzer()
         analysis_result = analyzer.analyze(code)
-        return AnalysisContext(code, ast_node, analysis_result, analysis_level, optimization_level)
+        return AnalysisContext(source_code=code, ast_node=ast_node, analysis_result=analysis_result,
+                              analysis_level=analysis_level, optimization_level=optimization_level)
 
     def _get_optimization_level(self, level_str: str) -> OptimizationLevel:
         """Convert string to OptimizationLevel."""

@@ -108,7 +108,10 @@ def fibonacci(n):
     def test_version_command(self):
         """Test version command."""
         with patch('sys.stdout', new_callable=StringIO) as mock_stdout:
-            result = self.cli._handle_version()
+            # Create a mock args object since _handle_version expects args parameter
+            from argparse import Namespace
+            args = Namespace()
+            result = self.cli._handle_version(args)
             self.assertEqual(result, 0)
             output = mock_stdout.getvalue()
             self.assertIn('CGen', output)
@@ -168,7 +171,7 @@ def fibonacci(n):
             OptimizationLevel.AGGRESSIVE
         )
 
-        self.assertEqual(context.code, self.test_code)
+        self.assertEqual(context.source_code, self.test_code)
         self.assertEqual(context.analysis_level, AnalysisLevel.COMPREHENSIVE)
         self.assertEqual(context.optimization_level, OptimizationLevel.AGGRESSIVE)
         self.assertIsNotNone(context.ast_node)
