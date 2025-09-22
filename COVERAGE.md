@@ -17,9 +17,12 @@
 - ✅ **While loops**: Complete implementation via `WhileLoop` class
 - ✅ **For loops**: Full support via `ForLoop` class with init/condition/increment
 - ✅ **Do-while loops**: Complete implementation via `DoWhileLoop` class
+- ✅ **Switch statements**: Complete implementation via `SwitchStatement`, `CaseStatement`, `DefaultCase` classes
 - ✅ **Function calls**: `FunctionCall` with arguments
 - ✅ **Return statements**: `FunctionReturn` with expressions
 - ✅ **Break/continue**: Loop control statements via `BreakStatement`, `ContinueStatement`
+- ✅ **Goto statements**: Unconditional jumps via `GotoStatement` class
+- ✅ **Labels**: Code marking and goto targets via `Label` class
 
 #### Functions
 - ✅ **Function declarations**: Complete with return types, parameters, storage classes
@@ -79,9 +82,7 @@
 - **Fixed-width integer types**: No `int32_t`, `uint64_t`, etc.
 
 #### Control Flow
-- **Switch statements**: Not implemented
-- **Goto statements**: Not implemented
-- **Labels**: Not implemented
+- **Complex control flow**: All basic control flow elements now implemented
 
 #### C11 Advanced Features
 - **Atomic operations**: `_Atomic` types not implemented

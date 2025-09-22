@@ -23,6 +23,12 @@ from .core import (
     StaticAssert,
     GenericSelection,
     FunctionPointerDeclaration,
+    # Additional Control Flow elements
+    SwitchStatement,
+    CaseStatement,
+    DefaultCase,
+    GotoStatement,
+    Label,
 )
 
 __all__ = [
@@ -53,4 +59,10 @@ __all__ = [
     "StaticAssert",
     "GenericSelection",
     "FunctionPointerDeclaration",
+    # Additional Control Flow elements
+    "SwitchStatement",
+    "CaseStatement",
+    "DefaultCase",
+    "GotoStatement",
+    "Label",
 ]

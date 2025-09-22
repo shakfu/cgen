@@ -315,3 +315,37 @@ class CFactory:
     ) -> "core.FunctionPointerDeclaration":
         """New function pointer variable declaration."""
         return core.FunctionPointerDeclaration(pointer_name, return_type, parameters, const, static)
+
+    # Additional Control Flow Elements
+
+    def switch_statement(
+        self,
+        expression: Union[str, core.Element],
+        cases: "list[core.CaseStatement] | None" = None,
+        default_case: "core.DefaultCase | None" = None
+    ) -> "core.SwitchStatement":
+        """New switch statement for multi-way branching."""
+        return core.SwitchStatement(expression, cases, default_case)
+
+    def case_statement(
+        self,
+        value: Union[str, int, core.Element],
+        statements: "Any | list[Any] | None" = None
+    ) -> "core.CaseStatement":
+        """New case statement within a switch."""
+        return core.CaseStatement(value, statements)
+
+    def default_case(
+        self,
+        statements: "Any | list[Any] | None" = None
+    ) -> "core.DefaultCase":
+        """New default case within a switch statement."""
+        return core.DefaultCase(statements)
+
+    def goto_statement(self, label: str) -> "core.GotoStatement":
+        """New goto statement for unconditional jumps."""
+        return core.GotoStatement(label)
+
+    def label(self, name: str) -> "core.Label":
+        """New label for goto statements and code marking."""
+        return core.Label(name)

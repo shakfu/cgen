@@ -140,6 +140,12 @@ class Writer(Formatter):
             "StaticAssert": self._write_static_assert,
             "GenericSelection": self._write_generic_selection,
             "FunctionPointerDeclaration": self._write_function_pointer_declaration,
+            # Additional Control Flow elements
+            "SwitchStatement": self._write_switch_statement,
+            "CaseStatement": self._write_case_statement,
+            "DefaultCase": self._write_default_case,
+            "GotoStatement": self._write_goto_statement,
+            "Label": self._write_label,
         }
         self.last_element = ElementType.NONE
 
@@ -1147,4 +1153,97 @@ class Writer(Formatter):
         self._write(")")
 
         self.last_element = ElementType.VARIABLE_DECLARATION
+
+    # Additional Control Flow Writers
+
+    def _write_switch_statement(self, elem) -> None:
+        """Write switch statement."""
+        self._write("switch (")
+        if isinstance(elem.expression, (str, int, float)):
+            self._write(str(elem.expression))
+        else:
+            self._write_element(elem.expression)
+        self._write(")")
+
+        # Handle brace style
+        if self.style.break_before_braces == BreakBeforeBraces.ATTACH:
+            self._write(" {")
+        else:
+            self._eol()
+            self._write("{")
+
+        self._eol()
+        self._indent()
+
+        # Write cases
+        for case in elem.cases:
+            self._write_element(case)
+
+        # Write default case if present
+        if elem.default_case:
+            self._write_element(elem.default_case)
+
+        self._dedent()
+        self._write("}")
+
+        self.last_element = ElementType.STATEMENT
+
+    def _write_case_statement(self, elem) -> None:
+        """Write case statement."""
+        self._write("case ")
+        if isinstance(elem.value, (str, int, float)):
+            self._write(str(elem.value))
+        else:
+            self._write_element(elem.value)
+        self._write(":")
+        self._eol()
+
+        # Write case statements with indentation
+        if elem.statements:
+            self._indent()
+            for statement in elem.statements:
+                if isinstance(statement, str):
+                    self._write_line(statement)
+                else:
+                    self._write_element(statement)
+                    if not hasattr(statement, '__class__') or statement.__class__.__name__ not in ['Block']:
+                        self._write(";")
+                    self._eol()
+            self._dedent()
+
+        self.last_element = ElementType.STATEMENT
+
+    def _write_default_case(self, elem) -> None:
+        """Write default case."""
+        self._write("default:")
+        self._eol()
+
+        # Write default statements with indentation
+        if elem.statements:
+            self._indent()
+            for statement in elem.statements:
+                if isinstance(statement, str):
+                    self._write_line(statement)
+                else:
+                    self._write_element(statement)
+                    if not hasattr(statement, '__class__') or statement.__class__.__name__ not in ['Block']:
+                        self._write(";")
+                    self._eol()
+            self._dedent()
+
+        self.last_element = ElementType.STATEMENT
+
+    def _write_goto_statement(self, elem) -> None:
+        """Write goto statement."""
+        self._write("goto ")
+        self._write(elem.label)
+
+        self.last_element = ElementType.STATEMENT
+
+    def _write_label(self, elem) -> None:
+        """Write label."""
+        self._write(elem.name)
+        self._write(":")
+
+        self.last_element = ElementType.STATEMENT
 

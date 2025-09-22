@@ -900,3 +900,71 @@ class FunctionPointerDeclaration(Element):
         self.const = const
         self.static = static
 
+
+# Additional Control Flow Elements
+
+class SwitchStatement(Element):
+    """Switch statement for multi-way branching."""
+
+    def __init__(self, expression: Any, cases: "list[CaseStatement] | None" = None, default_case: "DefaultCase | None" = None) -> None:
+        if isinstance(expression, str):
+            if not expression.strip():
+                raise ValueError("switch expression cannot be empty")
+        self.expression = expression
+        self.cases = cases or []
+        self.default_case = default_case
+
+    def add_case(self, case: "CaseStatement") -> None:
+        """Add a case to the switch statement."""
+        self.cases.append(case)
+
+    def set_default(self, default_case: "DefaultCase") -> None:
+        """Set the default case for the switch statement."""
+        self.default_case = default_case
+
+
+class CaseStatement(Element):
+    """Case statement within a switch."""
+
+    def __init__(self, value: Any, statements: "Any | list[Any] | None" = None) -> None:
+        if isinstance(value, str):
+            if not value.strip():
+                raise ValueError("case value cannot be empty")
+        self.value = value
+        self.statements = statements or []
+        if not isinstance(self.statements, list):
+            self.statements = [self.statements]
+
+    def add_statement(self, statement: Any) -> None:
+        """Add a statement to this case."""
+        self.statements.append(statement)
+
+
+class DefaultCase(Element):
+    """Default case within a switch statement."""
+
+    def __init__(self, statements: "Any | list[Any] | None" = None) -> None:
+        self.statements = statements or []
+        if not isinstance(self.statements, list):
+            self.statements = [self.statements]
+
+    def add_statement(self, statement: Any) -> None:
+        """Add a statement to the default case."""
+        self.statements.append(statement)
+
+
+class GotoStatement(Element):
+    """Goto statement for unconditional jumps."""
+
+    def __init__(self, label: str) -> None:
+        _validate_c_identifier(label, "goto label")
+        self.label = label
+
+
+class Label(Element):
+    """Label for goto statements and general code marking."""
+
+    def __init__(self, name: str) -> None:
+        _validate_c_identifier(name, "label name")
+        self.name = name
+
