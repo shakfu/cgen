@@ -9,16 +9,10 @@
 #define GRID_HEIGHT 20
 #define DEAD 0
 #define ALIVE 1
-/* Pattern coordinates as arrays */
-int glider_pattern[][2] = {{1, 0}, {2, 1}, {0, 2}, {1, 2}, {2, 2}};
-int blinker_pattern[][2] = {{1, 0}, {1, 1}, {1, 2}};
-int toad_pattern[][2] = {{1, 1}, {2, 1}, {3, 1}, {0, 2}, {1, 2}, {2, 2}};
-int beacon_pattern[][2] = {{0, 0}, {1, 0}, {0, 1}, {2, 3}, {3, 2}, {3, 3}};
-
-#define GLIDER_PATTERN_SIZE 5
-#define BLINKER_PATTERN_SIZE 3
-#define TOAD_PATTERN_SIZE 6
-#define BEACON_PATTERN_SIZE 6
+#define GLIDER_PATTERN {{1, 0}, {2, 1}, {0, 2}, {1, 2}, {2, 2}}
+#define BLINKER_PATTERN {{1, 0}, {1, 1}, {1, 2}}
+#define TOAD_PATTERN {{1, 1}, {2, 1}, {3, 1}, {0, 2}, {1, 2}, {2, 2}}
+#define BEACON_PATTERN {{0, 0}, {1, 0}, {0, 1}, {2, 3}, {3, 2}, {3, 3}}
 
 int** create_empty_grid(int width, int height) {
     int** grid = (int**)malloc(height * sizeof(int*));
@@ -51,7 +45,7 @@ int** copy_grid(int** source, int width, int height) {
 }
 
 void set_cell(int** grid, int x, int y, int state, int width, int height) {
-    if ((x >= 0 && x < width && y >= 0 && y < height)) {
+    if (x >= 0 && x < width && y >= 0 && y < height) {
         grid[y][x] = state;
     }
 }
@@ -164,11 +158,13 @@ void print_grid(int** grid, int width, int height) {
     printf("%s\n", "+");
 }
 
-void initialize_pattern(int** grid, int pattern[][2], int pattern_size, int offset_x, int offset_y, int width, int height) {
+void initialize_pattern(int** grid, void** pattern, int offset_x, int offset_y, int width, int height) {
     int i = 0;
-    while (i < pattern_size) {
-        int x = (pattern[i][0] + offset_x);
-        int y = (pattern[i][1] + offset_y);
+    int pattern_length = (sizeof(pattern)/sizeof(pattern[0]));
+    while (i < pattern_length) {
+        void* coord = pattern[i];
+        int x = (coord[0] + offset_x);
+        int y = (coord[1] + offset_y);
         set_cell(grid, x, y, ALIVE, width, height);
         i = (i + 1);
     }
@@ -208,33 +204,31 @@ int detect_stilllife(int** grid, int width, int height) {
 }
 
 int detect_oscillator_period(int** grid, int width, int height, int max_period) {
-    int*** states = (int***)malloc(max_period * sizeof(int**));
+    int*** states = NULL;
     int** current = copy_grid(grid, width, height);
     int generation = 0;
-    int num_states = 0;
     while (generation < max_period) {
         int i = 0;
-        while (i < num_states) {
+        while (i < (sizeof(states)/sizeof(states[0]))) {
             if (grids_equal(current, states[i], width, height)) {
                 return (generation - i);
             }
             i = (i + 1);
         }
-        states[num_states] = copy_grid(current, width, height);
-        num_states = (num_states + 1);
+        /* states.append(copy_grid(current, width, height)) - not implemented */;
         current = evolve_generation(current, width, height);
         generation = (generation + 1);
     }
     return 0;
 }
 
-void simulate_pattern(int pattern[][2], int pattern_size, char* pattern_name, int generations, int width, int height) {
+void simulate_pattern(void** pattern, char* pattern_name, int generations, int width, int height) {
     printf("%s\n", "Simulating VAR pattern:");
     printf("%s\n", "=");
     int** grid = create_empty_grid(width, height);
     int offset_x = ((width / 2) - 5);
     int offset_y = ((height / 2) - 5);
-    initialize_pattern(grid, pattern, pattern_size, offset_x, offset_y, width, height);
+    initialize_pattern(grid, pattern, offset_x, offset_y, width, height);
     printf("%s\n", "Generation 0:");
     int live_count = count_live_cells(grid, width, height);
     printf("%s\n", "Live cells: VAR");
@@ -267,7 +261,7 @@ void run_pattern_analysis(void) {
     printf("%s\n", "GLIDER ANALYSIS:");
     printf("%s\n", "-");
     int** grid = create_empty_grid(GRID_WIDTH, GRID_HEIGHT);
-    initialize_pattern(grid, glider_pattern, GLIDER_PATTERN_SIZE, 5, 5, GRID_WIDTH, GRID_HEIGHT);
+    initialize_pattern(grid, GLIDER_PATTERN, 5, 5, GRID_WIDTH, GRID_HEIGHT);
     int period = detect_oscillator_period(grid, GRID_WIDTH, GRID_HEIGHT, 10);
     if (period > 0) {
         printf("%s\n", "Glider period: VAR generations");
@@ -280,7 +274,7 @@ void run_pattern_analysis(void) {
     printf("%s\n", "BLINKER ANALYSIS:");
     printf("%s\n", "-");
     clear_grid(grid, GRID_WIDTH, GRID_HEIGHT);
-    initialize_pattern(grid, blinker_pattern, BLINKER_PATTERN_SIZE, 10, 10, GRID_WIDTH, GRID_HEIGHT);
+    initialize_pattern(grid, BLINKER_PATTERN, 10, 10, GRID_WIDTH, GRID_HEIGHT);
     period = detect_oscillator_period(grid, GRID_WIDTH, GRID_HEIGHT, 10);
     if (period > 0) {
         printf("%s\n", "Blinker period: VAR generations");
@@ -293,7 +287,7 @@ void run_pattern_analysis(void) {
     printf("%s\n", "BEACON ANALYSIS:");
     printf("%s\n", "-");
     clear_grid(grid, GRID_WIDTH, GRID_HEIGHT);
-    initialize_pattern(grid, beacon_pattern, BEACON_PATTERN_SIZE, 15, 8, GRID_WIDTH, GRID_HEIGHT);
+    initialize_pattern(grid, BEACON_PATTERN, 15, 8, GRID_WIDTH, GRID_HEIGHT);
     period = detect_oscillator_period(grid, GRID_WIDTH, GRID_HEIGHT, 10);
     if (period > 0) {
         printf("%s\n", "Beacon period: VAR generations");
@@ -309,10 +303,10 @@ void run_comprehensive_demo(void) {
     printf("%s\n", "Conway's Game of Life - Comprehensive Demo");
     printf("%s\n", "=");
     printf("\n");
-    simulate_pattern(blinker_pattern, BLINKER_PATTERN_SIZE, "Blinker", 3, 15, 10);
-    simulate_pattern(toad_pattern, TOAD_PATTERN_SIZE, "Toad", 3, 20, 12);
-    simulate_pattern(beacon_pattern, BEACON_PATTERN_SIZE, "Beacon", 3, 20, 12);
-    simulate_pattern(glider_pattern, GLIDER_PATTERN_SIZE, "Glider", 8, 25, 15);
+    simulate_pattern(BLINKER_PATTERN, "Blinker", 3, 15, 10);
+    simulate_pattern(TOAD_PATTERN, "Toad", 3, 20, 12);
+    simulate_pattern(BEACON_PATTERN, "Beacon", 3, 20, 12);
+    simulate_pattern(GLIDER_PATTERN, "Glider", 8, 25, 15);
     run_pattern_analysis();
 }
 
@@ -391,11 +385,10 @@ void run_evolution_study(void) {
     }
 }
 
-int main(void) {
+void main(void) {
     printf("%s\n", "Starting Conway's Game of Life simulation...");
     printf("\n");
     run_comprehensive_demo();
     run_evolution_study();
     printf("%s\n", "Game of Life simulation completed!");
-    return 0;
 }

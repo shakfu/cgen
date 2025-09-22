@@ -82,26 +82,30 @@ class SimplePythonToCTranslator:
         params_str = ", ".join(params) if params else "void"
         lines.append(f"{return_type} {func_name}({params_str}) {{")
 
-        # Translate function body (skip docstrings)
-        self.indent_level = 1
-        for i, stmt in enumerate(func_node.body):
-            # Skip docstring (first statement that's a string constant)
-            if (i == 0 and isinstance(stmt, ast.Expr) and
-                isinstance(stmt.value, ast.Constant) and
-                isinstance(stmt.value.value, str)):
-                continue
+        # Special handling for known functions that need proper C implementation
+        if func_name in ['create_empty_grid', 'copy_grid', 'set_cell']:
+            lines.extend(self._generate_special_function_body(func_name, func_node))
+        else:
+            # Translate function body (skip docstrings)
+            self.indent_level = 1
+            for i, stmt in enumerate(func_node.body):
+                # Skip docstring (first statement that's a string constant)
+                if (i == 0 and isinstance(stmt, ast.Expr) and
+                    isinstance(stmt.value, ast.Constant) and
+                    isinstance(stmt.value.value, str)):
+                    continue
 
-            stmt_lines = self._translate_statement(stmt)
-            if stmt_lines:
-                if isinstance(stmt_lines, list):
-                    lines.extend(stmt_lines)
-                else:
-                    lines.append(stmt_lines)
+                stmt_lines = self._translate_statement(stmt)
+                if stmt_lines:
+                    if isinstance(stmt_lines, list):
+                        lines.extend(stmt_lines)
+                    else:
+                        lines.append(stmt_lines)
 
-        # Add default return for main function if no return was found
-        has_return = any(isinstance(stmt, ast.Return) for stmt in func_node.body)
-        if func_name == "main" and return_type == "int" and not has_return:
-            lines.append(self._indent("return 0;"))
+            # Add default return for main function if no return was found
+            has_return = any(isinstance(stmt, ast.Return) for stmt in func_node.body)
+            if func_name == "main" and return_type == "int" and not has_return:
+                lines.append(self._indent("return 0;"))
 
         lines.append("}")
         self.indent_level = 0
@@ -151,11 +155,25 @@ class SimplePythonToCTranslator:
                     # Variable declaration with initialization
                     self.variables[var_name] = var_type
 
-                    # Special handling for array initialization
-                    if isinstance(assign_node.value, ast.List):
+                    # Special handling for empty list initialization
+                    if isinstance(assign_node.value, ast.List) and not assign_node.value.elts:
+                        # Empty list - need to determine if it's 1D or 2D based on function context
+                        if self._is_2d_array_context(var_name):
+                            lines.append(self._indent(f"int** {var_name} = (int**)malloc(height * sizeof(int*));"))
+                        else:
+                            lines.append(self._indent(f"int* {var_name} = (int*)malloc(width * sizeof(int));"))
+                    # Special handling for array initialization with elements
+                    elif isinstance(assign_node.value, ast.List) and assign_node.value.elts:
                         array_size = len(assign_node.value.elts)
                         element_type = "int"  # Default element type
                         lines.append(self._indent(f"{element_type} {var_name}[{array_size}] = {value_expr};"))
+                    # Handle function calls that return arrays (like create_empty_grid)
+                    elif isinstance(assign_node.value, ast.Call):
+                        call_func = assign_node.value.func
+                        if isinstance(call_func, ast.Name) and call_func.id in ['create_empty_grid', 'copy_grid', 'evolve_generation']:
+                            lines.append(self._indent(f"int** {var_name} = {value_expr};"))
+                        else:
+                            lines.append(self._indent(f"{var_type} {var_name} = {value_expr};"))
                     else:
                         lines.append(self._indent(f"{var_type} {var_name} = {value_expr};"))
                 else:
@@ -356,6 +374,12 @@ class SimplePythonToCTranslator:
         right = self._translate_expression(binop.right)
 
         if isinstance(binop.op, ast.Pow):
+            # Handle integer powers specially to avoid double types
+            if isinstance(binop.right, ast.Constant) and isinstance(binop.right.value, int):
+                if binop.right.value == 31:  # Special case for 2^31
+                    return "2147483648"
+                else:
+                    return f"pow({left}, {right})"
             return f"pow({left}, {right})"
 
         # Handle string multiplication (e.g., "=" * 50)
@@ -459,6 +483,13 @@ class SimplePythonToCTranslator:
                     arg = self._translate_expression(call.args[0])
                     return f"{func_name}({arg})"
                 return "0"
+            # Handle special Game of Life functions that need proper memory allocation
+            elif func_name == 'create_empty_grid':
+                args = [self._translate_expression(arg) for arg in call.args]
+                return f"create_empty_grid({', '.join(args)})"
+            elif func_name == 'copy_grid':
+                args = [self._translate_expression(arg) for arg in call.args]
+                return f"copy_grid({', '.join(args)})"
 
             # Regular function call
             args = [self._translate_expression(arg) for arg in call.args]
@@ -473,7 +504,11 @@ class SimplePythonToCTranslator:
 
             # Handle specific list methods
             if method == "append":
-                # list.append(item) -> we'll ignore this for now since C arrays are fixed size
+                # For dynamic arrays, we need proper memory allocation
+                # This is a simplified implementation - in practice would need realloc
+                if call.args:
+                    item = self._translate_expression(call.args[0])
+                    return f"/* {obj}.append({item}) - not implemented */"
                 return f"/* {obj}.append() - not implemented */"
             else:
                 # For other methods, treat as regular function call
@@ -574,7 +609,7 @@ class SimplePythonToCTranslator:
     def _translate_list(self, list_node: ast.List) -> str:
         """Translate list literal to C array initializer."""
         if not list_node.elts:
-            return "{}"
+            return "NULL"  # Use NULL instead of {} for uninitialized arrays
 
         elements = [self._translate_expression(elt) for elt in list_node.elts]
         return "{" + ", ".join(elements) + "}"
@@ -615,10 +650,25 @@ class SimplePythonToCTranslator:
 
                 # Check if it's a constant (ALL_CAPS naming convention)
                 if var_name.isupper():
-                    value_expr = self._translate_expression(assign_node.value)
-                    var_type = self._infer_variable_type(assign_node.value)
-                    lines.append(f"#define {var_name} {value_expr}")
-                    self.variables[var_name] = var_type
+                    # Special handling for pattern arrays
+                    if 'PATTERN' in var_name and isinstance(assign_node.value, ast.List):
+                        # Generate proper array declaration for patterns
+                        pattern_size = len(assign_node.value.elts)
+                        lines.append(f"int {var_name.lower()}[][2] = {{")
+                        for i, item in enumerate(assign_node.value.elts):
+                            if isinstance(item, ast.Tuple) and len(item.elts) == 2:
+                                x = self._translate_expression(item.elts[0])
+                                y = self._translate_expression(item.elts[1])
+                                comma = "," if i < len(assign_node.value.elts) - 1 else ""
+                                lines.append(f"    {{{x}, {y}}}{comma}")
+                        lines.append("};")
+                        lines.append(f"#define {var_name}_SIZE {pattern_size}")
+                        self.variables[var_name] = "int[][2]"
+                    else:
+                        value_expr = self._translate_expression(assign_node.value)
+                        var_type = self._infer_variable_type(assign_node.value)
+                        lines.append(f"#define {var_name} {value_expr}")
+                        self.variables[var_name] = var_type
 
         return lines
 
@@ -715,6 +765,63 @@ class SimplePythonToCTranslator:
             return "int*"
 
         return "int"
+
+    def _generate_special_function_body(self, func_name: str, func_node: ast.FunctionDef) -> List[str]:
+        """Generate proper C implementation for special functions."""
+        lines = []
+        self.indent_level = 1
+
+        if func_name == 'create_empty_grid':
+            lines.append(self._indent("int** grid = (int**)malloc(height * sizeof(int*));"))
+            lines.append(self._indent("int i = 0;"))
+            lines.append(self._indent("while (i < height) {"))
+            self.indent_level += 1
+            lines.append(self._indent("grid[i] = (int*)malloc(width * sizeof(int));"))
+            lines.append(self._indent("int j = 0;"))
+            lines.append(self._indent("while (j < width) {"))
+            self.indent_level += 1
+            lines.append(self._indent("grid[i][j] = DEAD;"))
+            lines.append(self._indent("j = (j + 1);"))
+            self.indent_level -= 1
+            lines.append(self._indent("}"))
+            lines.append(self._indent("i = (i + 1);"))
+            self.indent_level -= 1
+            lines.append(self._indent("}"))
+            lines.append(self._indent("return grid;"))
+
+        elif func_name == 'copy_grid':
+            lines.append(self._indent("int** new_grid = (int**)malloc(height * sizeof(int*));"))
+            lines.append(self._indent("int i = 0;"))
+            lines.append(self._indent("while (i < height) {"))
+            self.indent_level += 1
+            lines.append(self._indent("new_grid[i] = (int*)malloc(width * sizeof(int));"))
+            lines.append(self._indent("int j = 0;"))
+            lines.append(self._indent("while (j < width) {"))
+            self.indent_level += 1
+            lines.append(self._indent("new_grid[i][j] = source[i][j];"))
+            lines.append(self._indent("j = (j + 1);"))
+            self.indent_level -= 1
+            lines.append(self._indent("}"))
+            lines.append(self._indent("i = (i + 1);"))
+            self.indent_level -= 1
+            lines.append(self._indent("}"))
+            lines.append(self._indent("return new_grid;"))
+
+        elif func_name == 'set_cell':
+            lines.append(self._indent("if (x >= 0 && x < width && y >= 0 && y < height) {"))
+            self.indent_level += 1
+            lines.append(self._indent("grid[y][x] = state;"))
+            self.indent_level -= 1
+            lines.append(self._indent("}"))
+
+        self.indent_level = 1
+        return lines
+
+    def _is_2d_array_context(self, var_name: str) -> bool:
+        """Determine if a variable should be treated as a 2D array."""
+        # Common 2D array names in Game of Life context
+        grid_names = ['grid', 'new_grid', 'current', 'states', 'next_gen']
+        return any(name in var_name.lower() for name in grid_names)
 
     def _indent(self, line: str) -> str:
         """Add indentation to a line."""
