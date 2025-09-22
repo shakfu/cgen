@@ -10,6 +10,22 @@ def main(argv: Optional[List[str]] = None) -> int:
     if argv is None:
         argv = sys.argv[1:]
 
+    # Check if user is requesting enhanced CLI features
+    enhanced_commands = {
+        "analyze", "verify", "optimize", "generate", "pipeline",
+        "interactive", "benchmark", "demo"
+    }
+
+    if argv and argv[0] in enhanced_commands:
+        # Use enhanced CLI for intelligence layer features
+        try:
+            from .enhanced_main import main as enhanced_main
+            return enhanced_main(argv)
+        except ImportError as e:
+            print(f"Enhanced CLI not available: {e}", file=sys.stderr)
+            print("Using basic CLI mode...", file=sys.stderr)
+
+    # Basic CLI mode (legacy)
     parser = argparse.ArgumentParser(prog="cgen", description="Intelligent Python-to-C code generation")
 
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
@@ -22,6 +38,19 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     # version subcommand
     subparsers.add_parser("version", help="Show version information")
+
+    # Add help message about enhanced features
+    parser.epilog = """
+Enhanced Commands (use cgen <command> --help for details):
+  analyze      - Comprehensive code analysis
+  verify       - Formal verification with theorem proving
+  optimize     - Show optimization opportunities
+  generate     - Generate optimized C code with intelligence
+  pipeline     - Run complete intelligence pipeline
+  interactive  - Interactive CGen session
+  benchmark    - Performance analysis
+  demo         - Capability demonstrations
+"""
 
     args = parser.parse_args(argv)
 
