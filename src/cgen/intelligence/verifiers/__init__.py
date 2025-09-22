@@ -1,8 +1,19 @@
-"""Verifiers module for the Intelligence Layer.
+"""
+CGen Formal Verification Module
 
-This module contains formal verification components including theorem proving,
-bounds checking, and correctness verification.
+This module provides formal verification capabilities using theorem provers
+and symbolic analysis to ensure correctness and safety of generated code.
 """
 
-# Will be populated as verifiers are implemented
-__all__ = []
+from .theorem_prover import TheoremProver, ProofResult
+from .bounds_prover import BoundsProver, MemorySafetyProof
+from .correctness_prover import CorrectnessProver, AlgorithmProof
+
+__all__ = [
+    'TheoremProver',
+    'ProofResult',
+    'BoundsProver',
+    'MemorySafetyProof',
+    'CorrectnessProver',
+    'AlgorithmProof'
+]
