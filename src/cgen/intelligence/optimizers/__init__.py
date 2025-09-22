@@ -5,7 +5,9 @@ loop optimization, function specialization, and vectorization.
 """
 
 from .compile_time_evaluator import CompileTimeEvaluator, CompileTimeReport, ConstantValue, OptimizationCandidate
+from .function_specializer import FunctionSpecializer, SpecializationReport, FunctionProfile, SpecializationCandidate as FunctionSpecializationCandidate
 from .loop_analyzer import LoopAnalyzer, LoopAnalysisReport, LoopInfo, LoopOptimization
+from .vectorization_detector import VectorizationDetector, VectorizationReport, VectorizationCandidate, VectorizationType, VectorizationConstraint, MemoryAccess
 
 __all__ = [
     "CompileTimeEvaluator",
@@ -16,4 +18,14 @@ __all__ = [
     "LoopAnalysisReport",
     "LoopInfo",
     "LoopOptimization",
+    "FunctionSpecializer",
+    "SpecializationReport",
+    "FunctionProfile",
+    "FunctionSpecializationCandidate",
+    "VectorizationDetector",
+    "VectorizationReport",
+    "VectorizationCandidate",
+    "VectorizationType",
+    "VectorizationConstraint",
+    "MemoryAccess",
 ]
