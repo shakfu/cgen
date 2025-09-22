@@ -194,19 +194,19 @@ class Builder:
         try:
             result = subprocess.run(cmd, check=True, capture_output=True, text=True)
             if verbose:
-                print(f"✅ Build successful: {self.name}")
+                print(f" Build successful: {self.name}")
                 if result.stdout:
                     print(f"stdout: {result.stdout}")
             return True
         except subprocess.CalledProcessError as e:
-            print(f"❌ Build failed: {e}")
+            print(f" Build failed: {e}")
             if e.stdout:
                 print(f"stdout: {e.stdout}")
             if e.stderr:
                 print(f"stderr: {e.stderr}")
             return False
         except FileNotFoundError:
-            print(f"❌ Compiler not found: {self.compiler}")
+            print(f" Compiler not found: {self.compiler}")
             return False
 
 
@@ -491,12 +491,12 @@ class MakefileGenerator:
             makefile_content = self.generate_makefile()
             with open(filename, "w") as f:
                 f.write(makefile_content)
-            print(f"✅ Generated Makefile: {filename}")
+            print(f" Generated Makefile: {filename}")
             if self.use_stc and self.stc_include_path:
-                print(f"🚀 STC support enabled: {self.stc_include_path}")
+                print(f" STC support enabled: {self.stc_include_path}")
             return True
         except Exception as e:
-            print(f"❌ Failed to write Makefile: {e}")
+            print(f" Failed to write Makefile: {e}")
             return False
 
 

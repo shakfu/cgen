@@ -267,7 +267,7 @@ Examples:
 
     def _handle_analyze(self, args) -> int:
         """Handle analyze command."""
-        self._info("🔬 CGen Code Analysis")
+        self._info(" CGen Code Analysis")
         self._info("=" * 50)
 
         if not self._check_file_exists(args.input):
@@ -304,7 +304,7 @@ Examples:
 
     def _handle_verify(self, args) -> int:
         """Handle verify command."""
-        self._info("🛡️  CGen Formal Verification")
+        self._info("  CGen Formal Verification")
         self._info("=" * 50)
 
         if not self._check_file_exists(args.input):
@@ -320,21 +320,21 @@ Examples:
         results = {}
 
         if args.memory_safety or show_all:
-            self._info("\n🔒 Memory Safety Verification")
+            self._info("\n Memory Safety Verification")
             bounds_prover = BoundsProver(theorem_prover)
             memory_proof = bounds_prover.verify_memory_safety(context)
             results["memory_safety"] = memory_proof
             self._show_memory_safety_results(memory_proof)
 
         if args.correctness or show_all:
-            self._info("\n🎯 Algorithm Correctness Verification")
+            self._info("\n Algorithm Correctness Verification")
             correctness_prover = CorrectnessProver(theorem_prover)
             correctness_proof = correctness_prover.verify_algorithm_correctness(context)
             results["correctness"] = correctness_proof
             self._show_correctness_results(correctness_proof)
 
         if args.performance or show_all:
-            self._info("\n📊 Performance Bound Analysis")
+            self._info("\n Performance Bound Analysis")
             performance_analyzer = PerformanceAnalyzer(theorem_prover)
             performance_analysis = performance_analyzer.analyze_performance_bounds(context)
             results["performance"] = performance_analysis
@@ -344,7 +344,7 @@ Examples:
 
     def _handle_optimize(self, args) -> int:
         """Handle optimize command."""
-        self._info("⚡ CGen Optimization Analysis")
+        self._info(" CGen Optimization Analysis")
         self._info("=" * 50)
 
         if not self._check_file_exists(args.input):
@@ -358,7 +358,7 @@ Examples:
         optimizations_found = 0
 
         if args.compile_time or show_all:
-            self._info("\n📊 Compile-Time Optimizations")
+            self._info("\n Compile-Time Optimizations")
             evaluator = CompileTimeEvaluator()
             result = evaluator.optimize(context)
             self._show_optimization_result(result, "Compile-Time")
@@ -366,7 +366,7 @@ Examples:
                 optimizations_found += len(result.transformations)
 
         if args.loops or show_all:
-            self._info("\n🔄 Loop Optimizations")
+            self._info("\n Loop Optimizations")
             loop_analyzer = LoopAnalyzer()
             result = loop_analyzer.optimize(context)
             self._show_optimization_result(result, "Loop")
@@ -374,7 +374,7 @@ Examples:
                 optimizations_found += len(result.transformations)
 
         if args.functions or show_all:
-            self._info("\n🎯 Function Specializations")
+            self._info("\n Function Specializations")
             specializer = FunctionSpecializer()
             result = specializer.optimize(context)
             self._show_optimization_result(result, "Function")
@@ -382,18 +382,18 @@ Examples:
                 optimizations_found += len(result.transformations)
 
         if args.vectorization or show_all:
-            self._info("\n🚀 Vectorization Opportunities")
+            self._info("\n Vectorization Opportunities")
             detector = VectorizationDetector()
             result = detector.analyze(context.ast_node)
             self._show_vectorization_result(result)
             optimizations_found += result.vectorizable_loops
 
-        self._info(f"\n📈 Summary: {optimizations_found} optimization opportunities found")
+        self._info(f"\n Summary: {optimizations_found} optimization opportunities found")
         return 0
 
     def _handle_generate(self, args) -> int:
         """Handle generate command."""
-        self._info("🔧 CGen Code Generation")
+        self._info(" CGen Code Generation")
         self._info("=" * 50)
 
         if not self._check_file_exists(args.input):
@@ -409,10 +409,10 @@ Examples:
         optimization_level = self._get_optimization_level(args.optimization_level)
         context = self._create_analysis_context(code, analysis_level, optimization_level)
 
-        self._info(f"📝 Input: {args.input}")
-        self._info(f"📄 Output: {output_file}")
-        self._info(f"🎚️  Analysis Level: {analysis_level.value}")
-        self._info(f"⚡ Optimization Level: {optimization_level.value}")
+        self._info(f" Input: {args.input}")
+        self._info(f" Output: {output_file}")
+        self._info(f"  Analysis Level: {analysis_level.value}")
+        self._info(f" Optimization Level: {optimization_level.value}")
 
         # Show STC status
         use_stc = getattr(args, "use_stc", True)
@@ -420,13 +420,13 @@ Examples:
             try:
                 from ..ext.stc import STC_AVAILABLE
                 if STC_AVAILABLE:
-                    self._info("🚀 STC Containers: Enabled (high-performance containers)")
+                    self._info(" STC Containers: Enabled (high-performance containers)")
                 else:
-                    self._info("⚠️  STC Containers: Requested but unavailable (fallback to traditional)")
+                    self._info("  STC Containers: Requested but unavailable (fallback to traditional)")
             except ImportError:
-                self._info("⚠️  STC Containers: Requested but unavailable (fallback to traditional)")
+                self._info("  STC Containers: Requested but unavailable (fallback to traditional)")
         else:
-            self._info("🔧 STC Containers: Disabled (traditional C patterns)")
+            self._info(" STC Containers: Disabled (traditional C patterns)")
 
         # Generate C code with intelligence
         self._info("\n🧠 Running intelligence analysis...")
@@ -434,26 +434,26 @@ Examples:
 
         # Write output
         self._write_file(output_file, c_code)
-        self._info(f"✅ Generated {len(c_code.split())} lines of C code")
+        self._info(f" Generated {len(c_code.split())} lines of C code")
 
         # Optional verification
         if args.verify:
-            self._info("\n🔍 Verifying generated code...")
+            self._info("\n Verifying generated code...")
             # Quick verification would go here
 
         # Optional compilation test
         if args.compile_test:
-            self._info("\n🔨 Testing compilation...")
+            self._info("\n Testing compilation...")
             if self._test_compilation(output_file):
-                self._info("✅ Compilation successful")
+                self._info(" Compilation successful")
             else:
-                self._warning("⚠️  Compilation failed")
+                self._warning("  Compilation failed")
 
         return 0
 
     def _handle_pipeline(self, args) -> int:
         """Handle pipeline command."""
-        self._info("🔄 CGen Complete Intelligence Pipeline")
+        self._info(" CGen Complete Intelligence Pipeline")
         self._info("=" * 60)
 
         if not self._check_file_exists(args.input):
@@ -469,7 +469,7 @@ Examples:
         start_time = time.time()
 
         # Phase 1: Frontend Analysis
-        self._info("📊 Phase 1: Frontend Analysis")
+        self._info(" Phase 1: Frontend Analysis")
         frontend_results = self._run_frontend_analysis(context)
         pipeline_results["frontend"] = frontend_results
 
@@ -479,34 +479,34 @@ Examples:
         pipeline_results["intelligence"] = intelligence_results
 
         # Phase 3: Formal Verification
-        self._info("\n🛡️  Phase 3: Formal Verification")
+        self._info("\n  Phase 3: Formal Verification")
         verification_results = self._run_verification_analysis(context)
         pipeline_results["verification"] = verification_results
 
         # Phase 4: Code Generation
-        self._info("\n🔧 Phase 4: Optimized Code Generation")
+        self._info("\n Phase 4: Optimized Code Generation")
         c_code = self._generate_intelligent_c_code(context, args)
         self._write_file(output_file, c_code)
 
         pipeline_time = time.time() - start_time
 
         # Summary
-        self._info("\n📊 Pipeline Summary")
+        self._info("\n Pipeline Summary")
         self._info("=" * 40)
-        self._info(f"⏱️  Total time: {pipeline_time:.2f}s")
-        self._info(f"📝 Generated: {output_file}")
-        self._info(f"📈 Lines of C code: {len(c_code.split())}")
+        self._info(f"⏱  Total time: {pipeline_time:.2f}s")
+        self._info(f" Generated: {output_file}")
+        self._info(f" Lines of C code: {len(c_code.split())}")
 
         # Generate report if requested
         if args.report:
             self._generate_pipeline_report(args.report, pipeline_results, pipeline_time)
-            self._info(f"📋 Report saved: {args.report}")
+            self._info(f" Report saved: {args.report}")
 
         return 0
 
     def _handle_interactive(self, args) -> int:
         """Handle interactive command."""
-        self._info("🎮 CGen Interactive Mode")
+        self._info(" CGen Interactive Mode")
         self._info("=" * 40)
         self._info("Type 'help' for commands, 'quit' to exit")
 
@@ -519,7 +519,7 @@ Examples:
 
     def _handle_benchmark(self, args) -> int:
         """Handle benchmark command."""
-        self._info("📈 CGen Performance Benchmarking")
+        self._info(" CGen Performance Benchmarking")
         self._info("=" * 50)
 
         if not self._check_file_exists(args.input):
@@ -534,17 +534,17 @@ Examples:
         show_all = args.all
 
         if args.complexity or show_all:
-            self._info("\n📊 Complexity Analysis")
+            self._info("\n Complexity Analysis")
             self._info(f"   Time: {analysis.time_complexity.value}")
             self._info(f"   Space: {analysis.space_complexity.value}")
 
         if args.bottlenecks or show_all:
-            self._info("\n🔍 Performance Bottlenecks")
+            self._info("\n Performance Bottlenecks")
             for bottleneck in analysis.bottlenecks:
                 self._info(f"   • {bottleneck}")
 
         if args.recommendations or show_all:
-            self._info("\n💡 Optimization Recommendations")
+            self._info("\n Optimization Recommendations")
             for rec in analysis.optimization_opportunities:
                 self._info(f"   • {rec}")
 
@@ -569,7 +569,7 @@ Examples:
 
     def _handle_py2c(self, args) -> int:
         """Handle legacy py2c command."""
-        self._warning("⚠️  Using legacy py2c mode. Consider using 'cgen generate' for intelligence features.")
+        self._warning("  Using legacy py2c mode. Consider using 'cgen generate' for intelligence features.")
 
         # Basic py2c functionality
         try:
@@ -650,7 +650,7 @@ Examples:
         analyzer = ASTAnalyzer()
         result = analyzer.analyze(context.source_code)
 
-        self._info("\n📈 AST Analysis Results:")
+        self._info("\n AST Analysis Results:")
         self._info(f"   Functions: {len(result.functions)}")
         self._info(f"   Global variables: {len(result.global_variables)}")
         self._info(f"   Overall complexity: {result.complexity.value}")
@@ -665,7 +665,7 @@ Examples:
         engine = TypeInferenceEngine()
         # Analyze function signatures for type information\n        type_results = {}\n        for node in ast.walk(context.ast_node):\n            if isinstance(node, ast.FunctionDef):\n                func_types = engine.analyze_function_signature(node)\n                type_results.update(func_types)
 
-        self._info("\n🔍 Type Inference Results:")
+        self._info("\n Type Inference Results:")
         self._info("   Type inference: Work in progress")
 
         if self.verbose:
@@ -676,41 +676,41 @@ Examples:
         checker = StaticConstraintChecker()
         constraints = checker.check_code(context.source_code)
 
-        self._info("\n⚖️  Constraint Analysis:")
+        self._info("\n  Constraint Analysis:")
         self._info(f"   Total checks: {len(constraints.passed_checks) + len(constraints.violations)}")
 
         violations = constraints.violations
         if violations:
-            self._warning(f"   ⚠️  Violations: {len(violations)}")
+            self._warning(f"     Violations: {len(violations)}")
             if self.verbose:
                 for violation in violations[:5]:  # Show first 5
                     self._warning(f"      - {violation.message}")
         else:
-            self._info("   ✅ All constraints satisfied")
+            self._info("    All constraints satisfied")
 
     def _show_subset_analysis(self, context):
         """Show subset validation results."""
         validator = StaticPythonSubsetValidator()
         result = validator.validate_code(context.source_code)
 
-        self._info("\n🎯 C Subset Validation:")
-        status = "✅ VALID" if result.is_valid else "❌ INVALID"
+        self._info("\n C Subset Validation:")
+        status = " VALID" if result.is_valid else " INVALID"
         self._info(f"   Validation: {status}")
         self._info(f"   Subset tier: {result.tier.value}")
         if result.unsupported_features:
-            self._warning(f"   ⚠️  Unsupported features: {len(result.unsupported_features)}")
+            self._warning(f"     Unsupported features: {len(result.unsupported_features)}")
             if self.verbose:
                 for feature in result.unsupported_features[:3]:  # Show first 3
                     self._warning(f"      - {feature}")
         else:
-            self._info("   ✅ Full C subset compatibility")
+            self._info("    Full C subset compatibility")
 
     def _show_ir_analysis(self, context):
         """Show static IR results."""
         builder = IRBuilder()
         ir = builder.build_from_ast(context.ast_node)
 
-        self._info("\n🏗️  Static IR Generation:")
+        self._info("\n  Static IR Generation:")
         self._info(f"   IR functions: {len(ir.functions)}")
         self._info(f"   Global variables: {len(ir.global_variables)}")
         self._info(f"   Type declarations: {len(ir.type_declarations)}")
@@ -722,33 +722,33 @@ Examples:
 
     def _show_memory_safety_results(self, proof):
         """Show memory safety verification results."""
-        status = "✅ SAFE" if proof.is_safe else "❌ UNSAFE"
+        status = " SAFE" if proof.is_safe else " UNSAFE"
         self._info(f"   Status: {status} (confidence: {proof.confidence:.1%})")
         self._info(f"   Verification time: {proof.verification_time:.3f}s")
 
         if proof.unsafe_accesses:
-            self._warning(f"   ⚠️  Unsafe accesses: {len(proof.unsafe_accesses)}")
+            self._warning(f"     Unsafe accesses: {len(proof.unsafe_accesses)}")
             for access in proof.unsafe_accesses[:3]:  # Show first 3
                 self._warning(f"      - Line {access.line_number}: {access.access_type} to {access.region.name}")
 
         if proof.recommendations:
-            self._info("   💡 Recommendations:")
+            self._info("    Recommendations:")
             for rec in proof.recommendations[:3]:  # Show first 3
                 self._info(f"      - {rec}")
 
     def _show_correctness_results(self, proof):
         """Show algorithm correctness results."""
-        status = "✅ CORRECT" if proof.is_correct else "❌ INCORRECT"
+        status = " CORRECT" if proof.is_correct else " INCORRECT"
         self._info(f"   Status: {status} (confidence: {proof.confidence:.1%})")
         self._info(f"   Verification time: {proof.verification_time:.3f}s")
 
         if proof.failed_properties:
-            self._warning(f"   ⚠️  Failed properties: {len(proof.failed_properties)}")
+            self._warning(f"     Failed properties: {len(proof.failed_properties)}")
             for prop in proof.failed_properties[:3]:  # Show first 3
                 self._warning(f"      - {prop.name}: {prop.description}")
 
         if proof.recommendations:
-            self._info("   💡 Recommendations:")
+            self._info("    Recommendations:")
             for rec in proof.recommendations[:3]:  # Show first 3
                 self._info(f"      - {rec}")
 
@@ -759,35 +759,35 @@ Examples:
         self._info(f"   Analysis confidence: {analysis.confidence:.1%}")
 
         if analysis.bottlenecks:
-            self._info(f"   🔍 Bottlenecks: {len(analysis.bottlenecks)}")
+            self._info(f"    Bottlenecks: {len(analysis.bottlenecks)}")
             for bottleneck in analysis.bottlenecks[:3]:  # Show first 3
                 self._info(f"      - {bottleneck}")
 
         if analysis.optimization_opportunities:
-            self._info(f"   💡 Optimizations: {len(analysis.optimization_opportunities)}")
+            self._info(f"    Optimizations: {len(analysis.optimization_opportunities)}")
             for opt in analysis.optimization_opportunities[:3]:  # Show first 3
                 self._info(f"      - {opt}")
 
     def _show_optimization_result(self, result, type_name):
         """Show optimization analysis result."""
         if result.success:
-            self._info(f"   ✅ {len(result.transformations)} {type_name.lower()} optimizations found")
-            self._info(f"   🚀 Estimated speedup: {result.performance_gain_estimate:.2f}x")
+            self._info(f"    {len(result.transformations)} {type_name.lower()} optimizations found")
+            self._info(f"    Estimated speedup: {result.performance_gain_estimate:.2f}x")
 
             if self.verbose:
                 for transform in result.transformations[:3]:  # Show first 3
                     self._info(f"      - {transform.description}")
         else:
-            self._info(f"   ℹ️  No {type_name.lower()} optimizations found")
+            self._info(f"   ℹ  No {type_name.lower()} optimizations found")
 
     def _show_vectorization_result(self, result):
         """Show vectorization analysis result."""
-        self._info(f"   🔍 Vectorizable loops: {result.vectorizable_loops}")
-        self._info(f"   🎯 Best candidates: {len(result.candidates)}")
+        self._info(f"    Vectorizable loops: {result.vectorizable_loops}")
+        self._info(f"    Best candidates: {len(result.candidates)}")
 
         if result.candidates:
             best_candidate = max(result.candidates, key=lambda x: x.performance_gain_estimate)
-            self._info(f"   🚀 Best speedup potential: {best_candidate.performance_gain_estimate:.2f}x")
+            self._info(f"    Best speedup potential: {best_candidate.performance_gain_estimate:.2f}x")
 
             if self.verbose:
                 for candidate in result.candidates[:3]:  # Show first 3
@@ -1094,7 +1094,7 @@ Examples:
 
     def _run_interactive_demo(self):
         """Run interactive demo mode."""
-        self._info("🎮 Welcome to CGen Interactive Demo!")
+        self._info(" Welcome to CGen Interactive Demo!")
         self._info("This demo showcases CGen's intelligence capabilities.")
         self._info("")
 
@@ -1106,27 +1106,27 @@ def factorial(n):
     return n * factorial(n - 1)
 """
 
-        self._info("📝 Demo: Factorial Function Analysis")
+        self._info(" Demo: Factorial Function Analysis")
         self._info(demo_code)
 
         context = self._create_analysis_context(demo_code)
 
         # Quick analysis demo
-        self._info("🔬 Running analysis...")
+        self._info(" Running analysis...")
 
         # Performance analysis
         performance_analyzer = PerformanceAnalyzer()
         analysis = performance_analyzer.analyze_performance_bounds(context)
-        self._info(f"⚡ Detected complexity: {analysis.time_complexity.value}")
+        self._info(f" Detected complexity: {analysis.time_complexity.value}")
 
         # Optimization analysis
         specializer = FunctionSpecializer()
         result = specializer.optimize(context)
         if result.success:
-            self._info(f"🚀 Found {len(result.transformations)} optimization opportunities")
+            self._info(f" Found {len(result.transformations)} optimization opportunities")
 
         self._info("")
-        self._info("🎯 Demo completed! Try 'cgen analyze --help' for more options.")
+        self._info(" Demo completed! Try 'cgen analyze --help' for more options.")
 
     def _run_interactive_session(self):
         """Run interactive session."""
@@ -1135,7 +1135,7 @@ def factorial(n):
                 command = input("cgen> ").strip()
 
                 if command in ["quit", "exit", "q"]:
-                    self._info("👋 Goodbye!")
+                    self._info(" Goodbye!")
                     break
                 elif command in ["help", "h"]:
                     self._show_interactive_help()
@@ -1153,10 +1153,10 @@ def factorial(n):
                     self._error(f"Unknown command: {command}. Type 'help' for available commands.")
 
             except KeyboardInterrupt:
-                self._info("\n👋 Goodbye!")
+                self._info("\n Goodbye!")
                 break
             except EOFError:
-                self._info("\n👋 Goodbye!")
+                self._info("\n Goodbye!")
                 break
 
     def _show_interactive_help(self):
@@ -1168,7 +1168,7 @@ def factorial(n):
 
     def _demo_frontend(self):
         """Demo frontend capabilities."""
-        self._info("🔬 CGen Frontend Layer Demo")
+        self._info(" CGen Frontend Layer Demo")
         # Implementation would show frontend features
         return 0
 
@@ -1180,19 +1180,19 @@ def factorial(n):
 
     def _demo_verification(self):
         """Demo verification capabilities."""
-        self._info("🛡️  CGen Verification Demo")
+        self._info("  CGen Verification Demo")
         # Implementation would show verification features
         return 0
 
     def _demo_generation(self):
         """Demo code generation capabilities."""
-        self._info("🔧 CGen Code Generation Demo")
+        self._info(" CGen Code Generation Demo")
         # Implementation would show generation features
         return 0
 
     def _demo_all(self):
         """Demo all capabilities."""
-        self._info("🚀 CGen Complete Feature Demo")
+        self._info(" CGen Complete Feature Demo")
         self._demo_frontend()
         self._demo_intelligence()
         self._demo_verification()
@@ -1249,7 +1249,7 @@ def factorial(n):
 
     def _handle_build(self, args) -> int:
         """Handle build command."""
-        self._info("🔨 CGen Direct Build")
+        self._info(" CGen Direct Build")
         self._info("=" * 50)
 
         if not self._check_file_exists(args.source):
@@ -1274,39 +1274,39 @@ def factorial(n):
                 use_stc=not args.no_stc
             )
 
-            self._info(f"📝 Source: {args.source}")
-            self._info(f"📄 Output: {args.output or Path(args.source).stem}")
-            self._info(f"🔧 Compiler: {args.compiler}")
+            self._info(f" Source: {args.source}")
+            self._info(f" Output: {args.output or Path(args.source).stem}")
+            self._info(f" Compiler: {args.compiler}")
 
             # Show STC status
             if not args.no_stc:
                 if builder.stc_include_path:
-                    self._info(f"🚀 STC Containers: Enabled ({builder.stc_include_path})")
+                    self._info(f" STC Containers: Enabled ({builder.stc_include_path})")
                 else:
-                    self._info("⚠️  STC Containers: Requested but unavailable")
+                    self._info("  STC Containers: Requested but unavailable")
             else:
-                self._info("🔧 STC Containers: Disabled")
+                self._info(" STC Containers: Disabled")
 
-            self._info("\n🔨 Building...")
+            self._info("\n Building...")
             success = builder.build(verbose=self.verbose)
 
             if success:
-                self._info(f"✅ Build successful: {args.output or Path(args.source).stem}")
+                self._info(f" Build successful: {args.output or Path(args.source).stem}")
                 return 0
             else:
-                self._error("❌ Build failed")
+                self._error(" Build failed")
                 return 1
 
         except ImportError as e:
-            self._error(f"❌ Makefilegen not available: {e}")
+            self._error(f" Makefilegen not available: {e}")
             return 1
         except Exception as e:
-            self._error(f"❌ Build error: {e}")
+            self._error(f" Build error: {e}")
             return 1
 
     def _handle_makefile(self, args) -> int:
         """Handle makefile command."""
-        self._info("📄 CGen Makefile Generation")
+        self._info(" CGen Makefile Generation")
         self._info("=" * 50)
 
         source_path = Path(args.source)
@@ -1340,35 +1340,35 @@ def factorial(n):
                 use_stc=not args.no_stc
             )
 
-            self._info(f"📝 Source: {args.source}")
-            self._info(f"📄 Output: {args.output}")
-            self._info(f"🏷️  Project: {project_name}")
-            self._info(f"🔧 Compiler: {args.compiler}")
+            self._info(f" Source: {args.source}")
+            self._info(f" Output: {args.output}")
+            self._info(f"  Project: {project_name}")
+            self._info(f" Compiler: {args.compiler}")
 
             # Show STC status
             if not args.no_stc:
                 if generator.stc_include_path:
-                    self._info(f"🚀 STC Containers: Enabled ({generator.stc_include_path})")
+                    self._info(f" STC Containers: Enabled ({generator.stc_include_path})")
                 else:
-                    self._info("⚠️  STC Containers: Requested but unavailable")
+                    self._info("  STC Containers: Requested but unavailable")
             else:
-                self._info("🔧 STC Containers: Disabled")
+                self._info(" STC Containers: Disabled")
 
-            self._info("\n📄 Generating Makefile...")
+            self._info("\n Generating Makefile...")
             success = generator.write_makefile(args.output)
 
             if success:
-                self._info(f"✅ Makefile generated: {args.output}")
+                self._info(f" Makefile generated: {args.output}")
                 return 0
             else:
-                self._error("❌ Makefile generation failed")
+                self._error(" Makefile generation failed")
                 return 1
 
         except ImportError as e:
-            self._error(f"❌ Makefilegen not available: {e}")
+            self._error(f" Makefilegen not available: {e}")
             return 1
         except Exception as e:
-            self._error(f"❌ Makefile generation error: {e}")
+            self._error(f" Makefile generation error: {e}")
             return 1
 
 
