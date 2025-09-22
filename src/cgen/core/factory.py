@@ -268,3 +268,50 @@ class CFactory:
     ) -> core.Type:
         """New multi-dimensional array type (e.g., int[10][20])."""
         return core.Type(base_type, const, False, volatile, dimensions)
+
+    # TIER 4 Language Elements - Advanced C11 Features
+    def function_pointer(
+        self,
+        name: str,
+        return_type: "str | core.Type | core.DataType",
+        parameters: "list[core.Variable] | None" = None,
+        const: bool = False,
+        volatile: bool = False
+    ) -> "core.FunctionPointer":
+        """New function pointer type."""
+        return core.FunctionPointer(name, return_type, parameters, const, volatile)
+
+    def variadic_function(
+        self,
+        name: str,
+        return_type: "str | core.Type | core.DataType | None" = None,
+        fixed_params: "list[core.Variable] | None" = None,
+        static: bool = False,
+        extern: bool = False
+    ) -> "core.VariadicFunction":
+        """New variadic function with variable arguments (...)."""
+        return core.VariadicFunction(name, return_type, fixed_params, static, extern)
+
+    def static_assert(self, condition: str, message: str) -> "core.StaticAssert":
+        """New static assertion for compile-time checks (_Static_assert)."""
+        return core.StaticAssert(condition, message)
+
+    def generic_selection(
+        self,
+        controlling_expr: str,
+        type_associations: "dict[str, str]",
+        default_expr: "str | None" = None
+    ) -> "core.GenericSelection":
+        """New generic selection for type-generic programming (_Generic)."""
+        return core.GenericSelection(controlling_expr, type_associations, default_expr)
+
+    def function_pointer_declaration(
+        self,
+        pointer_name: str,
+        return_type: "str | core.Type | core.DataType",
+        parameters: "list[core.Variable] | None" = None,
+        const: bool = False,
+        static: bool = False
+    ) -> "core.FunctionPointerDeclaration":
+        """New function pointer variable declaration."""
+        return core.FunctionPointerDeclaration(pointer_name, return_type, parameters, const, static)

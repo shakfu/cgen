@@ -810,3 +810,93 @@ class UnionMember(Element):
         self.pointer = pointer
         self.array = array
 
+
+# TIER 4: Advanced C11 Features
+
+class FunctionPointer(DataType):
+    """Function pointer type for advanced programming patterns."""
+
+    def __init__(
+        self,
+        name: str,
+        return_type: "str | Type | DataType",
+        parameters: "list[Variable] | None" = None,
+        const: bool = False,
+        volatile: bool = False
+    ) -> None:
+        _validate_c_identifier(name, "function pointer name")
+        self.name = name
+        self.return_type = return_type
+        self.parameters = parameters or []
+        self.const = const
+        self.volatile = volatile
+
+
+class VariadicFunction(DataType):
+    """Variadic function with variable arguments (...)."""
+
+    def __init__(
+        self,
+        name: str,
+        return_type: "str | Type | DataType | None" = None,
+        fixed_params: "list[Variable] | None" = None,
+        static: bool = False,
+        extern: bool = False
+    ) -> None:
+        _validate_c_identifier(name, "function name")
+        self.name = name
+        self.return_type = return_type
+        self.fixed_params = fixed_params or []
+        self.static = static
+        self.extern = extern
+
+
+class StaticAssert(Element):
+    """Static assertion for compile-time checks (_Static_assert)."""
+
+    def __init__(self, condition: str, message: str) -> None:
+        if not condition.strip():
+            raise ValueError("static assertion condition cannot be empty")
+        if not message.strip():
+            raise ValueError("static assertion message cannot be empty")
+        self.condition = condition
+        self.message = message
+
+
+class GenericSelection(Element):
+    """Generic selection for type-generic programming (_Generic)."""
+
+    def __init__(
+        self,
+        controlling_expr: str,
+        type_associations: "dict[str, str]",
+        default_expr: "str | None" = None
+    ) -> None:
+        if not controlling_expr.strip():
+            raise ValueError("controlling expression cannot be empty")
+        if not type_associations:
+            raise ValueError("type associations cannot be empty")
+
+        self.controlling_expr = controlling_expr
+        self.type_associations = type_associations
+        self.default_expr = default_expr
+
+
+class FunctionPointerDeclaration(Element):
+    """Declaration of a function pointer variable."""
+
+    def __init__(
+        self,
+        pointer_name: str,
+        return_type: "str | Type | DataType",
+        parameters: "list[Variable] | None" = None,
+        const: bool = False,
+        static: bool = False
+    ) -> None:
+        _validate_c_identifier(pointer_name, "function pointer variable name")
+        self.pointer_name = pointer_name
+        self.return_type = return_type
+        self.parameters = parameters or []
+        self.const = const
+        self.static = static
+

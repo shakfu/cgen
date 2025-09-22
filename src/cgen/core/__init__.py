@@ -17,6 +17,12 @@ from .core import (
     EnumMember,
     Union,
     UnionMember,
+    # TIER 4 elements
+    FunctionPointer,
+    VariadicFunction,
+    StaticAssert,
+    GenericSelection,
+    FunctionPointerDeclaration,
 )
 
 __all__ = [
@@ -41,4 +47,10 @@ __all__ = [
     "EnumMember",
     "Union",
     "UnionMember",
+    # TIER 4 elements
+    "FunctionPointer",
+    "VariadicFunction",
+    "StaticAssert",
+    "GenericSelection",
+    "FunctionPointerDeclaration",
 ]

@@ -134,6 +134,12 @@ class Writer(Formatter):
             "EnumMember": self._write_enum_member,
             "Union": self._write_union,
             "UnionMember": self._write_union_member,
+            # TIER 4 elements
+            "FunctionPointer": self._write_function_pointer,
+            "VariadicFunction": self._write_variadic_function,
+            "StaticAssert": self._write_static_assert,
+            "GenericSelection": self._write_generic_selection,
+            "FunctionPointerDeclaration": self._write_function_pointer_declaration,
         }
         self.last_element = ElementType.NONE
 
@@ -281,6 +287,10 @@ class Writer(Formatter):
             self._write_variable_declaration(elem.element)
         elif isinstance(elem.element, core.Function):
             self._write_function_declaration(elem.element)
+        elif elem.element.__class__.__name__ == "FunctionPointer":
+            self._write_function_pointer(elem.element)
+        elif elem.element.__class__.__name__ == "VariadicFunction":
+            self._write_variadic_function(elem.element)
         else:
             raise NotImplementedError(str(type(elem.element)))
         if elem.init_value is not None:
@@ -997,4 +1007,144 @@ class Writer(Formatter):
             self._write(array_str)
 
         self.last_element = ElementType.STATEMENT
+
+    # TIER 4: Advanced C11 Features writers
+    def _write_function_pointer(self, elem) -> None:
+        """Write function pointer type."""
+        # Add qualifiers
+        if elem.const:
+            self._write("const ")
+        if elem.volatile:
+            self._write("volatile ")
+
+        # Write return type
+        if isinstance(elem.return_type, str):
+            self._write(elem.return_type)
+        else:
+            self._write_element(elem.return_type)
+
+        # Write function pointer syntax: (*name)
+        self._write(" (*")
+        self._write(elem.name)
+        self._write(")")
+
+        # Write parameters
+        self._write("(")
+        if elem.parameters:
+            for i, param in enumerate(elem.parameters):
+                if i > 0:
+                    self._write(", ")
+                if isinstance(param, str):
+                    self._write(param)
+                else:
+                    self._write_variable_declaration(param)
+        else:
+            self._write("void")
+        self._write(")")
+
+        self.last_element = ElementType.TYPE_DECLARATION
+
+    def _write_variadic_function(self, elem) -> None:
+        """Write variadic function declaration."""
+        # Write storage class
+        if elem.static:
+            self._write("static ")
+        if elem.extern:
+            self._write("extern ")
+
+        # Write return type
+        if elem.return_type:
+            if isinstance(elem.return_type, str):
+                self._write(elem.return_type)
+            else:
+                self._write_element(elem.return_type)
+            self._write(" ")
+        else:
+            self._write("void ")
+
+        # Write function name
+        self._write(elem.name)
+
+        # Write parameters
+        self._write("(")
+        if elem.fixed_params:
+            for i, param in enumerate(elem.fixed_params):
+                if i > 0:
+                    self._write(", ")
+                if isinstance(param, str):
+                    self._write(param)
+                else:
+                    self._write_variable_declaration(param)
+            self._write(", ...")
+        else:
+            self._write("...")
+        self._write(")")
+
+        self.last_element = ElementType.FUNCTION_DECLARATION
+
+    def _write_static_assert(self, elem) -> None:
+        """Write static assertion."""
+        self._write("_Static_assert(")
+        self._write(elem.condition)
+        self._write(", ")
+        self._write(f'"{elem.message}"')
+        self._write(")")
+
+        self.last_element = ElementType.STATEMENT
+
+    def _write_generic_selection(self, elem) -> None:
+        """Write generic selection."""
+        self._write("_Generic(")
+        self._write(elem.controlling_expr)
+
+        # Write type associations
+        for type_name, expr in elem.type_associations.items():
+            self._write(", ")
+            self._write(type_name)
+            self._write(": ")
+            self._write(expr)
+
+        # Write default case if present
+        if elem.default_expr:
+            self._write(", default: ")
+            self._write(elem.default_expr)
+
+        self._write(")")
+
+        self.last_element = ElementType.STATEMENT
+
+    def _write_function_pointer_declaration(self, elem) -> None:
+        """Write function pointer variable declaration."""
+        # Write storage class
+        if elem.static:
+            self._write("static ")
+        if elem.const:
+            self._write("const ")
+
+        # Write return type
+        if isinstance(elem.return_type, str):
+            self._write(elem.return_type)
+        else:
+            self._write_element(elem.return_type)
+
+        # Write function pointer syntax: (*pointer_name)
+        self._write(" (*")
+        self._write(elem.pointer_name)
+        self._write(")")
+
+        # Write parameters
+        self._write("(")
+        if elem.parameters:
+            for i, param in enumerate(elem.parameters):
+                if i > 0:
+                    self._write(", ")
+                if isinstance(param, str):
+                    self._write(param)
+                else:
+                    self._write_variable_declaration(param)
+        else:
+            self._write("void")
+        self._write(")")
+
+        self.last_element = ElementType.VARIABLE_DECLARATION
 
