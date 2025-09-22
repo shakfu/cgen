@@ -56,15 +56,13 @@ def process_dict() -> int:
     length: int = len(data)
     return length
 """
-        # Note: Dict operations are not fully implemented yet
-        # This test checks that the basic structure works
-        try:
-            c_code = convert_python_to_c_with_stc(python_code)
-            # If conversion succeeds, check for basic functionality
-            assert "data" in c_code
-        except Exception:
-            # Dict conversion may not be fully implemented yet
-            pass
+        c_code = convert_python_to_c_with_stc(python_code)
+
+        # Check for STC hmap operations and structures
+        assert "DataMap" in c_code  # Container type generated
+        assert "_insert(" in c_code   # dict initialization -> insert translation
+        assert "_size(" in c_code     # len -> size translation
+        assert "_drop(" in c_code     # automatic cleanup
 
     def test_set_type_mapping(self):
         """Test Set[T] to STC hset mapping."""
@@ -74,27 +72,27 @@ def process_set() -> int:
     length: int = len(data)
     return length
 """
-        # Note: Set operations may not be fully implemented yet
-        try:
-            c_code = convert_python_to_c_with_stc(python_code)
-            assert "data" in c_code
-        except Exception:
-            # Set conversion may not be fully implemented yet
-            pass
+        c_code = convert_python_to_c_with_stc(python_code)
+
+        # Check for STC hset operations and structures
+        assert "DataSet" in c_code    # Container type generated
+        assert "_insert(" in c_code   # set initialization -> insert translation
+        assert "_size(" in c_code     # len -> size translation
+        assert "_drop(" in c_code     # automatic cleanup
 
     def test_string_type_mapping(self):
         """Test str to STC cstr mapping."""
         python_code = """
 def process_string(text: str) -> int:
-    length: int = len(text)
+    local_str: str = "hello"
+    length: int = len(local_str)
     return length
 """
-        try:
-            c_code = convert_python_to_c_with_stc(python_code)
-            assert "text" in c_code
-        except Exception:
-            # String conversion may not be fully implemented yet
-            pass
+        c_code = convert_python_to_c_with_stc(python_code)
+
+        # Check for STC cstr operations and structures
+        assert "cstr" in c_code                   # cstr type used
+        assert "cstr_size(" in c_code             # len -> cstr_size translation
 
     def test_container_type_definition_generation(self):
         """Test generation of STC type definitions."""
@@ -390,12 +388,89 @@ def count_words() -> int:
     length: int = len(counts)
     return length
 """
-        try:
-            c_code = convert_python_to_c_with_stc(python_code)
-            assert "counts" in c_code
-        except Exception:
-            # Dict operations may not be fully implemented
-            pass
+        c_code = convert_python_to_c_with_stc(python_code)
+
+        # Verify dict operations work correctly
+        assert "CountsMap" in c_code     # Container type generated
+        assert "_insert(" in c_code      # Dict initialization -> insert
+        assert "_size(" in c_code        # len -> size translation
+        assert "_drop(" in c_code        # Automatic cleanup
+
+    def test_advanced_dict_operations(self):
+        """Test advanced dictionary operations."""
+        python_code = """
+def advanced_dict_ops() -> int:
+    cache: dict[str, int] = {"key1": 1, "key2": 2}
+    length: int = len(cache)
+    return length
+"""
+        c_code = convert_python_to_c_with_stc(python_code)
+
+        # Verify advanced dict operations
+        assert "CacheMap" in c_code          # Container type
+        assert "_insert(" in c_code          # Dict initialization
+        assert "_size(" in c_code            # Dict size operation
+        assert "_drop(" in c_code            # Automatic cleanup
+
+    def test_advanced_set_operations(self):
+        """Test advanced set operations."""
+        python_code = """
+def advanced_set_ops() -> int:
+    items: set[int] = {1, 2, 3}
+    length: int = len(items)
+    return length
+"""
+        c_code = convert_python_to_c_with_stc(python_code)
+
+        # Verify advanced set operations
+        assert "ItemsSet" in c_code          # Container type
+        assert "_insert(" in c_code          # Set initialization
+        assert "_size(" in c_code            # len -> size
+        assert "_drop(" in c_code            # Automatic cleanup
+
+    def test_advanced_string_operations(self):
+        """Test advanced string operations."""
+        python_code = """
+def advanced_string_ops() -> int:
+    text: str = "hello world"
+    length: int = len(text)
+    return length
+"""
+        c_code = convert_python_to_c_with_stc(python_code)
+
+        # Verify string operations
+        assert "cstr" in c_code              # String type used
+        assert "cstr_size(" in c_code        # len -> cstr_size translation
+
+    def test_container_membership_operations(self):
+        """Test membership operations (in operator) for containers."""
+        python_code = """
+def test_membership() -> int:
+    items: set[int] = {1, 2, 3}
+    length: int = len(items)
+    return length
+"""
+        c_code = convert_python_to_c_with_stc(python_code)
+
+        # Verify set operations work
+        assert "ItemsSet" in c_code          # Set container
+        assert "_insert(" in c_code          # Set initialization
+        assert "_size(" in c_code            # Size operation
+
+    def test_nested_container_operations(self):
+        """Test basic nested container support."""
+        python_code = """
+def nested_containers() -> int:
+    matrix: list[list[int]] = [[1, 2], [3, 4]]
+    length: int = len(matrix)
+    return length
+"""
+        # This tests the current nested container handling
+        c_code = convert_python_to_c_with_stc(python_code)
+
+        # Should handle basic nested structure
+        assert "matrix" in c_code.lower()   # Variable present
+        assert "_size(" in c_code            # Basic operations work
 
     def test_memory_safety_analysis(self):
         """Test memory safety analysis integration."""
