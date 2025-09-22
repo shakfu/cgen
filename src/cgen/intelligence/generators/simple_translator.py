@@ -16,6 +16,15 @@ class SimplePythonToCTranslator:
         self.variables = {}  # variable_name -> c_type
         self.functions = {}  # function_name -> return_type
         self.indent_level = 0
+        self.builtin_functions = {
+            'print': self._translate_print_call,
+            'len': self._translate_len,
+            'abs': self._translate_abs,
+            'min': self._translate_min,
+            'max': self._translate_max,
+            'int': self._translate_int_cast,
+            'float': self._translate_float_cast,
+        }
 
     def translate_module(self, module_node: ast.Module) -> str:
         """Translate a complete Python module to C code."""
@@ -319,6 +328,10 @@ class SimplePythonToCTranslator:
             return self._translate_subscript(expr)
         elif isinstance(expr, ast.List):
             return self._translate_list(expr)
+        elif isinstance(expr, ast.Tuple):
+            return self._translate_tuple(expr)
+        elif isinstance(expr, ast.JoinedStr):
+            return self._translate_f_string(expr)
         elif isinstance(expr, ast.BoolOp):
             return self._translate_bool_op(expr)
         else:
@@ -344,6 +357,15 @@ class SimplePythonToCTranslator:
 
         if isinstance(binop.op, ast.Pow):
             return f"pow({left}, {right})"
+
+        # Handle string multiplication (e.g., "=" * 50)
+        if isinstance(binop.op, ast.Mult):
+            # Check if one operand is a string literal
+            if isinstance(binop.left, ast.Constant) and isinstance(binop.left.value, str):
+                # String * number -> repeat string (simplified: just return the string)
+                return f'"{binop.left.value}"'  # Simplified - just return the character
+            elif isinstance(binop.right, ast.Constant) and isinstance(binop.right.value, str):
+                return f'"{binop.right.value}"'  # Simplified
 
         op_map = {
             ast.Add: '+',
@@ -430,19 +452,8 @@ class SimplePythonToCTranslator:
             func_name = call.func.id
 
             # Handle built-in functions
-            if func_name == 'print':
-                return self._translate_print_call(call)
-            elif func_name == 'abs':
-                if call.args:
-                    arg = self._translate_expression(call.args[0])
-                    return f"abs({arg})"
-                return "0"
-            elif func_name == 'pow':
-                if len(call.args) >= 2:
-                    base = self._translate_expression(call.args[0])
-                    exp = self._translate_expression(call.args[1])
-                    return f"pow({base}, {exp})"
-                return "1"
+            if func_name in self.builtin_functions:
+                return self.builtin_functions[func_name](call)
             elif func_name in ['sin', 'cos', 'tan', 'sqrt', 'log', 'exp']:
                 if call.args:
                     arg = self._translate_expression(call.args[0])
@@ -453,6 +464,21 @@ class SimplePythonToCTranslator:
             args = [self._translate_expression(arg) for arg in call.args]
             args_str = ", ".join(args)
             return f"{func_name}({args_str})"
+
+        elif isinstance(call.func, ast.Attribute):
+            # Method calls (obj.method())
+            obj = self._translate_expression(call.func.value)
+            method = call.func.attr
+            args = [self._translate_expression(arg) for arg in call.args]
+
+            # Handle specific list methods
+            if method == "append":
+                # list.append(item) -> we'll ignore this for now since C arrays are fixed size
+                return f"/* {obj}.append() - not implemented */"
+            else:
+                # For other methods, treat as regular function call
+                args_str = ", ".join(args)
+                return f"{method}({obj}, {args_str})"
 
         return "/* Unsupported call */"
 
@@ -479,11 +505,65 @@ class SimplePythonToCTranslator:
                 else:
                     format_parts.append("%s")
             else:
-                format_parts.append("%d")  # Default
+                # For variables and expressions, assume string by default
+                # since most of our print statements are printing strings
+                format_parts.append("%s")
 
         format_str = " ".join(format_parts) + "\\n"
         all_args = [f'"{format_str}"'] + args
         return f"printf({', '.join(all_args)})"
+
+    def _translate_len(self, call: ast.Call) -> str:
+        """Translate len() function."""
+        if call.args:
+            arg_expr = self._translate_expression(call.args[0])
+            # For arrays, calculate size using sizeof
+            # Note: This only works for statically allocated arrays
+            return f"(sizeof({arg_expr})/sizeof({arg_expr}[0]))"
+        return "0"
+
+    def _translate_range(self, call: ast.Call) -> str:
+        """Range is handled in for loop translation."""
+        return "/* range() handled in for loops */"
+
+    def _translate_abs(self, call: ast.Call) -> str:
+        """Translate abs() function."""
+        if call.args:
+            arg = self._translate_expression(call.args[0])
+            return f"abs({arg})"
+        return "0"
+
+    def _translate_min(self, call: ast.Call) -> str:
+        """Translate min() function."""
+        if len(call.args) >= 2:
+            # Use ternary operator for two arguments
+            a = self._translate_expression(call.args[0])
+            b = self._translate_expression(call.args[1])
+            return f"({a} < {b} ? {a} : {b})"
+        return "0"
+
+    def _translate_max(self, call: ast.Call) -> str:
+        """Translate max() function."""
+        if len(call.args) >= 2:
+            # Use ternary operator for two arguments
+            a = self._translate_expression(call.args[0])
+            b = self._translate_expression(call.args[1])
+            return f"({a} > {b} ? {a} : {b})"
+        return "0"
+
+    def _translate_int_cast(self, call: ast.Call) -> str:
+        """Translate int() cast."""
+        if call.args:
+            arg = self._translate_expression(call.args[0])
+            return f"(int)({arg})"
+        return "0"
+
+    def _translate_float_cast(self, call: ast.Call) -> str:
+        """Translate float() cast."""
+        if call.args:
+            arg = self._translate_expression(call.args[0])
+            return f"(double)({arg})"
+        return "0.0"
 
     def _translate_subscript(self, subscript: ast.Subscript) -> str:
         """Translate array/list subscript access."""
@@ -498,6 +578,32 @@ class SimplePythonToCTranslator:
 
         elements = [self._translate_expression(elt) for elt in list_node.elts]
         return "{" + ", ".join(elements) + "}"
+
+    def _translate_tuple(self, tuple_node: ast.Tuple) -> str:
+        """Translate tuple to C struct or array."""
+        if not tuple_node.elts:
+            return "{}"
+
+        # For simple tuples, we'll treat them as arrays for now
+        elements = [self._translate_expression(elt) for elt in tuple_node.elts]
+        return "{" + ", ".join(elements) + "}"
+
+    def _translate_f_string(self, f_string: ast.JoinedStr) -> str:
+        """Translate f-string to simple string literal."""
+        # For simplicity, we'll just convert f-strings to basic string literals
+        # This is a very simplified implementation
+        parts = []
+
+        for value in f_string.values:
+            if isinstance(value, ast.Constant):
+                parts.append(str(value.value))
+            elif isinstance(value, ast.FormattedValue):
+                # For now, just put a placeholder
+                parts.append("VAR")
+
+        # Create a simple string
+        result = "".join(parts)
+        return f'"{result}"'
 
     def _translate_global_constant(self, assign_node: ast.Assign) -> List[str]:
         """Translate global constant assignment."""
