@@ -262,8 +262,11 @@ def get_stc_container_for_python_type(python_type: str) -> Optional[STCContainer
         'deque': 'deque'
     }
 
+    # Handle both List[T] and list[T] formats
     for py_type, stc_key in direct_mappings.items():
-        if python_type.startswith(py_type) or python_type == py_type:
+        if (python_type.startswith(py_type) or
+            python_type.startswith(py_type.capitalize()) or
+            python_type == py_type):
             return STC_CONTAINERS.get(stc_key)
 
     return None
