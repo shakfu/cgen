@@ -183,3 +183,15 @@ class CFactory:
     ) -> core.Declaration:
         """New declaration."""
         return core.Declaration(element, init_value)
+
+    def if_statement(self, condition: Any, then_block: Any, else_block: Any = None) -> core.IfStatement:
+        """New if statement with optional else clause."""
+        return core.IfStatement(condition, then_block, else_block)
+
+    def while_loop(self, condition: Any, body: Any) -> core.WhileLoop:
+        """New while loop."""
+        return core.WhileLoop(condition, body)
+
+    def for_loop(self, init: Any = None, condition: Any = None, increment: Any = None, body: Any = None) -> core.ForLoop:
+        """New for loop."""
+        return core.ForLoop(init, condition, increment, body)

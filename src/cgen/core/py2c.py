@@ -93,6 +93,8 @@ class PythonToCConverter:
             return self._convert_annotated_assignment(node)
         elif isinstance(node, ast.Assign):
             return self._convert_assignment(node)
+        elif isinstance(node, ast.AugAssign):
+            return self._convert_augmented_assignment(node)
         elif isinstance(node, ast.Return):
             return self._convert_return(node)
         elif isinstance(node, ast.If):
@@ -237,6 +239,10 @@ class PythonToCConverter:
             return self._convert_function_call(node)
         elif isinstance(node, ast.Compare):
             return self._convert_comparison(node)
+        elif isinstance(node, ast.BoolOp):
+            return self._convert_boolean_operation(node)
+        elif isinstance(node, ast.UnaryOp):
+            return self._convert_unary_operation(node)
         else:
             raise UnsupportedFeatureError(f"Unsupported expression: {type(node).__name__}")
 
@@ -257,11 +263,19 @@ class PythonToCConverter:
         right = self._convert_expression(node.right)
 
         op_map = {
+            # Arithmetic operators
             ast.Add: "+",
             ast.Sub: "-",
             ast.Mult: "*",
             ast.Div: "/",
+            ast.FloorDiv: "/",  # Floor division maps to regular division in C
             ast.Mod: "%",
+            # Bitwise operators
+            ast.BitOr: "|",
+            ast.BitXor: "^",
+            ast.BitAnd: "&",
+            ast.LShift: "<<",
+            ast.RShift: ">>",
         }
 
         if type(node.op) in op_map:
@@ -293,6 +307,41 @@ class PythonToCConverter:
             return f"{left} {op_str} {right}"
         else:
             raise UnsupportedFeatureError(f"Unsupported comparison operator: {type(node.ops[0]).__name__}")
+
+    def _convert_boolean_operation(self, node: ast.BoolOp) -> str:
+        """Convert boolean operation (and, or) to C syntax."""
+        # Convert all operands
+        operands = [self._convert_expression(operand) for operand in node.values]
+
+        # Map Python boolean operators to C
+        op_map = {
+            ast.And: "&&",
+            ast.Or: "||",
+        }
+
+        if type(node.op) in op_map:
+            op_str = op_map[type(node.op)]
+            # Join all operands with the operator
+            return f"({f' {op_str} '.join(str(operand) for operand in operands)})"
+        else:
+            raise UnsupportedFeatureError(f"Unsupported boolean operator: {type(node.op).__name__}")
+
+    def _convert_unary_operation(self, node: ast.UnaryOp) -> str:
+        """Convert unary operation to C syntax."""
+        operand = self._convert_expression(node.operand)
+
+        op_map = {
+            ast.UAdd: "+",      # Unary plus
+            ast.USub: "-",      # Unary minus
+            ast.Not: "!",       # Logical NOT
+            ast.Invert: "~",    # Bitwise NOT
+        }
+
+        if type(node.op) in op_map:
+            op_str = op_map[type(node.op)]
+            return f"{op_str}{operand}"
+        else:
+            raise UnsupportedFeatureError(f"Unsupported unary operator: {type(node.op).__name__}")
 
     def _convert_function_call(self, node: ast.Call) -> core.Element:
         """Convert function call to C function call."""
@@ -400,6 +449,40 @@ class PythonToCConverter:
 
         else:
             raise UnsupportedFeatureError("Only range-based for loops are currently supported")
+
+    def _convert_augmented_assignment(self, node: ast.AugAssign) -> core.Statement:
+        """Convert augmented assignment (+=, -=, etc.) to C syntax."""
+        if not isinstance(node.target, ast.Name):
+            raise UnsupportedFeatureError("Only simple variable augmented assignments supported")
+
+        var_name = node.target.id
+        if var_name not in self.variable_context:
+            raise TypeMappingError(f"Variable '{var_name}' must be declared before augmented assignment")
+
+        variable = self.variable_context[var_name]
+        value_expr = self._convert_expression(node.value)
+
+        # Map Python augmented assignment operators to C
+        op_map = {
+            ast.Add: "+=",
+            ast.Sub: "-=",
+            ast.Mult: "*=",
+            ast.Div: "/=",
+            ast.FloorDiv: "/=",  # Floor division maps to regular division in C
+            ast.Mod: "%=",
+            ast.BitOr: "|=",
+            ast.BitXor: "^=",
+            ast.BitAnd: "&=",
+            ast.LShift: "<<=",
+            ast.RShift: ">>=",
+        }
+
+        if type(node.op) in op_map:
+            op_str = op_map[type(node.op)]
+            assignment = f"{var_name} {op_str} {value_expr}"
+            return self.c_factory.statement(assignment)
+        else:
+            raise UnsupportedFeatureError(f"Unsupported augmented assignment operator: {type(node.op).__name__}")
 
     def _convert_expression_statement(self, node: ast.Expr) -> core.Statement:
         """Convert expression statement (like standalone function call)."""

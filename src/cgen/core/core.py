@@ -513,3 +513,117 @@ class Sequence:
 
 class Block(Sequence):
     """A sequence wrapped in braces."""
+
+
+class IfStatement(Element):
+    """If statement with optional else clause."""
+
+    def __init__(self, condition: Any, then_block: Any, else_block: Any = None) -> None:
+        self.condition = self._convert_condition(condition)
+        self.then_block = self._convert_block(then_block)
+        self.else_block = self._convert_block(else_block) if else_block is not None else None
+
+    def _convert_condition(self, condition: Any) -> Union[str, Element]:
+        """Convert condition to appropriate type."""
+        if isinstance(condition, (str, Element)):
+            return condition
+        elif isinstance(condition, bool):
+            return "true" if condition else "false"
+        elif isinstance(condition, (int, float)):
+            return str(condition)
+        else:
+            raise NotImplementedError(f"Unsupported condition type: {type(condition)}")
+
+    def _convert_block(self, block: Any) -> Union[Block, Statement, Sequence]:
+        """Convert block to appropriate type."""
+        if block is None:
+            return Block()
+        elif isinstance(block, (Block, Statement, Sequence)):
+            return block
+        elif isinstance(block, list):
+            seq = Sequence()
+            for item in block:
+                seq.append(item)
+            return seq
+        else:
+            # Treat as single statement
+            return Statement(block)
+
+
+class WhileLoop(Element):
+    """While loop construct."""
+
+    def __init__(self, condition: Any, body: Any) -> None:
+        self.condition = self._convert_condition(condition)
+        self.body = self._convert_body(body)
+
+    def _convert_condition(self, condition: Any) -> Union[str, Element]:
+        """Convert condition to appropriate type."""
+        if isinstance(condition, (str, Element)):
+            return condition
+        elif isinstance(condition, bool):
+            return "true" if condition else "false"
+        elif isinstance(condition, (int, float)):
+            return str(condition)
+        else:
+            raise NotImplementedError(f"Unsupported condition type: {type(condition)}")
+
+    def _convert_body(self, body: Any) -> Union[Block, Statement, Sequence]:
+        """Convert body to appropriate type."""
+        if body is None:
+            return Block()
+        elif isinstance(body, (Block, Statement, Sequence)):
+            return body
+        elif isinstance(body, list):
+            seq = Sequence()
+            for item in body:
+                seq.append(item)
+            return seq
+        else:
+            # Treat as single statement
+            return Statement(body)
+
+
+class ForLoop(Element):
+    """For loop construct."""
+
+    def __init__(self, init: Any = None, condition: Any = None, increment: Any = None, body: Any = None) -> None:
+        self.init = self._convert_statement(init) if init is not None else None
+        self.condition = self._convert_condition(condition) if condition is not None else None
+        self.increment = self._convert_statement(increment) if increment is not None else None
+        self.body = self._convert_body(body)
+
+    def _convert_condition(self, condition: Any) -> Union[str, Element]:
+        """Convert condition to appropriate type."""
+        if isinstance(condition, (str, Element)):
+            return condition
+        elif isinstance(condition, bool):
+            return "true" if condition else "false"
+        elif isinstance(condition, (int, float)):
+            return str(condition)
+        else:
+            raise NotImplementedError(f"Unsupported condition type: {type(condition)}")
+
+    def _convert_statement(self, stmt: Any) -> Union[str, Element, Statement]:
+        """Convert statement to appropriate type."""
+        if isinstance(stmt, (str, Element, Statement)):
+            return stmt
+        elif isinstance(stmt, (int, float, bool)):
+            return str(stmt)
+        else:
+            raise NotImplementedError(f"Unsupported statement type: {type(stmt)}")
+
+    def _convert_body(self, body: Any) -> Union[Block, Statement, Sequence]:
+        """Convert body to appropriate type."""
+        if body is None:
+            return Block()
+        elif isinstance(body, (Block, Statement, Sequence)):
+            return body
+        elif isinstance(body, list):
+            seq = Sequence()
+            for item in body:
+                seq.append(item)
+            return seq
+        else:
+            # Treat as single statement
+            return Statement(body)
