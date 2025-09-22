@@ -100,7 +100,7 @@ class CFactory:
         const: bool = False,
         pointer: bool = False,
         volatile: bool = False,
-        array: int | None = None,
+        array: "int | None" = None,
     ) -> core.Type:
         """New type."""
         return core.Type(type_ref, const, pointer, volatile, array)
@@ -111,7 +111,7 @@ class CFactory:
         data_type: str | core.Type | core.Struct,
         const: bool = False,  # Pointer qualifier only
         pointer: bool = False,
-        array: int | None = None,
+        array: "int | None" = None,
     ) -> core.StructMember:
         """New StructMember."""
         return core.StructMember(name, data_type, const, pointer, array)
@@ -132,7 +132,7 @@ class CFactory:
         pointer: bool = False,
         extern: bool = False,
         static: bool = False,
-        array: int | None = None,
+        array: "int | None" = None,
     ) -> core.Variable:
         """New variable."""
         return core.Variable(name, data_type, const, pointer, extern, static, array)
@@ -144,7 +144,7 @@ class CFactory:
         const: bool = False,  # Only used as pointer qualifier
         pointer: bool = False,
         volatile: bool = False,
-        array: int | None = None,
+        array: "int | None" = None,
     ) -> core.TypeDef:
         """New typedef."""
         return core.TypeDef(name, base_type, const, pointer, volatile, array)
@@ -224,3 +224,47 @@ class CFactory:
     def dereference(self, operand: Union[str, core.Element]) -> "core.DereferenceOperator":
         """New dereference operator (*)."""
         return core.DereferenceOperator(operand)
+
+    # TIER 3 Language Elements
+    def enum(self, name: str, values: "list[str] | dict[str, int] | None" = None) -> "core.Enum":
+        """New enumeration type."""
+        return core.Enum(name, values)
+
+    def enum_member(self, name: str, value: "int | None" = None) -> "core.EnumMember":
+        """New enumeration member."""
+        return core.EnumMember(name, value)
+
+    def union(self, name: str, members: "core.UnionMember | list[core.UnionMember] | None" = None) -> "core.Union":
+        """New union type."""
+        return core.Union(name, members)
+
+    def union_member(
+        self,
+        name: str,
+        data_type: "str | core.Type | core.Struct | core.Union",
+        const: bool = False,
+        pointer: bool = False,
+        array: "int | None" = None
+    ) -> "core.UnionMember":
+        """New union member."""
+        return core.UnionMember(name, data_type, const, pointer, array)
+
+    def multi_pointer_type(
+        self,
+        base_type: "str | core.Type",
+        pointer_level: int,
+        const: bool = False,
+        volatile: bool = False
+    ) -> core.Type:
+        """New multi-level pointer type (e.g., int**, char***)."""
+        return core.Type(base_type, const, pointer_level, volatile)
+
+    def multi_array_type(
+        self,
+        base_type: "str | core.Type",
+        dimensions: list[int],
+        const: bool = False,
+        volatile: bool = False
+    ) -> core.Type:
+        """New multi-dimensional array type (e.g., int[10][20])."""
+        return core.Type(base_type, const, False, volatile, dimensions)

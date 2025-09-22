@@ -129,6 +129,11 @@ class Writer(Formatter):
             "SizeofOperator": self._write_sizeof_operator,
             "AddressOfOperator": self._write_address_of_operator,
             "DereferenceOperator": self._write_dereference_operator,
+            # TIER 3 elements
+            "Enum": self._write_enum,
+            "EnumMember": self._write_enum_member,
+            "Union": self._write_union,
+            "UnionMember": self._write_union_member,
         }
         self.last_element = ElementType.NONE
 
@@ -333,9 +338,32 @@ class Writer(Formatter):
         result = ""
         if isinstance(elem.base_type, str):
             result += elem.base_type
-        else:
+        elif isinstance(elem.base_type, (core.Enum, core.Union)):
+            # Handle enum/union base types
+            result += elem.base_type.__class__.__name__.lower() + " " + elem.base_type.name
+        elif isinstance(elem.base_type, core.Struct):
+            # Handle struct base types
+            result += "struct " + elem.base_type.name
+        elif isinstance(elem.base_type, core.Type):
             result += self._format_type(elem.base_type)
-        if elem.pointer:
+        else:
+            # For other types, convert to string
+            result += str(elem.base_type)
+
+        # Handle pointers (both single and multi-level)
+        if hasattr(elem, 'pointer_level') and elem.pointer_level > 0:
+            pointer_str = "*" * elem.pointer_level
+            if self.style.pointer_alignment == c_style.Alignment.LEFT:
+                result += pointer_str
+            elif self.style.pointer_alignment == c_style.Alignment.RIGHT:
+                result += " " + pointer_str
+            else:  # MIDDLE - only add trailing space for multi-level pointers
+                if elem.pointer_level > 1:
+                    result += " " + pointer_str + " "
+                else:
+                    result += " " + pointer_str
+        elif elem.pointer:
+            # Backward compatibility for single-level pointers
             if self.style.pointer_alignment == c_style.Alignment.LEFT:
                 result += "*"
             elif self.style.pointer_alignment == c_style.Alignment.RIGHT:
@@ -398,13 +426,15 @@ class Writer(Formatter):
             self._write_declaration(elem.data_type)
         elif isinstance(elem.data_type, core.TypeDef):
             self._write_typedef_usage(elem.data_type)
+        elif isinstance(elem.data_type, (core.Enum, core.Union)):
+            # Write enum/union usage (just the name)
+            self._write(elem.data_type.__class__.__name__.lower() + " " + elem.data_type.name)
         else:
             raise NotImplementedError(str(type(elem.data_type)))
 
         result = self._format_pointer_spacing(elem.pointer, elem.const, elem.data_type)
         result += elem.name
-        if elem.array is not None:
-            result += f"[{elem.array}]"
+        result += self._format_array_dimensions(elem)
         self._write(result)
         self.last_element = ElementType.VARIABLE_DECLARATION
 
@@ -432,8 +462,7 @@ class Writer(Formatter):
         result = self._format_pointer_spacing(elem.pointer, elem.const, elem.base_type)
         assert elem.name is not None
         result += elem.name
-        if elem.array is not None:
-            result += f"[{elem.array}]"
+        result += self._format_array_dimensions(elem)
         self._write(result)
         self.last_element = ElementType.TYPEDEF
 
@@ -579,13 +608,15 @@ class Writer(Formatter):
             self._write_type_declaration(elem.data_type)
         elif isinstance(elem.data_type, core.Struct):
             self._write_struct_usage(elem.data_type)
+        elif isinstance(elem.data_type, (core.Enum, core.Union)):
+            # Write enum/union usage (just the name)
+            self._write(elem.data_type.__class__.__name__.lower() + " " + elem.data_type.name)
         else:
             raise NotImplementedError(str(type(elem.data_type)))
 
         result = self._format_pointer_spacing(elem.pointer, elem.const, elem.data_type)
         result += elem.name
-        if elem.array is not None:
-            result += f"[{elem.array}]"
+        result += self._format_array_dimensions(elem)
         self._write(result)
 
     # Preprocessor directives
@@ -849,6 +880,121 @@ class Writer(Formatter):
             self._write(elem.operand)
         else:
             self._write_element(elem.operand)
+
+        self.last_element = ElementType.STATEMENT
+
+    def _format_array_dimensions(self, elem) -> str:
+        """Format array dimensions for multi-dimensional arrays."""
+        # First check if the element itself has array dimensions
+        if hasattr(elem, 'array_dimensions') and elem.array_dimensions:
+            return "".join(f"[{dim}]" for dim in elem.array_dimensions)
+        elif hasattr(elem, 'array') and elem.array is not None:
+            return f"[{elem.array}]"
+
+        # If not, check if the data_type has array dimensions (for variables with array types)
+        if hasattr(elem, 'data_type'):
+            if hasattr(elem.data_type, 'array_dimensions') and elem.data_type.array_dimensions:
+                return "".join(f"[{dim}]" for dim in elem.data_type.array_dimensions)
+            elif hasattr(elem.data_type, 'array') and elem.data_type.array is not None:
+                return f"[{elem.data_type.array}]"
+
+        return ""
+
+    # TIER 3 syntactical elements writers
+    def _write_enum(self, elem) -> None:
+        """Write enum declaration."""
+        self._write("enum ")
+        self._write(elem.name)
+
+        if elem.values:
+            self._write(" {")
+            if isinstance(elem.values, dict):
+                enum_items = []
+                for name, value in elem.values.items():
+                    if value is not None:
+                        enum_items.append(f"{name} = {value}")
+                    else:
+                        enum_items.append(name)
+
+                if len(enum_items) > 3:  # Multi-line for readability
+                    self._eol()
+                    self._indent()
+                    for i, item in enumerate(enum_items):
+                        self._write(item)
+                        if i < len(enum_items) - 1:
+                            self._write(",")
+                            self._eol()
+                    self._dedent()
+                    self._eol()
+                    self._write("}")
+                else:  # Single line for short enums
+                    self._write(" ")
+                    self._write(", ".join(enum_items))
+                    self._write(" }")
+            else:
+                # Handle list format (shouldn't happen with current implementation)
+                self._write(" ")
+                self._write(", ".join(str(v) for v in elem.values))
+                self._write(" }")
+
+        self.last_element = ElementType.TYPE_DECLARATION
+
+    def _write_enum_member(self, elem) -> None:
+        """Write enum member."""
+        self._write(elem.name)
+        if elem.value is not None:
+            self._write(f" = {elem.value}")
+        self.last_element = ElementType.STATEMENT
+
+    def _write_union(self, elem) -> None:
+        """Write union declaration."""
+        self._write("union ")
+        self._write(elem.name)
+
+        if elem.members:
+            self._write(" {")
+            self._eol()
+            self._indent()
+
+            for member in elem.members:
+                self._write_element(member)
+                self._write(";")
+                self._eol()
+
+            self._dedent()
+            self._write("}")
+
+        self.last_element = ElementType.TYPE_DECLARATION
+
+    def _write_union_member(self, elem) -> None:
+        """Write union member."""
+        # Write type with qualifiers and pointers
+        if hasattr(elem, 'const') and elem.const:
+            self._write("const ")
+
+        if isinstance(elem.data_type, str):
+            self._write(elem.data_type)
+        else:
+            self._write_element(elem.data_type)
+
+        # Handle pointer
+        if hasattr(elem, 'pointer') and elem.pointer:
+            if self.style.pointer_alignment == c_style.Alignment.LEFT:
+                self._write("* ")
+            elif self.style.pointer_alignment == c_style.Alignment.RIGHT:
+                self._write(" *")
+            else:  # MIDDLE
+                self._write(" * ")
+        else:
+            self._write(" ")
+
+        # Write member name
+        self._write(elem.name)
+
+        # Handle array
+        array_str = self._format_array_dimensions(elem)
+        if array_str:
+            self._write(array_str)
 
         self.last_element = ElementType.STATEMENT
 

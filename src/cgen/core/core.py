@@ -146,23 +146,50 @@ class Type(DataType):
         self,
         base_type: Union[str, "Type"],
         const: bool = False,
-        pointer: bool = False,
+        pointer: "bool | int" = False,
         volatile: bool = False,
-        array: int | None = None,
-    ) -> None:  # Only used for typedefs to other array types
+        array: "int | list[int] | None" = None,
+    ) -> None:
         super().__init__(None)
         if isinstance(base_type, str):
             if not base_type.strip():
                 raise ValueError("type name cannot be empty")
-        elif not isinstance(base_type, Type):
-            raise TypeError(f"base_type must be str or Type, got {type(base_type)}")
-        if array is not None and (not isinstance(array, int) or array < 0):
-            raise ValueError("array size must be a non-negative integer or None")
+        elif not isinstance(base_type, (Type, DataType)):
+            raise TypeError(f"base_type must be str, Type, or DataType, got {type(base_type)}")
+        # Handle multi-level pointers
+        if isinstance(pointer, bool):
+            self.pointer_level = 1 if pointer else 0
+        elif isinstance(pointer, int):
+            if pointer < 0:
+                raise ValueError("pointer level must be non-negative")
+            self.pointer_level = pointer
+        else:
+            # Keep backward compatibility
+            self.pointer_level = 1 if pointer else 0
+
+        # Handle multi-dimensional arrays
+        if array is not None:
+            if isinstance(array, int):
+                if array < 0:
+                    raise ValueError("array size must be non-negative")
+                self.array_dimensions = [array]
+            elif isinstance(array, list):
+                if not all(isinstance(dim, int) and dim >= 0 for dim in array):
+                    raise ValueError("all array dimensions must be non-negative integers")
+                self.array_dimensions = array[:]
+            else:
+                # Keep backward compatibility
+                self.array_dimensions = [array] if array is not None else []
+        else:
+            self.array_dimensions = []
+
         self.base_type = base_type
         self.const = const
         self.volatile = volatile
-        self.pointer = pointer
-        self.array = array
+
+        # Keep legacy pointer and array properties for backward compatibility
+        self.pointer = self.pointer_level > 0
+        self.array = self.array_dimensions[0] if self.array_dimensions else None
 
     def qualifier(self, name) -> bool:
         """Returns the status of named qualifier."""
@@ -722,4 +749,64 @@ class DereferenceOperator(Element):
 
     def __init__(self, operand: Union[str, Element]) -> None:
         self.operand = operand
+
+
+class Enum(DataType):
+    """Enumeration type for creating named constants."""
+
+    def __init__(self, name: str, values: "list[str] | dict[str, int] | None" = None) -> None:
+        _validate_c_identifier(name, "enum name")
+        self.name = name
+        self.values = values or []
+
+        # Convert list to dict with auto-incrementing values
+        if isinstance(self.values, list):
+            self.values = {value: i for i, value in enumerate(self.values)}
+
+        # Validate enum constant names
+        if isinstance(self.values, dict):
+            for enum_name in self.values.keys():
+                _validate_c_identifier(enum_name, "enum constant name")
+
+
+class EnumMember(Element):
+    """Member of an enumeration."""
+
+    def __init__(self, name: str, value: "int | None" = None) -> None:
+        _validate_c_identifier(name, "enum member name")
+        self.name = name
+        self.value = value
+
+
+class Union(DataType):
+    """Union type for memory-efficient data structures."""
+
+    def __init__(self, name: str, members: "UnionMember | list[UnionMember] | None" = None) -> None:
+        _validate_c_identifier(name, "union name")
+        self.name = name
+        if members is None:
+            self.members = []
+        elif isinstance(members, list):
+            self.members = members
+        else:
+            self.members = [members]
+
+
+class UnionMember(Element):
+    """Member of a union."""
+
+    def __init__(
+        self,
+        name: str,
+        data_type: "str | Type | Struct | Union",
+        const: bool = False,
+        pointer: bool = False,
+        array: "int | None" = None
+    ) -> None:
+        _validate_c_identifier(name, "union member name")
+        self.name = name
+        self.data_type = data_type
+        self.const = const
+        self.pointer = pointer
+        self.array = array
 

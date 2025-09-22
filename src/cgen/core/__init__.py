@@ -12,6 +12,11 @@ from .core import (
     SizeofOperator,
     AddressOfOperator,
     DereferenceOperator,
+    # TIER 3 elements
+    Enum,
+    EnumMember,
+    Union,
+    UnionMember,
 )
 
 __all__ = [
@@ -31,4 +36,9 @@ __all__ = [
     "SizeofOperator",
     "AddressOfOperator",
     "DereferenceOperator",
+    # TIER 3 elements
+    "Enum",
+    "EnumMember",
+    "Union",
+    "UnionMember",
 ]
