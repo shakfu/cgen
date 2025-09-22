@@ -10,6 +10,7 @@ This package provides:
 - Intelligent optimization during code generation
 - Extensible architecture for domain-specific optimizations
 - Comprehensive C code generation capabilities
+- Build system generation and direct compilation
 """
 
 # Core C code generation capabilities (Layer 3)
@@ -22,6 +23,13 @@ from .core import (
     Writer,
     convert_python_file_to_c,
     convert_python_to_c,
+)
+
+# Build system generation and compilation
+from .builder import (
+    Builder,
+    MakefileGenerator,
+    CGenMakefileGenerator,
 )
 
 # Version information
@@ -38,6 +46,10 @@ __all__ = [
     "PythonToCConverter",
     "convert_python_to_c",
     "convert_python_file_to_c",
+    # Build system and compilation
+    "Builder",
+    "MakefileGenerator",
+    "CGenMakefileGenerator",
     # Package info
     "__version__",
 ]

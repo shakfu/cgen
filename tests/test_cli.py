@@ -12,7 +12,7 @@ from unittest.mock import patch
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(project_root, 'src'))
 
-from cgen.cli.enhanced_main import CGenCLI
+from cgen.cli.main import CGenCLI
 
 
 class TestEnhancedCLI(unittest.TestCase):
