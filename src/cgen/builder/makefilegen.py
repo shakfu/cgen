@@ -485,8 +485,18 @@ class MakefileGenerator:
 
         return "\n".join(self.content)
 
-    def write_makefile(self, filename: str = "Makefile") -> bool:
-        """Write the Makefile to disk."""
+    def write_makefile(self, filename: Optional[str] = None) -> bool:
+        """Write the Makefile to disk.
+
+        Args:
+            filename: Output filename. If None, defaults to "build/Makefile"
+        """
+        if filename is None:
+            # Default to build directory to avoid overwriting project Makefile
+            build_dir = Path("build")
+            build_dir.mkdir(exist_ok=True)
+            filename = str(build_dir / "Makefile")
+
         try:
             makefile_content = self.generate_makefile()
             with open(filename, "w") as f:
@@ -603,7 +613,7 @@ def main():
     # Makefile command
     makefile_parser = subparsers.add_parser("makefile", help="Generate Makefile")
     makefile_parser.add_argument("source", help="C source file or directory")
-    makefile_parser.add_argument("-o", "--output", default="Makefile", help="Output Makefile name")
+    makefile_parser.add_argument("-o", "--output", help="Output Makefile name (defaults to build/Makefile)")
     makefile_parser.add_argument("--name", help="Project name")
     makefile_parser.add_argument("--no-stc", action="store_true", help="Disable STC support")
     makefile_parser.add_argument("-I", "--include", action="append", help="Include directories")
