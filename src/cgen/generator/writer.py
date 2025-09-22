@@ -111,6 +111,7 @@ class CGenWriter(Formatter):
             "Block": self._write_block,
             "Statement": self._write_statement,
             "Line": self._write_line_element,
+            "Sequence": self._write_sequence,
             "IncludeDirective": self._write_include_directive,
             "DefineDirective": self._write_define_directive,
             "IfdefDirective": self._write_ifdef_directive,

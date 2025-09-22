@@ -135,7 +135,7 @@ def test_theorem_prover():
     print(f"   Status: {overflow_result.status.value}")
     print(f"   Time: {overflow_result.proof_time:.3f}s")
 
-    return prover
+    assert prover is not None
 
 
 def test_memory_safety_verification():
@@ -171,7 +171,7 @@ def test_memory_safety_verification():
     for rec in unsafe_proof.recommendations[:2]:
         print(f"     • {rec}")
 
-    return bounds_prover
+    assert bounds_prover is not None
 
 
 def test_algorithm_correctness():
@@ -203,7 +203,7 @@ def test_algorithm_correctness():
     print(f"   Confidence: {search_proof.confidence:.2f}")
     print(f"   Loop analysis: {len(search_proof.loop_analysis)} loops")
 
-    return correctness_prover
+    assert correctness_prover is not None
 
 
 def test_performance_analysis():
@@ -244,7 +244,7 @@ def test_performance_analysis():
             for opt in analysis.optimization_opportunities[:1]:
                 print(f"     • {opt}")
 
-    return performance_analyzer
+    assert performance_analyzer is not None
 
 
 def test_integration_pipeline():
@@ -303,12 +303,14 @@ def test_integration_pipeline():
         for rec in all_recommendations[:3]:
             print(f"     • {rec}")
 
-    return {
+    verification_report = {
         'memory_proof': memory_proof,
         'correctness_proof': correctness_proof,
         'performance_analysis': performance_analysis,
         'overall_confidence': overall_confidence
     }
+    assert verification_report is not None
+    assert len(verification_report) == 4
 
 
 def main():

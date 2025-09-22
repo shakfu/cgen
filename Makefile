@@ -43,10 +43,6 @@ install-dev:
 # Testing
 test: test-pytest
 
-test-legacy:
-	@echo "Legacy unittest mode - all tests have been converted to pytest"
-	@echo "Use 'make test-pytest' or 'make test' instead"
-
 test-pytest:
 	uv run pytest tests/ -v
 
