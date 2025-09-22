@@ -968,3 +968,89 @@ class Label(Element):
         _validate_c_identifier(name, "label name")
         self.name = name
 
+
+# Additional Operators
+
+class BitwiseOperator(Element):
+    """Bitwise operators (&, |, ^, ~, <<, >>)."""
+
+    def __init__(self, left: "Union[str, Element]", operator: str, right: "Union[str, Element, None]" = None) -> None:
+        valid_operators = ["&", "|", "^", "~", "<<", ">>"]
+        if operator not in valid_operators:
+            raise ValueError(f"Invalid bitwise operator '{operator}'. Valid operators: {valid_operators}")
+
+        self.left = left
+        self.operator = operator
+        self.right = right
+
+        # Validate unary operators (only ~ for bitwise NOT)
+        if operator == "~":
+            if right is not None:
+                raise ValueError("Bitwise NOT (~) is a unary operator and should not have a right operand")
+        else:
+            if right is None:
+                raise ValueError(f"Bitwise operator '{operator}' requires a right operand")
+
+
+class LogicalOperator(Element):
+    """Logical operators (&&, ||, !)."""
+
+    def __init__(self, left: "Union[str, Element]", operator: str, right: "Union[str, Element, None]" = None) -> None:
+        valid_operators = ["&&", "||", "!"]
+        if operator not in valid_operators:
+            raise ValueError(f"Invalid logical operator '{operator}'. Valid operators: {valid_operators}")
+
+        self.left = left
+        self.operator = operator
+        self.right = right
+
+        # Validate unary operators (only ! for logical NOT)
+        if operator == "!":
+            if right is not None:
+                raise ValueError("Logical NOT (!) is a unary operator and should not have a right operand")
+        else:
+            if right is None:
+                raise ValueError(f"Logical operator '{operator}' requires a right operand")
+
+
+class IncrementOperator(Element):
+    """Increment operators (++var, var++)."""
+
+    def __init__(self, operand: "Union[str, Element]", prefix: bool = True) -> None:
+        if isinstance(operand, str):
+            if not operand.strip():
+                raise ValueError("increment operand cannot be empty")
+
+        self.operand = operand
+        self.prefix = prefix  # True for ++var, False for var++
+
+
+class DecrementOperator(Element):
+    """Decrement operators (--var, var--)."""
+
+    def __init__(self, operand: "Union[str, Element]", prefix: bool = True) -> None:
+        if isinstance(operand, str):
+            if not operand.strip():
+                raise ValueError("decrement operand cannot be empty")
+
+        self.operand = operand
+        self.prefix = prefix  # True for --var, False for var--
+
+
+class CompoundAssignmentOperator(Element):
+    """Compound assignment operators (+=, -=, *=, /=, %=, &=, |=, ^=, <<=, >>=)."""
+
+    def __init__(self, left: "Union[str, Element]", operator: str, right: "Union[str, Element]") -> None:
+        valid_operators = ["+=", "-=", "*=", "/=", "%=", "&=", "|=", "^=", "<<=", ">>="]
+        if operator not in valid_operators:
+            raise ValueError(f"Invalid compound assignment operator '{operator}'. Valid operators: {valid_operators}")
+
+        if isinstance(left, str) and not left.strip():
+            raise ValueError("compound assignment left operand cannot be empty")
+        if isinstance(right, str) and not right.strip():
+            raise ValueError("compound assignment right operand cannot be empty")
+
+        self.left = left
+        self.operator = operator
+        self.right = right
+

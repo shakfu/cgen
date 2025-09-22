@@ -29,6 +29,12 @@ from .core import (
     DefaultCase,
     GotoStatement,
     Label,
+    # Additional Operators
+    BitwiseOperator,
+    LogicalOperator,
+    IncrementOperator,
+    DecrementOperator,
+    CompoundAssignmentOperator,
 )
 
 __all__ = [
@@ -65,4 +71,10 @@ __all__ = [
     "DefaultCase",
     "GotoStatement",
     "Label",
+    # Additional Operators
+    "BitwiseOperator",
+    "LogicalOperator",
+    "IncrementOperator",
+    "DecrementOperator",
+    "CompoundAssignmentOperator",
 ]

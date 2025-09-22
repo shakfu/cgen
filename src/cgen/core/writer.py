@@ -146,6 +146,12 @@ class Writer(Formatter):
             "DefaultCase": self._write_default_case,
             "GotoStatement": self._write_goto_statement,
             "Label": self._write_label,
+            # Additional Operators
+            "BitwiseOperator": self._write_bitwise_operator,
+            "LogicalOperator": self._write_logical_operator,
+            "IncrementOperator": self._write_increment_operator,
+            "DecrementOperator": self._write_decrement_operator,
+            "CompoundAssignmentOperator": self._write_compound_assignment_operator,
         }
         self.last_element = ElementType.NONE
 
@@ -1244,6 +1250,112 @@ class Writer(Formatter):
         """Write label."""
         self._write(elem.name)
         self._write(":")
+
+        self.last_element = ElementType.STATEMENT
+
+    # Additional Operator Writers
+
+    def _write_bitwise_operator(self, elem) -> None:
+        """Write bitwise operator."""
+        if elem.operator == "~":
+            # Unary bitwise NOT
+            self._write("~")
+            if isinstance(elem.left, (str, int, float)):
+                self._write(str(elem.left))
+            else:
+                self._write_element(elem.left)
+        else:
+            # Binary bitwise operators
+            if isinstance(elem.left, (str, int, float)):
+                self._write(str(elem.left))
+            else:
+                self._write_element(elem.left)
+
+            self._write(f" {elem.operator} ")
+
+            if isinstance(elem.right, (str, int, float)):
+                self._write(str(elem.right))
+            else:
+                self._write_element(elem.right)
+
+        self.last_element = ElementType.STATEMENT
+
+    def _write_logical_operator(self, elem) -> None:
+        """Write logical operator."""
+        if elem.operator == "!":
+            # Unary logical NOT
+            self._write("!")
+            if isinstance(elem.left, (str, int, float)):
+                self._write(str(elem.left))
+            else:
+                self._write_element(elem.left)
+        else:
+            # Binary logical operators
+            if isinstance(elem.left, (str, int, float)):
+                self._write(str(elem.left))
+            else:
+                self._write_element(elem.left)
+
+            self._write(f" {elem.operator} ")
+
+            if isinstance(elem.right, (str, int, float)):
+                self._write(str(elem.right))
+            else:
+                self._write_element(elem.right)
+
+        self.last_element = ElementType.STATEMENT
+
+    def _write_increment_operator(self, elem) -> None:
+        """Write increment operator."""
+        if elem.prefix:
+            # Prefix increment: ++var
+            self._write("++")
+            if isinstance(elem.operand, (str, int, float)):
+                self._write(str(elem.operand))
+            else:
+                self._write_element(elem.operand)
+        else:
+            # Postfix increment: var++
+            if isinstance(elem.operand, (str, int, float)):
+                self._write(str(elem.operand))
+            else:
+                self._write_element(elem.operand)
+            self._write("++")
+
+        self.last_element = ElementType.STATEMENT
+
+    def _write_decrement_operator(self, elem) -> None:
+        """Write decrement operator."""
+        if elem.prefix:
+            # Prefix decrement: --var
+            self._write("--")
+            if isinstance(elem.operand, (str, int, float)):
+                self._write(str(elem.operand))
+            else:
+                self._write_element(elem.operand)
+        else:
+            # Postfix decrement: var--
+            if isinstance(elem.operand, (str, int, float)):
+                self._write(str(elem.operand))
+            else:
+                self._write_element(elem.operand)
+            self._write("--")
+
+        self.last_element = ElementType.STATEMENT
+
+    def _write_compound_assignment_operator(self, elem) -> None:
+        """Write compound assignment operator."""
+        if isinstance(elem.left, (str, int, float)):
+            self._write(str(elem.left))
+        else:
+            self._write_element(elem.left)
+
+        self._write(f" {elem.operator} ")
+
+        if isinstance(elem.right, (str, int, float)):
+            self._write(str(elem.right))
+        else:
+            self._write_element(elem.right)
 
         self.last_element = ElementType.STATEMENT
 

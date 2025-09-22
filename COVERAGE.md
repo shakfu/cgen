@@ -45,6 +45,10 @@
 - ✅ **Ternary operator**: `condition ? true : false` via `TernaryOperator` class
 - ✅ **Sizeof operator**: Memory size queries via `SizeofOperator` class
 - ✅ **Address-of/dereference**: `&`, `*` operators via `AddressOfOperator` and `DereferenceOperator`
+- ✅ **Bitwise operators**: `&`, `|`, `^`, `~`, `<<`, `>>` via `BitwiseOperator` class
+- ✅ **Logical operators**: `&&`, `||`, `!` via `LogicalOperator` class
+- ✅ **Increment/decrement**: `++`, `--` (prefix and postfix) via `IncrementOperator` and `DecrementOperator` classes
+- ✅ **Compound assignment**: `+=`, `-=`, `*=`, `/=`, `%=`, `&=`, `|=`, `^=`, `<<=`, `>>=` via `CompoundAssignmentOperator` class
 
 #### Preprocessor
 - ✅ **Include directives**: `#include` with system/user includes
@@ -90,10 +94,7 @@
 - **Thread support**: `_Thread_local` not implemented
 
 #### Operators
-- **Bitwise operators**: `&`, `|`, `^`, `~`, `<<`, `>>` not implemented
-- **Logical operators**: `&&`, `||`, `!` not implemented
-- **Increment/decrement**: `++`, `--` not implemented
-- **Compound assignment**: `+=`, `-=`, `*=`, etc. not implemented
+- **All basic operators**: Fully implemented and supported
 
 #### Advanced Constructs
 - **Inline functions**: `inline` keyword not implemented

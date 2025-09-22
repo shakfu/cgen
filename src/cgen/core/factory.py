@@ -349,3 +349,97 @@ class CFactory:
     def label(self, name: str) -> "core.Label":
         """New label for goto statements and code marking."""
         return core.Label(name)
+
+    # Additional Operators
+
+    def bitwise_and(self, left: Union[str, core.Element], right: Union[str, core.Element]) -> "core.BitwiseOperator":
+        """New bitwise AND operator (&)."""
+        return core.BitwiseOperator(left, "&", right)
+
+    def bitwise_or(self, left: Union[str, core.Element], right: Union[str, core.Element]) -> "core.BitwiseOperator":
+        """New bitwise OR operator (|)."""
+        return core.BitwiseOperator(left, "|", right)
+
+    def bitwise_xor(self, left: Union[str, core.Element], right: Union[str, core.Element]) -> "core.BitwiseOperator":
+        """New bitwise XOR operator (^)."""
+        return core.BitwiseOperator(left, "^", right)
+
+    def bitwise_not(self, operand: Union[str, core.Element]) -> "core.BitwiseOperator":
+        """New bitwise NOT operator (~)."""
+        return core.BitwiseOperator(operand, "~")
+
+    def bitwise_left_shift(self, left: Union[str, core.Element], right: Union[str, core.Element]) -> "core.BitwiseOperator":
+        """New bitwise left shift operator (<<)."""
+        return core.BitwiseOperator(left, "<<", right)
+
+    def bitwise_right_shift(self, left: Union[str, core.Element], right: Union[str, core.Element]) -> "core.BitwiseOperator":
+        """New bitwise right shift operator (>>)."""
+        return core.BitwiseOperator(left, ">>", right)
+
+    def logical_and(self, left: Union[str, core.Element], right: Union[str, core.Element]) -> "core.LogicalOperator":
+        """New logical AND operator (&&)."""
+        return core.LogicalOperator(left, "&&", right)
+
+    def logical_or(self, left: Union[str, core.Element], right: Union[str, core.Element]) -> "core.LogicalOperator":
+        """New logical OR operator (||)."""
+        return core.LogicalOperator(left, "||", right)
+
+    def logical_not(self, operand: Union[str, core.Element]) -> "core.LogicalOperator":
+        """New logical NOT operator (!)."""
+        return core.LogicalOperator(operand, "!")
+
+    def pre_increment(self, operand: Union[str, core.Element]) -> "core.IncrementOperator":
+        """New prefix increment operator (++var)."""
+        return core.IncrementOperator(operand, prefix=True)
+
+    def post_increment(self, operand: Union[str, core.Element]) -> "core.IncrementOperator":
+        """New postfix increment operator (var++)."""
+        return core.IncrementOperator(operand, prefix=False)
+
+    def pre_decrement(self, operand: Union[str, core.Element]) -> "core.DecrementOperator":
+        """New prefix decrement operator (--var)."""
+        return core.DecrementOperator(operand, prefix=True)
+
+    def post_decrement(self, operand: Union[str, core.Element]) -> "core.DecrementOperator":
+        """New postfix decrement operator (var--)."""
+        return core.DecrementOperator(operand, prefix=False)
+
+    def add_assign(self, left: Union[str, core.Element], right: Union[str, core.Element]) -> "core.CompoundAssignmentOperator":
+        """New compound addition assignment operator (+=)."""
+        return core.CompoundAssignmentOperator(left, "+=", right)
+
+    def sub_assign(self, left: Union[str, core.Element], right: Union[str, core.Element]) -> "core.CompoundAssignmentOperator":
+        """New compound subtraction assignment operator (-=)."""
+        return core.CompoundAssignmentOperator(left, "-=", right)
+
+    def mul_assign(self, left: Union[str, core.Element], right: Union[str, core.Element]) -> "core.CompoundAssignmentOperator":
+        """New compound multiplication assignment operator (*=)."""
+        return core.CompoundAssignmentOperator(left, "*=", right)
+
+    def div_assign(self, left: Union[str, core.Element], right: Union[str, core.Element]) -> "core.CompoundAssignmentOperator":
+        """New compound division assignment operator (/=)."""
+        return core.CompoundAssignmentOperator(left, "/=", right)
+
+    def mod_assign(self, left: Union[str, core.Element], right: Union[str, core.Element]) -> "core.CompoundAssignmentOperator":
+        """New compound modulo assignment operator (%=)."""
+        return core.CompoundAssignmentOperator(left, "%=", right)
+
+    def bitwise_and_assign(self, left: Union[str, core.Element], right: Union[str, core.Element]) -> "core.CompoundAssignmentOperator":
+        """New compound bitwise AND assignment operator (&=)."""
+        return core.CompoundAssignmentOperator(left, "&=", right)
+
+    def bitwise_or_assign(self, left: Union[str, core.Element], right: Union[str, core.Element]) -> "core.CompoundAssignmentOperator":
+        """New compound bitwise OR assignment operator (|=)."""
+        return core.CompoundAssignmentOperator(left, "|=", right)
+
+    def bitwise_xor_assign(self, left: Union[str, core.Element], right: Union[str, core.Element]) -> "core.CompoundAssignmentOperator":
+        """New compound bitwise XOR assignment operator (^=)."""
+        return core.CompoundAssignmentOperator(left, "^=", right)
+
+    def left_shift_assign(self, left: Union[str, core.Element], right: Union[str, core.Element]) -> "core.CompoundAssignmentOperator":
+        """New compound left shift assignment operator (<<=)."""
+        return core.CompoundAssignmentOperator(left, "<<=", right)
+
+    def right_shift_assign(self, left: Union[str, core.Element], right: Union[str, core.Element]) -> "core.CompoundAssignmentOperator":
+        """New compound right shift assignment operator (>>=)."""
+        return core.CompoundAssignmentOperator(left, ">>=", right)
