@@ -1,7 +1,7 @@
 """Cfile style."""
 
-from enum import Enum
 from dataclasses import dataclass
+from enum import Enum
 
 
 class BreakBeforeBraces(Enum):
@@ -59,8 +59,7 @@ class BraceWrapping:
 
     @classmethod
     def make(cls, break_before_braces: BreakBeforeBraces) -> "BraceWrapping":
-        """
-        Utility function for auto-populating settings based on BreakBeforeBraces option.
+        """Utility function for auto-populating settings based on BreakBeforeBraces option.
 
         Don't use it with BreakBeforeBraces.CUSTOM.
         """

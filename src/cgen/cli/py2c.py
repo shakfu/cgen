@@ -10,10 +10,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     if argv is None:
         argv = sys.argv[1:]
 
-    parser = argparse.ArgumentParser(
-        prog="py2c",
-        description="Convert Python code to C"
-    )
+    parser = argparse.ArgumentParser(prog="py2c", description="Convert Python code to C")
 
     parser.add_argument("input", help="Input Python file")
     parser.add_argument("-o", "--output", help="Output C file")

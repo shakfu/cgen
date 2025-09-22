@@ -20,8 +20,9 @@ help:
 	@echo "  test-legacy   Run original unittest tests"
 	@echo ""
 	@echo "Code Quality:"
-	@echo "  lint          Run flake8 linting"
-	@echo "  format        Format code with black and isort"
+	@echo "  lint          Run ruff linting"
+	@echo "  format        Format code with ruff and isort"
+	@echo "  format-check  Check code formatting without changes"
 	@echo "  type-check    Run mypy type checking"
 	@echo "  pre-commit    Install and run pre-commit hooks"
 	@echo ""
@@ -66,12 +67,16 @@ test-coverage:
 
 # Code quality
 lint:
-	uv run flake8 --max-line-length=120 --ignore=D107,D200,D205,D400,D401 src
-	uv run flake8 --max-line-length=120 --ignore=D101,D102,D107,D200,D205,D400,D401,E402 tests
+	uv run ruff check src tests
 
 format:
-	uv run ruff --line-length=120 src tests
+	uv run ruff check --fix src tests
+	uv run ruff format src tests
 	uv run isort --profile=black --line-length=120 src tests
+
+format-check:
+	uv run ruff check src tests
+	uv run ruff format --check src tests
 
 type-check:
 	uv run mypy src/cgen
@@ -106,7 +111,7 @@ run-examples:
 	uv run python examples/variables.py
 
 # CI simulation
-ci-test: install-dev lint type-check test
+ci-test: install-dev lint format-check type-check test
 
 # Performance monitoring
 perf-monitor:

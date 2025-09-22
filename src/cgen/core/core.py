@@ -10,7 +10,7 @@ def _validate_c_identifier(name: str, context: str = "identifier") -> None:
         raise TypeError(f"{context} must be a string, got {type(name)}")
     if not name:
         raise ValueError(f"{context} cannot be empty")
-    if not re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', name):
+    if not re.match(r"^[a-zA-Z_][a-zA-Z0-9_]*$", name):
         raise ValueError(f"'{name}' is not a valid C {context}")
 
 
@@ -28,9 +28,7 @@ class Directive(Element):
 class IncludeDirective(Directive):
     """Include directive."""
 
-    def __init__(
-        self, path_to_file: str, system: bool = False, adjust: int = 0
-    ) -> None:
+    def __init__(self, path_to_file: str, system: bool = False, adjust: int = 0) -> None:
         super().__init__(adjust)
         self.path_to_file = path_to_file
         self.system = system
@@ -73,8 +71,7 @@ class Extern(Element):
 
 
 class Comment(Element):
-    """
-    Comment base.
+    """Comment base.
 
     adjust: Adds spaces before comment begins to allow right-adjustment
     """
@@ -85,8 +82,7 @@ class Comment(Element):
 
 
 class BlockComment(Comment):
-    """
-    Block Comment.
+    """Block Comment.
 
     width: When > 0, sets the number of asterisks used on first and last line.
            Also puts the text between first and last line.
@@ -179,8 +175,7 @@ class Type(DataType):
 
 
 class StructMember(Element):
-    """
-    Struct element.
+    """Struct element.
 
     This is similar to Variable
     but doesn't support type qualifier such as static
@@ -213,9 +208,7 @@ class StructMember(Element):
 class Struct(DataType):
     """A struct definition."""
 
-    def __init__(
-        self, name: str | None, members: StructMember | list[StructMember] | None = None
-    ) -> None:
+    def __init__(self, name: str | None, members: StructMember | list[StructMember] | None = None) -> None:
         if name is not None:
             _validate_c_identifier(name, "struct name")
         super().__init__(name)
@@ -232,9 +225,7 @@ class Struct(DataType):
     def append(self, member: StructMember) -> None:
         """Appends new element to the struct definition."""
         if not isinstance(member, StructMember):
-            raise TypeError(
-                f'Invalid type, expected "StructMember", got {str(type(member))}'
-            )
+            raise TypeError(f'Invalid type, expected "StructMember", got {str(type(member))}')
         self.members.append(member)
 
     def make_member(
@@ -278,9 +269,7 @@ class TypeDef(DataType):
                 err_msg = f"base_type: Declaration must declare a type, not {str(type(base_type.element))}"
             self.base_type = base_type
         else:
-            err_msg = (
-                'base_type: Invalid type, expected "str" | "DataType" | "Declaration",'
-            )
+            err_msg = 'base_type: Invalid type, expected "str" | "DataType" | "Declaration",'
             err_msg += f" got {str(type(base_type))}"
             raise TypeError(err_msg)
 
@@ -391,8 +380,7 @@ class Function(Element):
 
 
 class Declaration(Element):
-    """
-    A declaration element.
+    """A declaration element.
 
     Valid sub-elements:
     - Variable
@@ -419,9 +407,7 @@ class Declaration(Element):
 class FunctionCall(Element):
     """Function call expression."""
 
-    def __init__(
-        self, name: str, args: list[int | float | str | Element] | None = None
-    ) -> None:
+    def __init__(self, name: str, args: list[int | float | str | Element] | None = None) -> None:
         self.name = name
         self.args: list[str | Element] = []
         if args is not None:
@@ -506,7 +492,7 @@ class Sequence:
     """A sequence of statements, comments or whitespace."""
 
     def __init__(self) -> None:
-        self.elements: list[Union[Comment, Statement, "Sequence"]] = []
+        self.elements: list[Union[Comment, Statement, Sequence]] = []
 
     def __len__(self) -> int:
         return len(self.elements)

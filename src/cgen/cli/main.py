@@ -10,10 +10,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     if argv is None:
         argv = sys.argv[1:]
 
-    parser = argparse.ArgumentParser(
-        prog="cgen",
-        description="Intelligent Python-to-C code generation"
-    )
+    parser = argparse.ArgumentParser(prog="cgen", description="Intelligent Python-to-C code generation")
 
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
@@ -57,6 +54,7 @@ def handle_py2c(args) -> int:
 def handle_version() -> int:
     """Handle version command."""
     from .. import __version__
+
     print(f"cgen {__version__}")
     return 0
 

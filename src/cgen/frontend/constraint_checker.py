@@ -7,14 +7,15 @@ that Python code can be safely and correctly converted to C code.
 import ast
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from typing import Dict, List, Optional
 
-from .ast_analyzer import FunctionInfo, StaticComplexity, TypeInfo, VariableInfo
-from .type_inference import InferenceResult, TypeInferenceEngine
+from .ast_analyzer import TypeInfo
+from .type_inference import TypeInferenceEngine
 
 
 class ConstraintSeverity(Enum):
     """Severity levels for constraint violations."""
+
     INFO = "info"
     WARNING = "warning"
     ERROR = "error"
@@ -23,6 +24,7 @@ class ConstraintSeverity(Enum):
 
 class ConstraintCategory(Enum):
     """Categories of constraints."""
+
     MEMORY_SAFETY = "memory_safety"
     TYPE_SAFETY = "type_safety"
     STATIC_ANALYSIS = "static_analysis"
@@ -34,6 +36,7 @@ class ConstraintCategory(Enum):
 @dataclass
 class ConstraintViolation:
     """Represents a constraint violation found during analysis."""
+
     severity: ConstraintSeverity
     category: ConstraintCategory
     rule_id: str
@@ -48,6 +51,7 @@ class ConstraintViolation:
 @dataclass
 class ConstraintReport:
     """Complete constraint checking report."""
+
     violations: List[ConstraintViolation] = field(default_factory=list)
     passed_checks: List[str] = field(default_factory=list)
     conversion_safe: bool = True
@@ -80,38 +84,33 @@ class StaticConstraintChecker:
         # Constraint rules registry
         self.rules = {
             # Memory safety rules
-            'MS001': self._check_buffer_overflow_potential,
-            'MS002': self._check_null_pointer_dereference,
-            'MS003': self._check_memory_leak_potential,
-            'MS004': self._check_dangling_pointer_risk,
-
+            "MS001": self._check_buffer_overflow_potential,
+            "MS002": self._check_null_pointer_dereference,
+            "MS003": self._check_memory_leak_potential,
+            "MS004": self._check_dangling_pointer_risk,
             # Type safety rules
-            'TS001': self._check_type_consistency,
-            'TS002': self._check_implicit_conversions,
-            'TS003': self._check_division_by_zero,
-            'TS004': self._check_integer_overflow,
-
+            "TS001": self._check_type_consistency,
+            "TS002": self._check_implicit_conversions,
+            "TS003": self._check_division_by_zero,
+            "TS004": self._check_integer_overflow,
             # Static analysis rules
-            'SA001': self._check_unreachable_code,
-            'SA002': self._check_unused_variables,
-            'SA003': self._check_uninitialized_variables,
-            'SA004': self._check_infinite_loops,
-
+            "SA001": self._check_unreachable_code,
+            "SA002": self._check_unused_variables,
+            "SA003": self._check_uninitialized_variables,
+            "SA004": self._check_infinite_loops,
             # C compatibility rules
-            'CC001': self._check_unsupported_features,
-            'CC002': self._check_name_conflicts,
-            'CC003': self._check_reserved_keywords,
-            'CC004': self._check_function_complexity,
-
+            "CC001": self._check_unsupported_features,
+            "CC002": self._check_name_conflicts,
+            "CC003": self._check_reserved_keywords,
+            "CC004": self._check_function_complexity,
             # Performance rules
-            'PF001': self._check_inefficient_patterns,
-            'PF002': self._check_repeated_computations,
-            'PF003': self._check_memory_allocation_patterns,
-
+            "PF001": self._check_inefficient_patterns,
+            "PF002": self._check_repeated_computations,
+            "PF003": self._check_memory_allocation_patterns,
             # Correctness rules
-            'CR001': self._check_return_path_coverage,
-            'CR002': self._check_parameter_validation,
-            'CR003': self._check_bounds_checking,
+            "CR001": self._check_return_path_coverage,
+            "CR002": self._check_parameter_validation,
+            "CR003": self._check_bounds_checking,
         }
 
     def check_code(self, source_code: str) -> ConstraintReport:
@@ -123,14 +122,16 @@ class StaticConstraintChecker:
             self._calculate_confidence_score()
             return self.report
         except SyntaxError as e:
-            self.report.add_violation(ConstraintViolation(
-                severity=ConstraintSeverity.CRITICAL,
-                category=ConstraintCategory.STATIC_ANALYSIS,
-                rule_id="PARSE001",
-                message=f"Syntax error: {e}",
-                line_number=e.lineno,
-                column_number=e.offset
-            ))
+            self.report.add_violation(
+                ConstraintViolation(
+                    severity=ConstraintSeverity.CRITICAL,
+                    category=ConstraintCategory.STATIC_ANALYSIS,
+                    rule_id="PARSE001",
+                    message=f"Syntax error: {e}",
+                    line_number=e.lineno,
+                    column_number=e.offset,
+                )
+            )
             return self.report
 
     def _analyze_tree(self, tree: ast.AST):
@@ -151,12 +152,14 @@ class StaticConstraintChecker:
                 rule_func(tree)
                 self.report.passed_checks.append(rule_id)
             except Exception as e:
-                self.report.add_violation(ConstraintViolation(
-                    severity=ConstraintSeverity.ERROR,
-                    category=ConstraintCategory.STATIC_ANALYSIS,
-                    rule_id=rule_id,
-                    message=f"Internal error in rule {rule_id}: {e}"
-                ))
+                self.report.add_violation(
+                    ConstraintViolation(
+                        severity=ConstraintSeverity.ERROR,
+                        category=ConstraintCategory.STATIC_ANALYSIS,
+                        rule_id=rule_id,
+                        message=f"Internal error in rule {rule_id}: {e}",
+                    )
+                )
 
     # Memory Safety Rules
 
@@ -167,14 +170,16 @@ class StaticConstraintChecker:
                 # Check array access patterns
                 if isinstance(node.slice, ast.Name):
                     # Variable index - potential risk
-                    self.report.add_violation(ConstraintViolation(
-                        severity=ConstraintSeverity.WARNING,
-                        category=ConstraintCategory.MEMORY_SAFETY,
-                        rule_id="MS001",
-                        message="Array access with variable index - ensure bounds checking",
-                        line_number=node.lineno,
-                        suggestion="Add explicit bounds checking before array access"
-                    ))
+                    self.report.add_violation(
+                        ConstraintViolation(
+                            severity=ConstraintSeverity.WARNING,
+                            category=ConstraintCategory.MEMORY_SAFETY,
+                            rule_id="MS001",
+                            message="Array access with variable index - ensure bounds checking",
+                            line_number=node.lineno,
+                            suggestion="Add explicit bounds checking before array access",
+                        )
+                    )
 
     def _check_null_pointer_dereference(self, tree: ast.AST):
         """Check for potential null pointer dereferences."""
@@ -185,14 +190,16 @@ class StaticConstraintChecker:
                     var_name = node.value.id
                     # Check if variable might be None/null
                     if self._variable_might_be_none(var_name):
-                        self.report.add_violation(ConstraintViolation(
-                            severity=ConstraintSeverity.ERROR,
-                            category=ConstraintCategory.MEMORY_SAFETY,
-                            rule_id="MS002",
-                            message=f"Potential null pointer dereference of variable '{var_name}'",
-                            line_number=node.lineno,
-                            suggestion="Add null check before dereferencing"
-                        ))
+                        self.report.add_violation(
+                            ConstraintViolation(
+                                severity=ConstraintSeverity.ERROR,
+                                category=ConstraintCategory.MEMORY_SAFETY,
+                                rule_id="MS002",
+                                message=f"Potential null pointer dereference of variable '{var_name}'",
+                                line_number=node.lineno,
+                                suggestion="Add null check before dereferencing",
+                            )
+                        )
 
     def _check_memory_leak_potential(self, tree: ast.AST):
         """Check for potential memory leaks."""
@@ -203,22 +210,24 @@ class StaticConstraintChecker:
         for node in ast.walk(tree):
             if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
                 func_name = node.func.id
-                if func_name in ['malloc', 'calloc', 'realloc']:
+                if func_name in ["malloc", "calloc", "realloc"]:
                     # Memory allocation (hypothetical - Python doesn't have these)
                     if isinstance(node.parent, ast.Assign):  # Would need parent tracking
                         allocated_vars.add("allocated_memory")
-                elif func_name in ['free']:
+                elif func_name in ["free"]:
                     freed_vars.add("freed_memory")
 
         # Check for leaks (simplified)
         if len(allocated_vars) > len(freed_vars):
-            self.report.add_violation(ConstraintViolation(
-                severity=ConstraintSeverity.WARNING,
-                category=ConstraintCategory.MEMORY_SAFETY,
-                rule_id="MS003",
-                message="Potential memory leak - not all allocated memory is freed",
-                suggestion="Ensure all allocated memory is properly freed"
-            ))
+            self.report.add_violation(
+                ConstraintViolation(
+                    severity=ConstraintSeverity.WARNING,
+                    category=ConstraintCategory.MEMORY_SAFETY,
+                    rule_id="MS003",
+                    message="Potential memory leak - not all allocated memory is freed",
+                    suggestion="Ensure all allocated memory is properly freed",
+                )
+            )
 
     def _check_dangling_pointer_risk(self, tree: ast.AST):
         """Check for dangling pointer risks."""
@@ -239,14 +248,16 @@ class StaticConstraintChecker:
                 right_type = self._infer_expression_type(node.right)
 
                 if not self._types_compatible_for_operation(left_type, right_type, node.op):
-                    self.report.add_violation(ConstraintViolation(
-                        severity=ConstraintSeverity.ERROR,
-                        category=ConstraintCategory.TYPE_SAFETY,
-                        rule_id="TS001",
-                        message=f"Type mismatch in binary operation: {left_type} and {right_type}",
-                        line_number=node.lineno,
-                        suggestion="Ensure operand types are compatible"
-                    ))
+                    self.report.add_violation(
+                        ConstraintViolation(
+                            severity=ConstraintSeverity.ERROR,
+                            category=ConstraintCategory.TYPE_SAFETY,
+                            rule_id="TS001",
+                            message=f"Type mismatch in binary operation: {left_type} and {right_type}",
+                            line_number=node.lineno,
+                            suggestion="Ensure operand types are compatible",
+                        )
+                    )
 
     def _check_implicit_conversions(self, tree: ast.AST):
         """Check for potentially dangerous implicit type conversions."""
@@ -261,14 +272,16 @@ class StaticConstraintChecker:
                     if target_type and value_type != target_type:
                         # Check if conversion is safe
                         if not self._conversion_is_safe(value_type, target_type):
-                            self.report.add_violation(ConstraintViolation(
-                                severity=ConstraintSeverity.WARNING,
-                                category=ConstraintCategory.TYPE_SAFETY,
-                                rule_id="TS002",
-                                message=f"Potentially unsafe implicit conversion from {value_type} to {target_type}",
-                                line_number=node.lineno,
-                                suggestion="Add explicit type conversion"
-                            ))
+                            self.report.add_violation(
+                                ConstraintViolation(
+                                    severity=ConstraintSeverity.WARNING,
+                                    category=ConstraintCategory.TYPE_SAFETY,
+                                    rule_id="TS002",
+                                    message=f"Potentially unsafe implicit conversion from {value_type} to {target_type}",
+                                    line_number=node.lineno,
+                                    suggestion="Add explicit type conversion",
+                                )
+                            )
 
     def _check_division_by_zero(self, tree: ast.AST):
         """Check for potential division by zero."""
@@ -276,24 +289,28 @@ class StaticConstraintChecker:
             if isinstance(node, ast.BinOp) and isinstance(node.op, (ast.Div, ast.FloorDiv, ast.Mod)):
                 # Check if right operand could be zero
                 if isinstance(node.right, ast.Constant) and node.right.value == 0:
-                    self.report.add_violation(ConstraintViolation(
-                        severity=ConstraintSeverity.ERROR,
-                        category=ConstraintCategory.TYPE_SAFETY,
-                        rule_id="TS003",
-                        message="Division by zero detected",
-                        line_number=node.lineno,
-                        suggestion="Add zero check before division"
-                    ))
+                    self.report.add_violation(
+                        ConstraintViolation(
+                            severity=ConstraintSeverity.ERROR,
+                            category=ConstraintCategory.TYPE_SAFETY,
+                            rule_id="TS003",
+                            message="Division by zero detected",
+                            line_number=node.lineno,
+                            suggestion="Add zero check before division",
+                        )
+                    )
                 elif isinstance(node.right, ast.Name):
                     # Variable division - add warning
-                    self.report.add_violation(ConstraintViolation(
-                        severity=ConstraintSeverity.WARNING,
-                        category=ConstraintCategory.TYPE_SAFETY,
-                        rule_id="TS003",
-                        message="Division by variable - ensure divisor is not zero",
-                        line_number=node.lineno,
-                        suggestion="Add zero check before division"
-                    ))
+                    self.report.add_violation(
+                        ConstraintViolation(
+                            severity=ConstraintSeverity.WARNING,
+                            category=ConstraintCategory.TYPE_SAFETY,
+                            rule_id="TS003",
+                            message="Division by variable - ensure divisor is not zero",
+                            line_number=node.lineno,
+                            suggestion="Add zero check before division",
+                        )
+                    )
 
     def _check_integer_overflow(self, tree: ast.AST):
         """Check for potential integer overflow."""
@@ -303,14 +320,16 @@ class StaticConstraintChecker:
                 # For now, just check for large constants
                 if isinstance(node.left, ast.Constant) and isinstance(node.left.value, int):
                     if abs(node.left.value) > 2**31:
-                        self.report.add_violation(ConstraintViolation(
-                            severity=ConstraintSeverity.WARNING,
-                            category=ConstraintCategory.TYPE_SAFETY,
-                            rule_id="TS004",
-                            message="Large integer constant may cause overflow in C",
-                            line_number=node.lineno,
-                            suggestion="Use appropriate integer type or bounds checking"
-                        ))
+                        self.report.add_violation(
+                            ConstraintViolation(
+                                severity=ConstraintSeverity.WARNING,
+                                category=ConstraintCategory.TYPE_SAFETY,
+                                rule_id="TS004",
+                                message="Large integer constant may cause overflow in C",
+                                line_number=node.lineno,
+                                suggestion="Use appropriate integer type or bounds checking",
+                            )
+                        )
 
     # Static Analysis Rules
 
@@ -321,14 +340,16 @@ class StaticConstraintChecker:
                 # Check for code after return statements
                 for i, stmt in enumerate(node.body):
                     if isinstance(stmt, ast.Return) and i < len(node.body) - 1:
-                        self.report.add_violation(ConstraintViolation(
-                            severity=ConstraintSeverity.WARNING,
-                            category=ConstraintCategory.STATIC_ANALYSIS,
-                            rule_id="SA001",
-                            message="Unreachable code after return statement",
-                            line_number=node.body[i + 1].lineno,
-                            suggestion="Remove unreachable code"
-                        ))
+                        self.report.add_violation(
+                            ConstraintViolation(
+                                severity=ConstraintSeverity.WARNING,
+                                category=ConstraintCategory.STATIC_ANALYSIS,
+                                rule_id="SA001",
+                                message="Unreachable code after return statement",
+                                line_number=node.body[i + 1].lineno,
+                                suggestion="Remove unreachable code",
+                            )
+                        )
 
     def _check_unused_variables(self, tree: ast.AST):
         """Check for unused variables."""
@@ -349,14 +370,16 @@ class StaticConstraintChecker:
                     # Check if there's a break statement
                     has_break = any(isinstance(n, ast.Break) for n in ast.walk(node))
                     if not has_break:
-                        self.report.add_violation(ConstraintViolation(
-                            severity=ConstraintSeverity.ERROR,
-                            category=ConstraintCategory.STATIC_ANALYSIS,
-                            rule_id="SA004",
-                            message="Potential infinite loop detected",
-                            line_number=node.lineno,
-                            suggestion="Add break condition or modify loop condition"
-                        ))
+                        self.report.add_violation(
+                            ConstraintViolation(
+                                severity=ConstraintSeverity.ERROR,
+                                category=ConstraintCategory.STATIC_ANALYSIS,
+                                rule_id="SA004",
+                                message="Potential infinite loop detected",
+                                line_number=node.lineno,
+                                suggestion="Add break condition or modify loop condition",
+                            )
+                        )
 
     # C Compatibility Rules
 
@@ -376,35 +399,66 @@ class StaticConstraintChecker:
         for node in ast.walk(tree):
             for node_type, feature_name in unsupported_nodes.items():
                 if isinstance(node, node_type):
-                    self.report.add_violation(ConstraintViolation(
-                        severity=ConstraintSeverity.ERROR,
-                        category=ConstraintCategory.C_COMPATIBILITY,
-                        rule_id="CC001",
-                        message=f"Unsupported feature for C conversion: {feature_name}",
-                        line_number=node.lineno,
-                        suggestion="Rewrite using supported constructs"
-                    ))
+                    self.report.add_violation(
+                        ConstraintViolation(
+                            severity=ConstraintSeverity.ERROR,
+                            category=ConstraintCategory.C_COMPATIBILITY,
+                            rule_id="CC001",
+                            message=f"Unsupported feature for C conversion: {feature_name}",
+                            line_number=node.lineno,
+                            suggestion="Rewrite using supported constructs",
+                        )
+                    )
 
             # Check for dynamic execution functions
             if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
-                if node.func.id in ('eval', 'exec', 'compile', '__import__'):
-                    self.report.add_violation(ConstraintViolation(
-                        severity=ConstraintSeverity.ERROR,
-                        category=ConstraintCategory.C_COMPATIBILITY,
-                        rule_id="CC001",
-                        message=f"Dynamic execution function '{node.func.id}' not supported for C conversion",
-                        line_number=node.lineno,
-                        suggestion="Replace with static constructs"
-                    ))
+                if node.func.id in ("eval", "exec", "compile", "__import__"):
+                    self.report.add_violation(
+                        ConstraintViolation(
+                            severity=ConstraintSeverity.ERROR,
+                            category=ConstraintCategory.C_COMPATIBILITY,
+                            rule_id="CC001",
+                            message=f"Dynamic execution function '{node.func.id}' not supported for C conversion",
+                            line_number=node.lineno,
+                            suggestion="Replace with static constructs",
+                        )
+                    )
 
     def _check_name_conflicts(self, tree: ast.AST):
         """Check for naming conflicts with C keywords/stdlib."""
         c_keywords = {
-            'auto', 'break', 'case', 'char', 'const', 'continue', 'default', 'do',
-            'double', 'else', 'enum', 'extern', 'float', 'for', 'goto', 'if',
-            'int', 'long', 'register', 'return', 'short', 'signed', 'sizeof',
-            'static', 'struct', 'switch', 'typedef', 'union', 'unsigned', 'void',
-            'volatile', 'while'
+            "auto",
+            "break",
+            "case",
+            "char",
+            "const",
+            "continue",
+            "default",
+            "do",
+            "double",
+            "else",
+            "enum",
+            "extern",
+            "float",
+            "for",
+            "goto",
+            "if",
+            "int",
+            "long",
+            "register",
+            "return",
+            "short",
+            "signed",
+            "sizeof",
+            "static",
+            "struct",
+            "switch",
+            "typedef",
+            "union",
+            "unsigned",
+            "void",
+            "volatile",
+            "while",
         }
 
         # Collect type annotation nodes to exclude from conflict checking
@@ -433,27 +487,31 @@ class StaticConstraintChecker:
             if isinstance(node, ast.FunctionDef):
                 name = node.name
                 if name in c_keywords:
-                    self.report.add_violation(ConstraintViolation(
-                        severity=ConstraintSeverity.ERROR,
-                        category=ConstraintCategory.C_COMPATIBILITY,
-                        rule_id="CC002",
-                        message=f"Name conflict with C keyword: '{name}'",
-                        line_number=node.lineno,
-                        suggestion=f"Rename '{name}' to avoid C keyword conflict"
-                    ))
+                    self.report.add_violation(
+                        ConstraintViolation(
+                            severity=ConstraintSeverity.ERROR,
+                            category=ConstraintCategory.C_COMPATIBILITY,
+                            rule_id="CC002",
+                            message=f"Name conflict with C keyword: '{name}'",
+                            line_number=node.lineno,
+                            suggestion=f"Rename '{name}' to avoid C keyword conflict",
+                        )
+                    )
             elif isinstance(node, ast.Name) and node not in type_annotation_nodes:
                 # Only check actual variable/function names, not type annotations
                 name = node.id
                 if name in c_keywords and isinstance(node.ctx, (ast.Store, ast.Del)):
                     # Only flag when name is being assigned/deleted, not just referenced
-                    self.report.add_violation(ConstraintViolation(
-                        severity=ConstraintSeverity.ERROR,
-                        category=ConstraintCategory.C_COMPATIBILITY,
-                        rule_id="CC002",
-                        message=f"Name conflict with C keyword: '{name}'",
-                        line_number=node.lineno,
-                        suggestion=f"Rename '{name}' to avoid C keyword conflict"
-                    ))
+                    self.report.add_violation(
+                        ConstraintViolation(
+                            severity=ConstraintSeverity.ERROR,
+                            category=ConstraintCategory.C_COMPATIBILITY,
+                            rule_id="CC002",
+                            message=f"Name conflict with C keyword: '{name}'",
+                            line_number=node.lineno,
+                            suggestion=f"Rename '{name}' to avoid C keyword conflict",
+                        )
+                    )
 
     def _check_reserved_keywords(self, tree: ast.AST):
         """Check for use of reserved keywords that might cause issues."""
@@ -466,14 +524,16 @@ class StaticConstraintChecker:
             if isinstance(node, ast.FunctionDef):
                 complexity = self._calculate_complexity(node)
                 if complexity > 10:  # Arbitrary threshold
-                    self.report.add_violation(ConstraintViolation(
-                        severity=ConstraintSeverity.WARNING,
-                        category=ConstraintCategory.C_COMPATIBILITY,
-                        rule_id="CC004",
-                        message=f"Function '{node.name}' is highly complex (score: {complexity})",
-                        line_number=node.lineno,
-                        suggestion="Consider breaking into smaller functions"
-                    ))
+                    self.report.add_violation(
+                        ConstraintViolation(
+                            severity=ConstraintSeverity.WARNING,
+                            category=ConstraintCategory.C_COMPATIBILITY,
+                            rule_id="CC004",
+                            message=f"Function '{node.name}' is highly complex (score: {complexity})",
+                            line_number=node.lineno,
+                            suggestion="Consider breaking into smaller functions",
+                        )
+                    )
 
     # Performance Rules
 
@@ -487,14 +547,16 @@ class StaticConstraintChecker:
                         # Check if string concatenation
                         left_type = self._infer_expression_type(stmt.left)
                         if left_type == "str":
-                            self.report.add_violation(ConstraintViolation(
-                                severity=ConstraintSeverity.WARNING,
-                                category=ConstraintCategory.PERFORMANCE,
-                                rule_id="PF001",
-                                message="String concatenation in loop may be inefficient",
-                                line_number=stmt.lineno,
-                                suggestion="Consider using buffer or array for string building"
-                            ))
+                            self.report.add_violation(
+                                ConstraintViolation(
+                                    severity=ConstraintSeverity.WARNING,
+                                    category=ConstraintCategory.PERFORMANCE,
+                                    rule_id="PF001",
+                                    message="String concatenation in loop may be inefficient",
+                                    line_number=stmt.lineno,
+                                    suggestion="Consider using buffer or array for string building",
+                                )
+                            )
 
     def _check_repeated_computations(self, tree: ast.AST):
         """Check for computations that could be cached."""
@@ -516,14 +578,16 @@ class StaticConstraintChecker:
                     # Function should return a value
                     has_return = any(isinstance(n, ast.Return) and n.value for n in ast.walk(node))
                     if not has_return:
-                        self.report.add_violation(ConstraintViolation(
-                            severity=ConstraintSeverity.ERROR,
-                            category=ConstraintCategory.CORRECTNESS,
-                            rule_id="CR001",
-                            message=f"Function '{node.name}' may not return a value on all paths",
-                            line_number=node.lineno,
-                            suggestion="Ensure all code paths return appropriate values"
-                        ))
+                        self.report.add_violation(
+                            ConstraintViolation(
+                                severity=ConstraintSeverity.ERROR,
+                                category=ConstraintCategory.CORRECTNESS,
+                                rule_id="CR001",
+                                message=f"Function '{node.name}' may not return a value on all paths",
+                                line_number=node.lineno,
+                                suggestion="Ensure all code paths return appropriate values",
+                            )
+                        )
 
     def _check_parameter_validation(self, tree: ast.AST):
         """Check for proper parameter validation."""
@@ -555,16 +619,16 @@ class StaticConstraintChecker:
         elif isinstance(expr, ast.Name):
             # For variables, we'd need scope analysis
             # For now, return the name for known builtin types
-            if expr.id in ['int', 'float', 'str', 'bool']:
+            if expr.id in ["int", "float", "str", "bool"]:
                 return expr.id
             return "unknown"
         elif isinstance(expr, ast.Call) and isinstance(expr.func, ast.Name):
             # Handle builtin function calls
-            if expr.func.id == 'range':
-                return 'int'  # range() returns integers when iterated
-            elif expr.func.id == 'len':
-                return 'int'
-            elif expr.func.id in ['int', 'float', 'str', 'bool']:
+            if expr.func.id == "range":
+                return "int"  # range() returns integers when iterated
+            elif expr.func.id == "len":
+                return "int"
+            elif expr.func.id in ["int", "float", "str", "bool"]:
                 return expr.func.id
             return "unknown"
         elif isinstance(expr, ast.BinOp):

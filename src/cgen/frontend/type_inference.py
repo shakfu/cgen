@@ -6,28 +6,29 @@ and static analysis.
 """
 
 import ast
-import operator
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Tuple, Type, Union
+from typing import Any, Dict, List
 
-from .ast_analyzer import StaticComplexity, TypeInfo, VariableInfo
+from .ast_analyzer import TypeInfo
 
 
 class InferenceMethod(Enum):
     """Methods used for type inference."""
-    ANNOTATION = "annotation"        # Explicit type annotation
-    LITERAL = "literal"             # Inferred from literal value
-    ASSIGNMENT = "assignment"       # Inferred from assignment
-    OPERATION = "operation"         # Inferred from operations
+
+    ANNOTATION = "annotation"  # Explicit type annotation
+    LITERAL = "literal"  # Inferred from literal value
+    ASSIGNMENT = "assignment"  # Inferred from assignment
+    OPERATION = "operation"  # Inferred from operations
     FUNCTION_RETURN = "function_return"  # Inferred from function return
     PARAMETER_USAGE = "parameter_usage"  # Inferred from parameter usage
-    CONTEXT = "context"             # Inferred from surrounding context
+    CONTEXT = "context"  # Inferred from surrounding context
 
 
 @dataclass
 class InferenceResult:
     """Result of type inference for a single expression."""
+
     type_info: TypeInfo
     confidence: float  # 0.0 to 1.0
     method: InferenceMethod
@@ -38,6 +39,7 @@ class InferenceResult:
 @dataclass
 class TypeConstraint:
     """A constraint on a type based on usage."""
+
     variable_name: str
     constraint_type: str  # "must_be", "cannot_be", "must_support"
     constraint_value: Any
@@ -53,38 +55,34 @@ class TypeInferenceEngine:
         self.constraints: List[TypeConstraint] = []
         self.binary_op_result_types = {
             # (left_type, operator, right_type) -> result_type
-            ('int', ast.Add, 'int'): 'int',
-            ('int', ast.Sub, 'int'): 'int',
-            ('int', ast.Mult, 'int'): 'int',
-            ('int', ast.Div, 'int'): 'double',  # Division always returns float in Python 3
-            ('int', ast.FloorDiv, 'int'): 'int',
-            ('int', ast.Mod, 'int'): 'int',
-            ('int', ast.Pow, 'int'): 'int',
-
-            ('double', ast.Add, 'double'): 'double',
-            ('double', ast.Sub, 'double'): 'double',
-            ('double', ast.Mult, 'double'): 'double',
-            ('double', ast.Div, 'double'): 'double',
-            ('double', ast.FloorDiv, 'double'): 'double',
-            ('double', ast.Mod, 'double'): 'double',
-            ('double', ast.Pow, 'double'): 'double',
-
+            ("int", ast.Add, "int"): "int",
+            ("int", ast.Sub, "int"): "int",
+            ("int", ast.Mult, "int"): "int",
+            ("int", ast.Div, "int"): "double",  # Division always returns float in Python 3
+            ("int", ast.FloorDiv, "int"): "int",
+            ("int", ast.Mod, "int"): "int",
+            ("int", ast.Pow, "int"): "int",
+            ("double", ast.Add, "double"): "double",
+            ("double", ast.Sub, "double"): "double",
+            ("double", ast.Mult, "double"): "double",
+            ("double", ast.Div, "double"): "double",
+            ("double", ast.FloorDiv, "double"): "double",
+            ("double", ast.Mod, "double"): "double",
+            ("double", ast.Pow, "double"): "double",
             # Mixed int/float operations
-            ('int', ast.Add, 'double'): 'double',
-            ('double', ast.Add, 'int'): 'double',
-            ('int', ast.Mult, 'double'): 'double',
-            ('double', ast.Mult, 'int'): 'double',
-
+            ("int", ast.Add, "double"): "double",
+            ("double", ast.Add, "int"): "double",
+            ("int", ast.Mult, "double"): "double",
+            ("double", ast.Mult, "int"): "double",
             # String operations
-            ('char*', ast.Add, 'char*'): 'char*',
-            ('char*', ast.Mult, 'int'): 'char*',
-
+            ("char*", ast.Add, "char*"): "char*",
+            ("char*", ast.Mult, "int"): "char*",
             # Comparison operations
-            ('int', ast.Lt, 'int'): 'bool',
-            ('int', ast.Gt, 'int'): 'bool',
-            ('int', ast.Eq, 'int'): 'bool',
-            ('double', ast.Lt, 'double'): 'bool',
-            ('char*', ast.Eq, 'char*'): 'bool',
+            ("int", ast.Lt, "int"): "bool",
+            ("int", ast.Gt, "int"): "bool",
+            ("int", ast.Eq, "int"): "bool",
+            ("double", ast.Lt, "double"): "bool",
+            ("char*", ast.Eq, "char*"): "bool",
         }
 
     def infer_expression_type(self, node: ast.expr, context: Dict[str, TypeInfo]) -> InferenceResult:
@@ -111,7 +109,7 @@ class TypeInferenceEngine:
                 type_info=TypeInfo("unknown"),
                 confidence=0.0,
                 method=InferenceMethod.CONTEXT,
-                evidence=[f"Unknown expression type: {type(node).__name__}"]
+                evidence=[f"Unknown expression type: {type(node).__name__}"],
             )
 
     def _infer_constant_type(self, node: ast.Constant) -> InferenceResult:
@@ -134,7 +132,7 @@ class TypeInferenceEngine:
             type_info=type_info,
             confidence=1.0,
             method=InferenceMethod.LITERAL,
-            evidence=[f"Literal value: {repr(value)}"]
+            evidence=[f"Literal value: {repr(value)}"],
         )
 
     def _infer_name_type(self, node: ast.Name, context: Dict[str, TypeInfo]) -> InferenceResult:
@@ -146,7 +144,7 @@ class TypeInferenceEngine:
                 type_info=context[var_name],
                 confidence=1.0,
                 method=InferenceMethod.ANNOTATION,
-                evidence=[f"Variable '{var_name}' has explicit type annotation"]
+                evidence=[f"Variable '{var_name}' has explicit type annotation"],
             )
 
         # Try to infer from previous assignments or usage
@@ -156,7 +154,7 @@ class TypeInferenceEngine:
                 type_info=prev_result.type_info,
                 confidence=prev_result.confidence * 0.8,  # Slightly lower confidence
                 method=InferenceMethod.CONTEXT,
-                evidence=[f"Previously inferred type for '{var_name}'"]
+                evidence=[f"Previously inferred type for '{var_name}'"],
             )
 
         # Unknown variable
@@ -164,7 +162,7 @@ class TypeInferenceEngine:
             type_info=TypeInfo("unknown"),
             confidence=0.0,
             method=InferenceMethod.CONTEXT,
-            evidence=[f"Unknown variable: {var_name}"]
+            evidence=[f"Unknown variable: {var_name}"],
         )
 
     def _infer_binop_type(self, node: ast.BinOp, context: Dict[str, TypeInfo]) -> InferenceResult:
@@ -188,7 +186,7 @@ class TypeInferenceEngine:
                 evidence=[
                     f"Binary operation: {left_result.type_info.c_equivalent} "
                     f"{op_type.__name__} {right_result.type_info.c_equivalent}"
-                ]
+                ],
             )
 
         # Special handling for unknown operations
@@ -196,7 +194,7 @@ class TypeInferenceEngine:
             type_info=TypeInfo("unknown"),
             confidence=0.0,
             method=InferenceMethod.OPERATION,
-            evidence=[f"Unknown binary operation: {op_type.__name__}"]
+            evidence=[f"Unknown binary operation: {op_type.__name__}"],
         )
 
     def _infer_unaryop_type(self, node: ast.UnaryOp, context: Dict[str, TypeInfo]) -> InferenceResult:
@@ -206,12 +204,12 @@ class TypeInferenceEngine:
         # Most unary operations preserve the operand type
         if isinstance(node.op, ast.UAdd) or isinstance(node.op, ast.USub):
             # +x or -x preserves numeric type
-            if operand_result.type_info.c_equivalent in ['int', 'double']:
+            if operand_result.type_info.c_equivalent in ["int", "double"]:
                 return InferenceResult(
                     type_info=operand_result.type_info,
                     confidence=operand_result.confidence,
                     method=InferenceMethod.OPERATION,
-                    evidence=[f"Unary {type(node.op).__name__} preserves type"]
+                    evidence=[f"Unary {type(node.op).__name__} preserves type"],
                 )
         elif isinstance(node.op, ast.Not):
             # not x always returns bool
@@ -219,14 +217,14 @@ class TypeInferenceEngine:
                 type_info=TypeInfo("bool"),
                 confidence=1.0,
                 method=InferenceMethod.OPERATION,
-                evidence=["Unary 'not' always returns bool"]
+                evidence=["Unary 'not' always returns bool"],
             )
 
         return InferenceResult(
             type_info=TypeInfo("unknown"),
             confidence=0.0,
             method=InferenceMethod.OPERATION,
-            evidence=[f"Unknown unary operation: {type(node.op).__name__}"]
+            evidence=[f"Unknown unary operation: {type(node.op).__name__}"],
         )
 
     def _infer_call_type(self, node: ast.Call, context: Dict[str, TypeInfo]) -> InferenceResult:
@@ -236,15 +234,15 @@ class TypeInferenceEngine:
 
             # Built-in function type mappings
             builtin_returns = {
-                'len': TypeInfo("int"),
-                'str': TypeInfo("str"),
-                'int': TypeInfo("int"),
-                'float': TypeInfo("float"),
-                'bool': TypeInfo("bool"),
-                'abs': None,  # Depends on argument
-                'max': None,  # Depends on arguments
-                'min': None,  # Depends on arguments
-                'sum': None,  # Depends on arguments
+                "len": TypeInfo("int"),
+                "str": TypeInfo("str"),
+                "int": TypeInfo("int"),
+                "float": TypeInfo("float"),
+                "bool": TypeInfo("bool"),
+                "abs": None,  # Depends on argument
+                "max": None,  # Depends on arguments
+                "min": None,  # Depends on arguments
+                "sum": None,  # Depends on arguments
             }
 
             if func_name in builtin_returns:
@@ -254,17 +252,17 @@ class TypeInferenceEngine:
                         type_info=return_type,
                         confidence=1.0,
                         method=InferenceMethod.FUNCTION_RETURN,
-                        evidence=[f"Built-in function '{func_name}' return type"]
+                        evidence=[f"Built-in function '{func_name}' return type"],
                     )
 
             # For functions that return the type of their argument
-            if func_name in ['abs', 'max', 'min'] and node.args:
+            if func_name in ["abs", "max", "min"] and node.args:
                 arg_result = self.infer_expression_type(node.args[0], context)
                 return InferenceResult(
                     type_info=arg_result.type_info,
                     confidence=arg_result.confidence * 0.9,
                     method=InferenceMethod.FUNCTION_RETURN,
-                    evidence=[f"Function '{func_name}' returns argument type"]
+                    evidence=[f"Function '{func_name}' returns argument type"],
                 )
 
         # Unknown function call
@@ -272,7 +270,7 @@ class TypeInferenceEngine:
             type_info=TypeInfo("unknown"),
             confidence=0.0,
             method=InferenceMethod.FUNCTION_RETURN,
-            evidence=["Unknown function call"]
+            evidence=["Unknown function call"],
         )
 
     def _infer_compare_type(self, node: ast.Compare, context: Dict[str, TypeInfo]) -> InferenceResult:
@@ -282,7 +280,7 @@ class TypeInferenceEngine:
             type_info=TypeInfo("bool"),
             confidence=1.0,
             method=InferenceMethod.OPERATION,
-            evidence=["Comparison operations always return bool"]
+            evidence=["Comparison operations always return bool"],
         )
 
     def _infer_list_type(self, node: ast.List, context: Dict[str, TypeInfo]) -> InferenceResult:
@@ -293,7 +291,7 @@ class TypeInferenceEngine:
                 type_info=TypeInfo("list", c_equivalent="void*"),
                 confidence=0.5,
                 method=InferenceMethod.LITERAL,
-                evidence=["Empty list - unknown element type"]
+                evidence=["Empty list - unknown element type"],
             )
 
         # Infer element type from first element
@@ -302,7 +300,7 @@ class TypeInferenceEngine:
             type_info=TypeInfo("list", c_equivalent=f"{first_elem_result.type_info.c_equivalent}*"),
             confidence=first_elem_result.confidence * 0.8,
             method=InferenceMethod.LITERAL,
-            evidence=[f"List with {first_elem_result.type_info.c_equivalent} elements"]
+            evidence=[f"List with {first_elem_result.type_info.c_equivalent} elements"],
         )
 
     def _infer_tuple_type(self, node: ast.Tuple, context: Dict[str, TypeInfo]) -> InferenceResult:
@@ -319,7 +317,7 @@ class TypeInferenceEngine:
             type_info=TypeInfo("tuple", c_equivalent="struct"),
             confidence=min_confidence * 0.9,
             method=InferenceMethod.LITERAL,
-            evidence=[f"Tuple with elements: {', '.join(element_types)}"]
+            evidence=[f"Tuple with elements: {', '.join(element_types)}"],
         )
 
     def analyze_function_signature(self, func_node: ast.FunctionDef) -> Dict[str, InferenceResult]:
@@ -335,7 +333,7 @@ class TypeInferenceEngine:
                     type_info=type_info,
                     confidence=1.0,
                     method=InferenceMethod.ANNOTATION,
-                    evidence=["Explicit type annotation"]
+                    evidence=["Explicit type annotation"],
                 )
             else:
                 # Try to infer from usage
@@ -345,16 +343,16 @@ class TypeInferenceEngine:
         # Analyze return type
         if func_node.returns:
             return_type_info = self._extract_type_from_annotation(func_node.returns)
-            results['__return__'] = InferenceResult(
+            results["__return__"] = InferenceResult(
                 type_info=return_type_info,
                 confidence=1.0,
                 method=InferenceMethod.ANNOTATION,
-                evidence=["Explicit return type annotation"]
+                evidence=["Explicit return type annotation"],
             )
         else:
             # Infer from return statements
             return_result = self._infer_return_type_from_statements(func_node)
-            results['__return__'] = return_result
+            results["__return__"] = return_result
 
         return results
 
@@ -395,14 +393,14 @@ class TypeInferenceEngine:
                 type_info=TypeInfo("int"),  # Assume numeric
                 confidence=0.7,
                 method=InferenceMethod.PARAMETER_USAGE,
-                evidence=usage_patterns
+                evidence=usage_patterns,
             )
 
         return InferenceResult(
             type_info=TypeInfo("unknown"),
             confidence=0.0,
             method=InferenceMethod.PARAMETER_USAGE,
-            evidence=["No clear usage pattern found"]
+            evidence=["No clear usage pattern found"],
         )
 
     def _infer_return_type_from_statements(self, func_node: ast.FunctionDef) -> InferenceResult:
@@ -421,7 +419,7 @@ class TypeInferenceEngine:
                 type_info=TypeInfo("void"),
                 confidence=1.0,
                 method=InferenceMethod.FUNCTION_RETURN,
-                evidence=["No return statements found"]
+                evidence=["No return statements found"],
             )
 
         # If all return types are the same, use that
@@ -432,7 +430,7 @@ class TypeInferenceEngine:
                 type_info=first_result.type_info,
                 confidence=avg_confidence,
                 method=InferenceMethod.FUNCTION_RETURN,
-                evidence=[f"Consistent return type across {len(return_types)} return statements"]
+                evidence=[f"Consistent return type across {len(return_types)} return statements"],
             )
 
         # Multiple different return types - use the most common or most confident
@@ -440,5 +438,5 @@ class TypeInferenceEngine:
             type_info=TypeInfo("unknown"),
             confidence=0.0,
             method=InferenceMethod.FUNCTION_RETURN,
-            evidence=["Inconsistent return types found"]
+            evidence=["Inconsistent return types found"],
         )

@@ -20,6 +20,7 @@ from ..base import AnalysisContext, AnalysisLevel, AnalysisReport, BaseAnalyzer
 
 class NodeType(Enum):
     """Types of nodes in the control flow graph."""
+
     ENTRY = "entry"
     EXIT = "exit"
     STATEMENT = "statement"
@@ -35,6 +36,7 @@ class NodeType(Enum):
 @dataclass
 class CFGNode:
     """Node in the Control Flow Graph."""
+
     id: int
     node_type: NodeType
     ast_node: Optional[ast.AST] = None
@@ -66,6 +68,7 @@ class CFGNode:
 @dataclass
 class ControlFlowGraph:
     """Control Flow Graph representation."""
+
     nodes: Dict[int, CFGNode] = field(default_factory=dict)
     entry_node: Optional[int] = None
     exit_nodes: Set[int] = field(default_factory=set)
@@ -78,8 +81,8 @@ class ControlFlowGraph:
             id=self.next_id,
             node_type=node_type,
             ast_node=ast_node,
-            line_number=getattr(ast_node, 'lineno', 0) if ast_node else 0,
-            code=ast.unparse(ast_node) if ast_node else ""
+            line_number=getattr(ast_node, "lineno", 0) if ast_node else 0,
+            code=ast.unparse(ast_node) if ast_node else "",
         )
         self.nodes[self.next_id] = node
         self.next_id += 1
@@ -150,6 +153,7 @@ class ControlFlowGraph:
 @dataclass
 class VariableInfo:
     """Information about a variable in the analysis."""
+
     name: str
     first_definition: int  # Line number
     last_usage: int  # Line number
@@ -165,6 +169,7 @@ class VariableInfo:
 @dataclass
 class StaticAnalysisReport(AnalysisReport):
     """Extended analysis report for static analysis."""
+
     cfg: ControlFlowGraph = field(default_factory=ControlFlowGraph)
     variables: Dict[str, VariableInfo] = field(default_factory=dict)
     dead_code_nodes: Set[int] = field(default_factory=set)
@@ -220,9 +225,9 @@ class StaticAnalyzer(BaseAnalyzer):
                 warnings=issues,
                 errors=[],
                 metadata={
-                    'node_count': len(self._current_cfg.nodes),
-                    'edge_count': len(self._current_cfg.edges),
-                    'variable_count': len(self._variables)
+                    "node_count": len(self._current_cfg.nodes),
+                    "edge_count": len(self._current_cfg.edges),
+                    "variable_count": len(self._variables),
                 },
                 execution_time_ms=execution_time,
                 cfg=self._current_cfg,
@@ -230,7 +235,7 @@ class StaticAnalyzer(BaseAnalyzer):
                 dead_code_nodes=dead_code,
                 complexity_metrics=complexity_metrics,
                 potential_issues=issues,
-                performance_hints=hints
+                performance_hints=hints,
             )
 
         except Exception as e:
@@ -249,7 +254,7 @@ class StaticAnalyzer(BaseAnalyzer):
                 dead_code_nodes=set(),
                 complexity_metrics={},
                 potential_issues=[],
-                performance_hints=[]
+                performance_hints=[],
             )
 
     def _analyze_function(self, func_node: ast.FunctionDef) -> int:
@@ -257,10 +262,7 @@ class StaticAnalyzer(BaseAnalyzer):
         # Record parameters as variables
         for arg in func_node.args.args:
             self._variables[arg.arg] = VariableInfo(
-                name=arg.arg,
-                first_definition=func_node.lineno,
-                last_usage=func_node.lineno,
-                is_parameter=True
+                name=arg.arg, first_definition=func_node.lineno, last_usage=func_node.lineno, is_parameter=True
             )
 
         # Analyze function body
@@ -360,10 +362,7 @@ class StaticAnalyzer(BaseAnalyzer):
             var_name = for_stmt.target.id
             if var_name not in self._variables:
                 self._variables[var_name] = VariableInfo(
-                    name=var_name,
-                    first_definition=for_stmt.lineno,
-                    last_usage=for_stmt.lineno,
-                    is_loop_variable=True
+                    name=var_name, first_definition=for_stmt.lineno, last_usage=for_stmt.lineno, is_loop_variable=True
                 )
             self._variables[var_name].definition_points.add(for_stmt.lineno)
 
@@ -419,9 +418,7 @@ class StaticAnalyzer(BaseAnalyzer):
                 var_name = target.id
                 if var_name not in self._variables:
                     self._variables[var_name] = VariableInfo(
-                        name=var_name,
-                        first_definition=assign_stmt.lineno,
-                        last_usage=assign_stmt.lineno
+                        name=var_name, first_definition=assign_stmt.lineno, last_usage=assign_stmt.lineno
                     )
                 self._variables[var_name].definition_points.add(assign_stmt.lineno)
 
@@ -439,9 +436,7 @@ class StaticAnalyzer(BaseAnalyzer):
             var_name = aug_assign_stmt.target.id
             if var_name not in self._variables:
                 self._variables[var_name] = VariableInfo(
-                    name=var_name,
-                    first_definition=aug_assign_stmt.lineno,
-                    last_usage=aug_assign_stmt.lineno
+                    name=var_name, first_definition=aug_assign_stmt.lineno, last_usage=aug_assign_stmt.lineno
                 )
             # Both usage and definition
             self._variables[var_name].usage_points.add(aug_assign_stmt.lineno)
@@ -473,11 +468,9 @@ class StaticAnalyzer(BaseAnalyzer):
         if isinstance(expr, ast.Name):
             var_name = expr.id
             if var_name in self._variables:
-                line_no = getattr(expr, 'lineno', 0)
+                line_no = getattr(expr, "lineno", 0)
                 self._variables[var_name].usage_points.add(line_no)
-                self._variables[var_name].last_usage = max(
-                    self._variables[var_name].last_usage, line_no
-                )
+                self._variables[var_name].last_usage = max(self._variables[var_name].last_usage, line_no)
         elif isinstance(expr, ast.Call):
             # Analyze function arguments
             for arg in expr.args:
@@ -501,24 +494,24 @@ class StaticAnalyzer(BaseAnalyzer):
     def _calculate_complexity_metrics(self) -> Dict[str, int]:
         """Calculate various complexity metrics."""
         metrics = {
-            'cyclomatic_complexity': 1,  # Base complexity
-            'nodes': len(self._current_cfg.nodes),
-            'edges': len(self._current_cfg.edges),
-            'variables': len(self._variables),
-            'loops': 0,
-            'conditionals': 0,
-            'function_calls': 0
+            "cyclomatic_complexity": 1,  # Base complexity
+            "nodes": len(self._current_cfg.nodes),
+            "edges": len(self._current_cfg.edges),
+            "variables": len(self._variables),
+            "loops": 0,
+            "conditionals": 0,
+            "function_calls": 0,
         }
 
         for node in self._current_cfg.nodes.values():
             if node.node_type == NodeType.CONDITION:
-                metrics['conditionals'] += 1
-                metrics['cyclomatic_complexity'] += 1
+                metrics["conditionals"] += 1
+                metrics["cyclomatic_complexity"] += 1
             elif node.node_type == NodeType.LOOP_HEADER:
-                metrics['loops'] += 1
-                metrics['cyclomatic_complexity'] += 1
+                metrics["loops"] += 1
+                metrics["cyclomatic_complexity"] += 1
             elif node.node_type == NodeType.FUNCTION_CALL:
-                metrics['function_calls'] += 1
+                metrics["function_calls"] += 1
 
         return metrics
 
@@ -545,7 +538,7 @@ class StaticAnalyzer(BaseAnalyzer):
             hints.append("Consider reducing the number of variables for better cache performance")
 
         complexity = self._calculate_complexity_metrics()
-        if complexity['cyclomatic_complexity'] > 10:
+        if complexity["cyclomatic_complexity"] > 10:
             hints.append("High cyclomatic complexity - consider breaking into smaller functions")
 
         return issues, hints

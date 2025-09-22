@@ -6,18 +6,18 @@ authors = [
 ]
 description = "Intelligent Python-to-C code generation with three-layer architecture"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.9"
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Software Development :: Code Generators",
     "Topic :: Software Development :: Compilers",
 ]
@@ -33,13 +33,11 @@ build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
-    "flake8>=7.3.0",
-    "flake8-docstrings>=1.7.0",
+    "ruff>=0.13.1",
     "isort>=6.0.1",
     "mypy>=1.18.2",
     "pytest>=8.4.2",
     "pytest-cov>=7.0.0",
-    "ruff>=0.13.1",
 ]
 
 [project.optional-dependencies]
@@ -117,7 +115,7 @@ exclude_lines = [
 ]
 
 [tool.mypy]
-python_version = "3.8"
+python_version = "3.9"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
@@ -135,23 +133,26 @@ strict_equality = true
 module = "tests.*"
 disallow_untyped_defs = false
 
-[tool.black]
+[tool.ruff]
 line-length = 120
-target-version = ['py38', 'py39', 'py310', 'py311', 'py312']
-include = '\.pyi?$'
-extend-exclude = '''
-/(
-  # directories
-  \.eggs
-  | \.git
-  | \.hg
-  | \.mypy_cache
-  | \.tox
-  | \.venv
-  | build
-  | dist
-)/
-'''
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "C90", "I", "N", "D", "UP", "B", "A", "S", "T20", "Q"]
+ignore = [
+    "D107",  # Missing docstring in __init__
+    "D200",  # One-line docstring should fit on one line
+    "D205",  # 1 blank line required between summary line and description
+    "D400",  # First line should end with a period
+    "D401",  # First line should be in imperative mood
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["D101", "D102", "D103", "D104", "S101"]
+"__init__.py" = ["F401"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
 
 [tool.isort]
 profile = "black"
@@ -162,23 +163,6 @@ force_grid_wrap = 0
 use_parentheses = true
 ensure_newline_before_comments = true
 
-[tool.flake8]
-max-line-length = 120
-extend-ignore = [
-    "E203",  # whitespace before ':'
-    "E501",  # line too long (handled by black)
-    "W503",  # line break before binary operator
-    "D107",  # Missing docstring in __init__
-    "D200",  # One-line docstring should fit on one line
-    "D205",  # 1 blank line required between summary line and description
-    "D400",  # First line should end with a period
-    "D401",  # First line should be in imperative mood
-]
-per-file-ignores = [
-    "tests/*:D101,D102,D103,D104,E402",
-    "__init__.py:F401",
-]
-docstring-convention = "google"
 
 
 

@@ -8,13 +8,14 @@ import ast
 import time
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 from ..base import AnalysisContext, AnalysisLevel, AnalysisReport, BaseAnalyzer
 
 
 class SymbolicValueType(Enum):
     """Types of symbolic values."""
+
     UNKNOWN = "unknown"
     CONSTANT = "constant"
     VARIABLE = "variable"
@@ -29,6 +30,7 @@ class SymbolicValueType(Enum):
 @dataclass
 class SymbolicValue:
     """Represents a symbolic value during execution."""
+
     value_type: SymbolicValueType
     concrete_value: Optional[Any] = None
     symbolic_expr: str = ""
@@ -50,7 +52,7 @@ class SymbolicValue:
         if constraint not in self.constraints:
             self.constraints.append(constraint)
 
-    def merge_with(self, other: 'SymbolicValue') -> 'SymbolicValue':
+    def merge_with(self, other: "SymbolicValue") -> "SymbolicValue":
         """Merge this symbolic value with another (for control flow joins)."""
         if self.is_concrete() and other.is_concrete() and self.concrete_value == other.concrete_value:
             return self
@@ -59,7 +61,7 @@ class SymbolicValue:
         merged = SymbolicValue(
             value_type=SymbolicValueType.CONDITIONAL,
             symbolic_expr=f"({self.symbolic_expr} | {other.symbolic_expr})",
-            constraints=self.constraints + other.constraints
+            constraints=self.constraints + other.constraints,
         )
 
         if self.is_concrete():
@@ -76,20 +78,21 @@ class SymbolicValue:
 @dataclass
 class SymbolicState:
     """Represents the symbolic state at a program point."""
+
     variables: Dict[str, SymbolicValue] = field(default_factory=dict)
     path_condition: List[str] = field(default_factory=list)
     program_counter: int = 0
     call_stack: List[str] = field(default_factory=list)
     metadata: Dict[str, Any] = field(default_factory=dict)
 
-    def copy(self) -> 'SymbolicState':
+    def copy(self) -> "SymbolicState":
         """Create a deep copy of this symbolic state."""
         new_state = SymbolicState(
             variables=self.variables.copy(),
             path_condition=self.path_condition.copy(),
             program_counter=self.program_counter,
             call_stack=self.call_stack.copy(),
-            metadata=self.metadata.copy()
+            metadata=self.metadata.copy(),
         )
         return new_state
 
@@ -105,7 +108,7 @@ class SymbolicState:
         """Add a condition to the current path."""
         self.path_condition.append(condition)
 
-    def merge_with(self, other: 'SymbolicState') -> 'SymbolicState':
+    def merge_with(self, other: "SymbolicState") -> "SymbolicState":
         """Merge this state with another (for control flow joins)."""
         merged = SymbolicState()
 
@@ -131,6 +134,7 @@ class SymbolicState:
 @dataclass
 class ExecutionPath:
     """Represents a single execution path through the program."""
+
     path_id: int
     initial_state: SymbolicState
     final_state: SymbolicState
@@ -157,6 +161,7 @@ class ExecutionPath:
 @dataclass
 class SymbolicExecutionReport(AnalysisReport):
     """Extended analysis report for symbolic execution."""
+
     execution_paths: List[ExecutionPath] = field(default_factory=list)
     total_paths: int = 0
     completed_paths: int = 0
@@ -173,7 +178,7 @@ class SymbolicExecutor(BaseAnalyzer):
         super().__init__("SymbolicExecutor", analysis_level)
         self._path_counter = 0
         self._max_paths = 100  # Limit to prevent explosion
-        self._max_depth = 50   # Maximum recursion depth
+        self._max_depth = 50  # Maximum recursion depth
 
     def analyze(self, context: AnalysisContext) -> SymbolicExecutionReport:
         """Perform symbolic execution analysis on the given context."""
@@ -213,9 +218,9 @@ class SymbolicExecutor(BaseAnalyzer):
                 warnings=potential_errors,
                 errors=[],
                 metadata={
-                    'max_paths_limit': self._max_paths,
-                    'max_depth_limit': self._max_depth,
-                    'analysis_level': self.analysis_level.value
+                    "max_paths_limit": self._max_paths,
+                    "max_depth_limit": self._max_depth,
+                    "analysis_level": self.analysis_level.value,
                 },
                 execution_time_ms=execution_time,
                 execution_paths=execution_paths,
@@ -224,7 +229,7 @@ class SymbolicExecutor(BaseAnalyzer):
                 feasible_paths=sum(1 for p in execution_paths if p.is_feasible),
                 potential_errors=potential_errors,
                 coverage_info=coverage_info,
-                symbolic_constraints=self._collect_all_constraints(execution_paths)
+                symbolic_constraints=self._collect_all_constraints(execution_paths),
             )
 
         except Exception as e:
@@ -237,16 +242,14 @@ class SymbolicExecutor(BaseAnalyzer):
                 warnings=[],
                 errors=[f"Symbolic execution failed: {str(e)}"],
                 metadata={},
-                execution_time_ms=execution_time
+                execution_time_ms=execution_time,
             )
 
     def _setup_function_parameters(self, func_node: ast.FunctionDef, state: SymbolicState) -> None:
         """Set up symbolic values for function parameters."""
         for i, arg in enumerate(func_node.args.args):
             param_value = SymbolicValue(
-                value_type=SymbolicValueType.VARIABLE,
-                symbolic_expr=f"param_{arg.arg}",
-                line_number=func_node.lineno
+                value_type=SymbolicValueType.VARIABLE, symbolic_expr=f"param_{arg.arg}", line_number=func_node.lineno
             )
             state.set_variable(arg.arg, param_value)
 
@@ -266,7 +269,7 @@ class SymbolicExecutor(BaseAnalyzer):
                     final_state=current_state,
                     visited_lines=path_history,
                     path_conditions=current_state.path_condition.copy(),
-                    is_complete=False
+                    is_complete=False,
                 )
                 path.add_potential_error("Path truncated due to depth limit")
                 completed_paths.append(path)
@@ -284,7 +287,7 @@ class SymbolicExecutor(BaseAnalyzer):
                             final_state=new_state,
                             visited_lines=new_history,
                             path_conditions=new_state.path_condition.copy(),
-                            is_complete=True
+                            is_complete=True,
                         )
                         completed_paths.append(path)
                         self._path_counter += 1
@@ -299,7 +302,7 @@ class SymbolicExecutor(BaseAnalyzer):
                     final_state=current_state,
                     visited_lines=path_history,
                     path_conditions=current_state.path_condition.copy(),
-                    is_complete=False
+                    is_complete=False,
                 )
                 path.add_potential_error(f"Execution error: {str(e)}")
                 completed_paths.append(path)
@@ -307,9 +310,11 @@ class SymbolicExecutor(BaseAnalyzer):
 
         return completed_paths
 
-    def _execute_node(self, node: ast.AST, state: SymbolicState, path_history: List[int]) -> List[Tuple[Optional[ast.AST], SymbolicState, List[int]]]:
+    def _execute_node(
+        self, node: ast.AST, state: SymbolicState, path_history: List[int]
+    ) -> List[Tuple[Optional[ast.AST], SymbolicState, List[int]]]:
         """Execute a single AST node symbolically."""
-        new_history = path_history + [getattr(node, 'lineno', 0)]
+        new_history = path_history + [getattr(node, "lineno", 0)]
 
         if isinstance(node, ast.FunctionDef):
             return self._execute_function(node, state, new_history)
@@ -334,7 +339,9 @@ class SymbolicExecutor(BaseAnalyzer):
             # Generic statement - continue to next
             return [(None, state, new_history)]
 
-    def _execute_function(self, func_node: ast.FunctionDef, state: SymbolicState, path_history: List[int]) -> List[Tuple[Optional[ast.AST], SymbolicState, List[int]]]:
+    def _execute_function(
+        self, func_node: ast.FunctionDef, state: SymbolicState, path_history: List[int]
+    ) -> List[Tuple[Optional[ast.AST], SymbolicState, List[int]]]:
         """Execute a function definition."""
         # For a function, we execute its body
         if func_node.body:
@@ -342,7 +349,9 @@ class SymbolicExecutor(BaseAnalyzer):
         else:
             return [(None, state, path_history)]
 
-    def _execute_if(self, if_node: ast.If, state: SymbolicState, path_history: List[int]) -> List[Tuple[Optional[ast.AST], SymbolicState, List[int]]]:
+    def _execute_if(
+        self, if_node: ast.If, state: SymbolicState, path_history: List[int]
+    ) -> List[Tuple[Optional[ast.AST], SymbolicState, List[int]]]:
         """Execute an if statement, creating branches for both paths."""
         results = []
 
@@ -368,7 +377,9 @@ class SymbolicExecutor(BaseAnalyzer):
 
         return results
 
-    def _execute_while(self, while_node: ast.While, state: SymbolicState, path_history: List[int]) -> List[Tuple[Optional[ast.AST], SymbolicState, List[int]]]:
+    def _execute_while(
+        self, while_node: ast.While, state: SymbolicState, path_history: List[int]
+    ) -> List[Tuple[Optional[ast.AST], SymbolicState, List[int]]]:
         """Execute a while loop with bounded unrolling."""
         results = []
 
@@ -399,7 +410,9 @@ class SymbolicExecutor(BaseAnalyzer):
 
         return results
 
-    def _execute_for(self, for_node: ast.For, state: SymbolicState, path_history: List[int]) -> List[Tuple[Optional[ast.AST], SymbolicState, List[int]]]:
+    def _execute_for(
+        self, for_node: ast.For, state: SymbolicState, path_history: List[int]
+    ) -> List[Tuple[Optional[ast.AST], SymbolicState, List[int]]]:
         """Execute a for loop with bounded iterations."""
         # Simplified for loop handling
         loop_state = state.copy()
@@ -409,7 +422,7 @@ class SymbolicExecutor(BaseAnalyzer):
             loop_var = SymbolicValue(
                 value_type=SymbolicValueType.VARIABLE,
                 symbolic_expr=f"loop_var_{for_node.target.id}",
-                line_number=for_node.lineno
+                line_number=for_node.lineno,
             )
             loop_state.set_variable(for_node.target.id, loop_var)
 
@@ -420,7 +433,9 @@ class SymbolicExecutor(BaseAnalyzer):
 
         return [(None, loop_state, path_history)]
 
-    def _execute_assign(self, assign_node: ast.Assign, state: SymbolicState, path_history: List[int]) -> List[Tuple[Optional[ast.AST], SymbolicState, List[int]]]:
+    def _execute_assign(
+        self, assign_node: ast.Assign, state: SymbolicState, path_history: List[int]
+    ) -> List[Tuple[Optional[ast.AST], SymbolicState, List[int]]]:
         """Execute an assignment statement."""
         new_state = state.copy()
 
@@ -434,7 +449,9 @@ class SymbolicExecutor(BaseAnalyzer):
 
         return [(None, new_state, path_history)]
 
-    def _execute_aug_assign(self, aug_assign_node: ast.AugAssign, state: SymbolicState, path_history: List[int]) -> List[Tuple[Optional[ast.AST], SymbolicState, List[int]]]:
+    def _execute_aug_assign(
+        self, aug_assign_node: ast.AugAssign, state: SymbolicState, path_history: List[int]
+    ) -> List[Tuple[Optional[ast.AST], SymbolicState, List[int]]]:
         """Execute an augmented assignment statement."""
         new_state = state.copy()
 
@@ -451,25 +468,27 @@ class SymbolicExecutor(BaseAnalyzer):
                 new_expr = f"(unknown {op_str} {rhs_value.symbolic_expr})"
 
             new_value = SymbolicValue(
-                value_type=SymbolicValueType.BINARY_OP,
-                symbolic_expr=new_expr,
-                line_number=aug_assign_node.lineno
+                value_type=SymbolicValueType.BINARY_OP, symbolic_expr=new_expr, line_number=aug_assign_node.lineno
             )
             new_state.set_variable(var_name, new_value)
 
         return [(None, new_state, path_history)]
 
-    def _execute_return(self, return_node: ast.Return, state: SymbolicState, path_history: List[int]) -> List[Tuple[Optional[ast.AST], SymbolicState, List[int]]]:
+    def _execute_return(
+        self, return_node: ast.Return, state: SymbolicState, path_history: List[int]
+    ) -> List[Tuple[Optional[ast.AST], SymbolicState, List[int]]]:
         """Execute a return statement."""
         new_state = state.copy()
 
         if return_node.value:
             return_value = self._evaluate_expression(return_node.value, new_state)
-            new_state.metadata['return_value'] = return_value
+            new_state.metadata["return_value"] = return_value
 
         return [(None, new_state, path_history)]
 
-    def _execute_expression_stmt(self, expr_stmt: ast.Expr, state: SymbolicState, path_history: List[int]) -> List[Tuple[Optional[ast.AST], SymbolicState, List[int]]]:
+    def _execute_expression_stmt(
+        self, expr_stmt: ast.Expr, state: SymbolicState, path_history: List[int]
+    ) -> List[Tuple[Optional[ast.AST], SymbolicState, List[int]]]:
         """Execute an expression statement."""
         new_state = state.copy()
         self._evaluate_expression(expr_stmt.value, new_state)
@@ -496,7 +515,7 @@ class SymbolicExecutor(BaseAnalyzer):
                 value_type=SymbolicValueType.CONSTANT,
                 concrete_value=expr.value,
                 symbolic_expr=str(expr.value),
-                line_number=getattr(expr, 'lineno', 0)
+                line_number=getattr(expr, "lineno", 0),
             )
         elif isinstance(expr, ast.Name):
             existing_value = state.get_variable(expr.id)
@@ -505,9 +524,7 @@ class SymbolicExecutor(BaseAnalyzer):
             else:
                 # Unknown variable
                 return SymbolicValue(
-                    value_type=SymbolicValueType.VARIABLE,
-                    symbolic_expr=expr.id,
-                    line_number=getattr(expr, 'lineno', 0)
+                    value_type=SymbolicValueType.VARIABLE, symbolic_expr=expr.id, line_number=getattr(expr, "lineno", 0)
                 )
         elif isinstance(expr, ast.BinOp):
             left = self._evaluate_expression(expr.left, state)
@@ -527,7 +544,7 @@ class SymbolicExecutor(BaseAnalyzer):
                 value_type=SymbolicValueType.BINARY_OP,
                 concrete_value=concrete_result,
                 symbolic_expr=f"({left.symbolic_expr} {op_str} {right.symbolic_expr})",
-                line_number=getattr(expr, 'lineno', 0)
+                line_number=getattr(expr, "lineno", 0),
             )
         elif isinstance(expr, ast.UnaryOp):
             operand = self._evaluate_expression(expr.operand, state)
@@ -544,38 +561,44 @@ class SymbolicExecutor(BaseAnalyzer):
                 value_type=SymbolicValueType.UNARY_OP,
                 concrete_value=concrete_result,
                 symbolic_expr=f"({op_str}{operand.symbolic_expr})",
-                line_number=getattr(expr, 'lineno', 0)
+                line_number=getattr(expr, "lineno", 0),
             )
         elif isinstance(expr, ast.Call):
             return SymbolicValue(
                 value_type=SymbolicValueType.FUNCTION_CALL,
                 symbolic_expr=f"call({ast.unparse(expr)})",
-                line_number=getattr(expr, 'lineno', 0)
+                line_number=getattr(expr, "lineno", 0),
             )
         else:
             # Unknown expression type
             return SymbolicValue(
                 value_type=SymbolicValueType.UNKNOWN,
                 symbolic_expr=f"unknown({type(expr).__name__})",
-                line_number=getattr(expr, 'lineno', 0)
+                line_number=getattr(expr, "lineno", 0),
             )
 
     def _get_operator_string(self, op: ast.operator) -> str:
         """Get string representation of a binary operator."""
         op_map = {
-            ast.Add: '+', ast.Sub: '-', ast.Mult: '*', ast.Div: '/',
-            ast.FloorDiv: '//', ast.Mod: '%', ast.Pow: '**',
-            ast.LShift: '<<', ast.RShift: '>>', ast.BitOr: '|',
-            ast.BitXor: '^', ast.BitAnd: '&'
+            ast.Add: "+",
+            ast.Sub: "-",
+            ast.Mult: "*",
+            ast.Div: "/",
+            ast.FloorDiv: "//",
+            ast.Mod: "%",
+            ast.Pow: "**",
+            ast.LShift: "<<",
+            ast.RShift: ">>",
+            ast.BitOr: "|",
+            ast.BitXor: "^",
+            ast.BitAnd: "&",
         }
-        return op_map.get(type(op), '?')
+        return op_map.get(type(op), "?")
 
     def _get_unary_operator_string(self, op: ast.unaryop) -> str:
         """Get string representation of a unary operator."""
-        op_map = {
-            ast.UAdd: '+', ast.USub: '-', ast.Not: 'not ', ast.Invert: '~'
-        }
-        return op_map.get(type(op), '?')
+        op_map = {ast.UAdd: "+", ast.USub: "-", ast.Not: "not ", ast.Invert: "~"}
+        return op_map.get(type(op), "?")
 
     def _apply_binary_op(self, op: ast.operator, left: Any, right: Any) -> Any:
         """Apply a binary operator to concrete values."""
@@ -598,7 +621,7 @@ class SymbolicExecutor(BaseAnalyzer):
                 raise ZeroDivisionError("Modulo by zero")
             return left % right
         elif isinstance(op, ast.Pow):
-            return left ** right
+            return left**right
         else:
             raise TypeError(f"Unsupported operator: {type(op)}")
 
@@ -622,7 +645,7 @@ class SymbolicExecutor(BaseAnalyzer):
 
         # Collect all line numbers in the AST
         for child in ast.walk(node):
-            if hasattr(child, 'lineno'):
+            if hasattr(child, "lineno"):
                 all_lines.add(child.lineno)
 
         # Collect covered lines from all paths
@@ -632,10 +655,10 @@ class SymbolicExecutor(BaseAnalyzer):
         coverage_percentage = (len(covered_lines) / len(all_lines)) * 100 if all_lines else 0
 
         return {
-            'total_lines': len(all_lines),
-            'covered_lines': len(covered_lines),
-            'coverage_percentage': coverage_percentage,
-            'uncovered_lines': list(all_lines - covered_lines)
+            "total_lines": len(all_lines),
+            "covered_lines": len(covered_lines),
+            "coverage_percentage": coverage_percentage,
+            "uncovered_lines": list(all_lines - covered_lines),
         }
 
     def _collect_all_constraints(self, paths: List[ExecutionPath]) -> List[str]:

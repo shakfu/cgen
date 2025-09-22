@@ -5,14 +5,14 @@ focusing on static analysis of Python code that can be converted to C.
 """
 
 import ast
-import inspect
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from typing import Dict, List, Optional
 
 
 class NodeType(Enum):
     """Types of AST nodes we can analyze."""
+
     FUNCTION_DEF = "function_def"
     CLASS_DEF = "class_def"
     VARIABLE_DEF = "variable_def"
@@ -30,16 +30,18 @@ class NodeType(Enum):
 
 class StaticComplexity(Enum):
     """Complexity levels for static analysis."""
-    TRIVIAL = 1      # Simple constants, basic operations
-    SIMPLE = 2       # Function calls, basic control flow
-    MODERATE = 3     # Complex control flow, multiple variables
-    COMPLEX = 4      # Advanced patterns, nested structures
+
+    TRIVIAL = 1  # Simple constants, basic operations
+    SIMPLE = 2  # Function calls, basic control flow
+    MODERATE = 3  # Complex control flow, multiple variables
+    COMPLEX = 4  # Advanced patterns, nested structures
     UNSUPPORTED = 5  # Dynamic features not convertible
 
 
 @dataclass
 class TypeInfo:
     """Information about a type in the static analysis."""
+
     name: str
     python_type: Optional[type] = None
     c_equivalent: Optional[str] = None
@@ -55,18 +57,19 @@ class TypeInfo:
     def _map_to_c_type(self) -> str:
         """Map Python type to C equivalent."""
         type_mapping = {
-            'int': 'int',
-            'float': 'double',
-            'bool': 'bool',
-            'str': 'char*',
-            'NoneType': 'void',
+            "int": "int",
+            "float": "double",
+            "bool": "bool",
+            "str": "char*",
+            "NoneType": "void",
         }
-        return type_mapping.get(self.name, 'void*')
+        return type_mapping.get(self.name, "void*")
 
 
 @dataclass
 class VariableInfo:
     """Information about a variable in static analysis."""
+
     name: str
     type_info: TypeInfo
     scope: str
@@ -80,6 +83,7 @@ class VariableInfo:
 @dataclass
 class FunctionInfo:
     """Information about a function in static analysis."""
+
     name: str
     parameters: List[VariableInfo] = field(default_factory=list)
     return_type: Optional[TypeInfo] = None
@@ -93,6 +97,7 @@ class FunctionInfo:
 @dataclass
 class AnalysisResult:
     """Result of AST analysis."""
+
     functions: Dict[str, FunctionInfo] = field(default_factory=dict)
     global_variables: Dict[str, VariableInfo] = field(default_factory=dict)
     imports: List[str] = field(default_factory=list)
@@ -130,10 +135,7 @@ class ASTAnalyzer(ast.NodeVisitor):
         """Analyze function definitions."""
         self.node_types[node] = NodeType.FUNCTION_DEF
 
-        func_info = FunctionInfo(
-            name=node.name,
-            line_count=node.end_lineno - node.lineno + 1 if node.end_lineno else 1
-        )
+        func_info = FunctionInfo(name=node.name, line_count=node.end_lineno - node.lineno + 1 if node.end_lineno else 1)
 
         # Analyze return type annotation
         if node.returns:
@@ -146,18 +148,12 @@ class ASTAnalyzer(ast.NodeVisitor):
             if arg.annotation:
                 type_info = self._extract_type_info(arg.annotation)
                 param_info = VariableInfo(
-                    name=arg.arg,
-                    type_info=type_info,
-                    scope=node.name,
-                    is_parameter=True,
-                    is_declared=True
+                    name=arg.arg, type_info=type_info, scope=node.name, is_parameter=True, is_declared=True
                 )
                 func_info.parameters.append(param_info)
                 func_info.local_variables[arg.arg] = param_info
             else:
-                self.result.errors.append(
-                    f"Parameter '{arg.arg}' in function '{node.name}' lacks type annotation"
-                )
+                self.result.errors.append(f"Parameter '{arg.arg}' in function '{node.name}' lacks type annotation")
                 self.result.convertible = False
 
         # Add function to result first
@@ -191,7 +187,7 @@ class ASTAnalyzer(ast.NodeVisitor):
                 type_info=type_info,
                 scope=self.current_scope,
                 is_declared=True,
-                first_assignment_line=node.lineno
+                first_assignment_line=node.lineno,
             )
 
             if self.current_function:
@@ -212,9 +208,7 @@ class ASTAnalyzer(ast.NodeVisitor):
                 # Check if variable is declared
                 var_info = self._get_variable_info(var_name)
                 if not var_info:
-                    self.result.errors.append(
-                        f"Variable '{var_name}' used without type annotation declaration"
-                    )
+                    self.result.errors.append(f"Variable '{var_name}' used without type annotation declaration")
                     self.result.convertible = False
                 else:
                     var_info.is_modified = True
@@ -256,8 +250,7 @@ class ASTAnalyzer(ast.NodeVisitor):
         if isinstance(node.iter, ast.Call) and isinstance(node.iter.func, ast.Name):
             if node.iter.func.id != "range":
                 self.result.warnings.append(
-                    f"For loop at line {node.lineno} uses non-range iterator, "
-                    "may require special handling"
+                    f"For loop at line {node.lineno} uses non-range iterator, may require special handling"
                 )
 
         self.generic_visit(node)
@@ -285,7 +278,7 @@ class ASTAnalyzer(ast.NodeVisitor):
             if isinstance(annotation.value, ast.Name):
                 base_type = annotation.value.id
                 if base_type == "list":
-                    return TypeInfo(f"list", c_equivalent="*")
+                    return TypeInfo("list", c_equivalent="*")
                 elif base_type == "Optional":
                     inner_type = self._extract_type_info(annotation.slice)
                     inner_type.is_nullable = True
@@ -360,6 +353,6 @@ def analyze_python_code(source_code: str) -> AnalysisResult:
 
 def analyze_python_file(file_path: str) -> AnalysisResult:
     """Analyze a Python file."""
-    with open(file_path, 'r', encoding='utf-8') as f:
+    with open(file_path, encoding="utf-8") as f:
         source_code = f.read()
     return analyze_python_code(source_code)

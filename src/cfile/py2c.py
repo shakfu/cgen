@@ -21,18 +21,21 @@ Limitations:
 """
 
 import ast
-from typing import Dict, List, Optional, Union, Any
+from typing import Any, Dict, List, Optional, Union
+
 from cfile import core
 from cfile.factory import CFactory
 
 
 class UnsupportedFeatureError(Exception):
     """Raised when encountering unsupported Python features."""
+
     pass
 
 
 class TypeMappingError(Exception):
     """Raised when type annotation cannot be mapped to C type."""
+
     pass
 
 
@@ -42,18 +45,18 @@ class PythonToCConverter:
     def __init__(self):
         self.c_factory = CFactory()
         self.type_mapping = {
-            'int': 'int',
-            'float': 'double',
-            'bool': 'bool',  # Requires stdbool.h
-            'str': 'char*',
-            'None': 'void'
+            "int": "int",
+            "float": "double",
+            "bool": "bool",  # Requires stdbool.h
+            "str": "char*",
+            "None": "void",
         }
         self.current_function: Optional[core.Function] = None
         self.variable_context: Dict[str, core.Variable] = {}
 
     def convert_file(self, python_file_path: str) -> core.Sequence:
         """Convert a Python file to C code sequence."""
-        with open(python_file_path, 'r') as f:
+        with open(python_file_path) as f:
             python_code = f.read()
         return self.convert_code(python_code)
 
@@ -110,7 +113,7 @@ class PythonToCConverter:
     def _convert_function_def(self, node: ast.FunctionDef) -> List[core.Element]:
         """Convert Python function definition to C function."""
         # Extract return type
-        return_type = self._extract_type_annotation(node.returns) if node.returns else 'void'
+        return_type = self._extract_type_annotation(node.returns) if node.returns else "void"
 
         # Create function parameters
         params = []
@@ -128,7 +131,11 @@ class PythonToCConverter:
         # Create function body
         body_statements = []
         for stmt in node.body:
-            if isinstance(stmt, ast.Expr) and isinstance(stmt.value, ast.Constant) and isinstance(stmt.value.value, str):
+            if (
+                isinstance(stmt, ast.Expr)
+                and isinstance(stmt.value, ast.Constant)
+                and isinstance(stmt.value.value, str)
+            ):
                 # Skip docstrings
                 continue
             c_stmt = self._convert_statement(stmt)
@@ -158,10 +165,10 @@ class PythonToCConverter:
                 raise TypeMappingError(f"Unsupported type: {python_type}")
         elif isinstance(annotation, ast.Constant) and annotation.value is None:
             # Handle -> None
-            return 'void'
+            return "void"
         elif isinstance(annotation, ast.Subscript):
             # Handle generic types like list[int]
-            if isinstance(annotation.value, ast.Name) and annotation.value.id == 'list':
+            if isinstance(annotation.value, ast.Name) and annotation.value.id == "list":
                 element_type = self._extract_type_annotation(annotation.slice)
                 return f"{element_type}*"  # Convert list[T] to T*
             else:
@@ -248,11 +255,11 @@ class PythonToCConverter:
         right = self._convert_expression(node.right)
 
         op_map = {
-            ast.Add: '+',
-            ast.Sub: '-',
-            ast.Mult: '*',
-            ast.Div: '/',
-            ast.Mod: '%',
+            ast.Add: "+",
+            ast.Sub: "-",
+            ast.Mult: "*",
+            ast.Div: "/",
+            ast.Mod: "%",
         }
 
         if type(node.op) in op_map:
@@ -299,8 +306,8 @@ def convert_python_to_c(python_code: str) -> str:
     converter = PythonToCConverter()
     c_sequence = converter.convert_code(python_code)
 
-    from cfile.writer import Writer
     from cfile.style import StyleOptions
+    from cfile.writer import Writer
 
     writer = Writer(StyleOptions())
     return writer.write_str(c_sequence)
@@ -311,8 +318,8 @@ def convert_python_file_to_c(input_file: str, output_file: str) -> None:
     converter = PythonToCConverter()
     c_sequence = converter.convert_file(input_file)
 
-    from cfile.writer import Writer
     from cfile.style import StyleOptions
+    from cfile.writer import Writer
 
     writer = Writer(StyleOptions())
     writer.write_file(c_sequence, output_file)

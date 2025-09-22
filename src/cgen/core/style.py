@@ -59,8 +59,7 @@ class BraceWrapping:
 
     @classmethod
     def make(cls, break_before_braces: BreakBeforeBraces) -> "BraceWrapping":
-        """
-        Utility function for auto-populating settings based on BreakBeforeBraces option.
+        """Utility function for auto-populating settings based on BreakBeforeBraces option.
 
         Don't use it with BreakBeforeBraces.CUSTOM.
         """

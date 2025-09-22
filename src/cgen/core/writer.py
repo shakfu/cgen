@@ -37,9 +37,7 @@ class Formatter:
         self.fh: TextIO | None = None  # pylint: disable=invalid-name
         self.indentation_char: str = indentation_char
         self.white_space_char: str = " "
-        self.indent_width = (
-            indent_width  # Number of characters (spaces) per indendation
-        )
+        self.indent_width = indent_width  # Number of characters (spaces) per indendation
         self.indentation_level: int = 0  # current indentation level
         self.indentation_str: str = ""
         self.line_number: int = 0
@@ -63,18 +61,14 @@ class Formatter:
 
     def _indent(self):
         self.indentation_level += 1
-        self.indentation_str = self.indentation_char * (
-            self.indentation_level * self.indent_width
-        )
+        self.indentation_str = self.indentation_char * (self.indentation_level * self.indent_width)
 
     def _dedent(self):
         self.indentation_level -= 1
         if self.indentation_level == 0:
             self.indentation_str = ""
         else:
-            self.indentation_str = self.indentation_char * (
-                self.indentation_level * self.indent_width
-            )
+            self.indentation_str = self.indentation_char * (self.indentation_level * self.indent_width)
 
     def _start_line(self):
         self.fh.write(self.indentation_str)
@@ -187,9 +181,7 @@ class Writer(Formatter):
                 if write_method is not None:
                     write_method(elem)
                 else:
-                    raise NotImplementedError(
-                        f"Found no writer for element {class_name}"
-                    )
+                    raise NotImplementedError(f"Found no writer for element {class_name}")
                 if isinstance(elem, core.Directive):
                     self._eol()
 
@@ -246,9 +238,7 @@ class Writer(Formatter):
             self._format_block_comment(lines, True, elem.width, elem.line_start)
         self.last_element = ElementType.COMMENT
 
-    def _format_block_comment(
-        self, lines: list[str], wrap_text: bool, width: int, line_start: str
-    ) -> None:
+    def _format_block_comment(self, lines: list[str], wrap_text: bool, width: int, line_start: str) -> None:
         self._write(f"/{'*' * width}")
         if wrap_text:
             self._eol()
@@ -321,9 +311,7 @@ class Writer(Formatter):
                     parts.append(qualifier)
         for key, value in handled.items():
             if value is False and elem.qualifier(key):
-                raise RuntimeError(
-                    f"Used qualifier '{key}' not part of selected qualifier_order list"
-                )
+                raise RuntimeError(f"Used qualifier '{key}' not part of selected qualifier_order list")
         return " ".join(parts)
 
     def _format_type_part(self, elem: core.Type) -> str:
@@ -357,9 +345,7 @@ class Writer(Formatter):
                     else:
                         raise ValueError(self.style.pointer_alignment)
                 else:
-                    raise NotImplementedError(
-                        "Only default space location supported for pointer qualifiers"
-                    )
+                    raise NotImplementedError("Only default space location supported for pointer qualifiers")
             else:
                 if self.style.pointer_alignment == c_style.Alignment.LEFT:
                     result += "* "
@@ -546,9 +532,7 @@ class Writer(Formatter):
     def _write_struct_usage(self, elem: core.Struct) -> None:
         """Writes struct usage."""
         if not elem.name:
-            raise ValueError(
-                "struct doesn't have a name. Did you mean to use a declaration?"
-            )
+            raise ValueError("struct doesn't have a name. Did you mean to use a declaration?")
         self._write(f"struct {elem.name}")
 
     def _write_struct_declaration(self, elem: core.Struct) -> None:

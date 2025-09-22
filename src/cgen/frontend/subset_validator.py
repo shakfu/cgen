@@ -6,22 +6,23 @@ performance and correctness guarantees.
 """
 
 import ast
-import re
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
+from typing import Callable, Dict, List, Optional
 
 
 class SubsetTier(Enum):
     """Tiers of Python subset support."""
-    TIER_1_FUNDAMENTAL = 1      # Core features - production ready
-    TIER_2_STRUCTURED = 2       # Structured data - feasible
-    TIER_3_ADVANCED = 3         # Advanced patterns - research required
-    TIER_4_UNSUPPORTED = 4      # Fundamental limitations
+
+    TIER_1_FUNDAMENTAL = 1  # Core features - production ready
+    TIER_2_STRUCTURED = 2  # Structured data - feasible
+    TIER_3_ADVANCED = 3  # Advanced patterns - research required
+    TIER_4_UNSUPPORTED = 4  # Fundamental limitations
 
 
 class FeatureStatus(Enum):
     """Status of feature support in the subset."""
+
     FULLY_SUPPORTED = "fully_supported"
     PARTIALLY_SUPPORTED = "partially_supported"
     EXPERIMENTAL = "experimental"
@@ -32,6 +33,7 @@ class FeatureStatus(Enum):
 @dataclass
 class FeatureRule:
     """Rule defining a feature's support in the Static Python Subset."""
+
     name: str
     tier: SubsetTier
     status: FeatureStatus
@@ -46,6 +48,7 @@ class FeatureRule:
 @dataclass
 class ValidationResult:
     """Result of subset validation."""
+
     is_valid: bool
     tier: SubsetTier
     violations: List[str] = field(default_factory=list)
@@ -69,14 +72,12 @@ class StaticPythonSubsetValidator:
             return self._validate_ast(tree)
         except SyntaxError as e:
             return ValidationResult(
-                is_valid=False,
-                tier=SubsetTier.TIER_4_UNSUPPORTED,
-                violations=[f"Syntax error: {e}"]
+                is_valid=False, tier=SubsetTier.TIER_4_UNSUPPORTED, violations=[f"Syntax error: {e}"]
             )
 
     def validate_file(self, file_path: str) -> ValidationResult:
         """Validate a Python file."""
-        with open(file_path, 'r', encoding='utf-8') as f:
+        with open(file_path, encoding="utf-8") as f:
             return self.validate_code(f.read())
 
     def get_feature_support(self, feature_name: str) -> Optional[FeatureRule]:
@@ -174,7 +175,9 @@ class StaticPythonSubsetValidator:
                     else:
                         result.is_valid = False
                         if rule.name == "Function Calls":
-                            result.violations.append("Dynamic code execution functions (eval, exec, compile) not supported")
+                            result.violations.append(
+                                "Dynamic code execution functions (eval, exec, compile) not supported"
+                            )
                         else:
                             result.violations.append(f"Validation failed for {rule.name}")
 
@@ -195,8 +198,8 @@ class StaticPythonSubsetValidator:
             c_mapping="Direct mapping to C types",
             examples={
                 "valid": "x: int = 42\ny: float = 3.14\nz: bool = True\ns: str = 'hello'",
-                "invalid": "x = 42  # Missing type annotation"
-            }
+                "invalid": "x = 42  # Missing type annotation",
+            },
         )
 
         rules["function_definitions"] = FeatureRule(
@@ -210,8 +213,8 @@ class StaticPythonSubsetValidator:
             c_mapping="C function declarations",
             examples={
                 "valid": "def add(x: int, y: int) -> int:\n    return x + y",
-                "invalid": "def add(x, y):  # Missing type annotations\n    return x + y"
-            }
+                "invalid": "def add(x, y):  # Missing type annotations\n    return x + y",
+            },
         )
 
         rules["variable_declarations"] = FeatureRule(
@@ -221,10 +224,7 @@ class StaticPythonSubsetValidator:
             description="Annotated variable declarations",
             ast_nodes=[ast.AnnAssign],
             c_mapping="C variable declarations",
-            examples={
-                "valid": "result: int = x + y",
-                "invalid": "result = x + y  # Missing type annotation"
-            }
+            examples={"valid": "result: int = x + y", "invalid": "result = x + y  # Missing type annotation"},
         )
 
         rules["control_flow"] = FeatureRule(
@@ -234,7 +234,7 @@ class StaticPythonSubsetValidator:
             description="Basic control flow: if/else, while, for with range",
             ast_nodes=[ast.If, ast.While, ast.For],
             validator=self._validate_control_flow,
-            c_mapping="Direct mapping to C control structures"
+            c_mapping="Direct mapping to C control structures",
         )
 
         rules["arithmetic_operations"] = FeatureRule(
@@ -243,7 +243,7 @@ class StaticPythonSubsetValidator:
             status=FeatureStatus.FULLY_SUPPORTED,
             description="Basic arithmetic and comparison operations",
             ast_nodes=[ast.BinOp, ast.UnaryOp, ast.Compare],
-            c_mapping="Direct mapping to C operators"
+            c_mapping="Direct mapping to C operators",
         )
 
         # Tier 2: Structured Data (Feasible)
@@ -258,8 +258,8 @@ class StaticPythonSubsetValidator:
             c_mapping="C enum declarations",
             examples={
                 "valid": "from enum import Enum\nclass Status(Enum):\n    IDLE = 0\n    RUNNING = 1",
-                "invalid": "class Status(Enum):\n    IDLE = 'idle'  # Non-integer values"
-            }
+                "invalid": "class Status(Enum):\n    IDLE = 'idle'  # Non-integer values",
+            },
         )
 
         rules["dataclasses"] = FeatureRule(
@@ -269,7 +269,7 @@ class StaticPythonSubsetValidator:
             description="Dataclasses mapped to C structs",
             ast_nodes=[ast.ClassDef],
             validator=self._validate_dataclass,
-            c_mapping="C struct definitions with constructor functions"
+            c_mapping="C struct definitions with constructor functions",
         )
 
         rules["tuples"] = FeatureRule(
@@ -278,7 +278,7 @@ class StaticPythonSubsetValidator:
             status=FeatureStatus.PARTIALLY_SUPPORTED,
             description="Fixed-size tuples as anonymous structs",
             ast_nodes=[ast.Tuple],
-            c_mapping="Anonymous C structs"
+            c_mapping="Anonymous C structs",
         )
 
         rules["lists"] = FeatureRule(
@@ -289,7 +289,7 @@ class StaticPythonSubsetValidator:
             ast_nodes=[ast.List],
             validator=self._validate_list,
             constraints=["Fixed size or bounded growth", "Homogeneous element types"],
-            c_mapping="C arrays with size metadata"
+            c_mapping="C arrays with size metadata",
         )
 
         rules["union_types"] = FeatureRule(
@@ -299,7 +299,7 @@ class StaticPythonSubsetValidator:
             description="Union types as tagged unions",
             ast_nodes=[ast.Subscript],  # Union[int, str]
             validator=self._validate_union_type,
-            c_mapping="Tagged unions in C"
+            c_mapping="Tagged unions in C",
         )
 
         # Tier 3: Advanced Patterns (Research Required)
@@ -310,7 +310,7 @@ class StaticPythonSubsetValidator:
             status=FeatureStatus.PLANNED,
             description="Python 3.10+ match statements",
             ast_nodes=[ast.Match],
-            c_mapping="Switch statements with guards"
+            c_mapping="Switch statements with guards",
         )
 
         rules["generators"] = FeatureRule(
@@ -319,7 +319,7 @@ class StaticPythonSubsetValidator:
             status=FeatureStatus.EXPERIMENTAL,
             description="Generators as state machines",
             ast_nodes=[ast.Yield],
-            c_mapping="C state machine implementations"
+            c_mapping="C state machine implementations",
         )
 
         rules["generics"] = FeatureRule(
@@ -328,7 +328,7 @@ class StaticPythonSubsetValidator:
             status=FeatureStatus.EXPERIMENTAL,
             description="Generic types via monomorphization",
             ast_nodes=[ast.Subscript],  # List[T], Dict[K, V]
-            c_mapping="Template instantiation/monomorphization"
+            c_mapping="Template instantiation/monomorphization",
         )
 
         # Tier 4: Unsupported Features
@@ -339,7 +339,7 @@ class StaticPythonSubsetValidator:
             status=FeatureStatus.NOT_SUPPORTED,
             description="Metaclasses require runtime introspection",
             ast_nodes=[ast.ClassDef],
-            validator=self._validate_no_metaclasses
+            validator=self._validate_no_metaclasses,
         )
 
         rules["duck_typing"] = FeatureRule(
@@ -357,7 +357,7 @@ class StaticPythonSubsetValidator:
             description="Static function calls (no eval/exec)",
             ast_nodes=[ast.Call],
             validator=self._validate_no_dynamic_execution,
-            c_mapping="Direct function calls"
+            c_mapping="Direct function calls",
         )
 
         rules["comprehensions"] = FeatureRule(
@@ -365,7 +365,7 @@ class StaticPythonSubsetValidator:
             tier=SubsetTier.TIER_4_UNSUPPORTED,
             status=FeatureStatus.NOT_SUPPORTED,
             description="List/dict comprehensions are complex for static conversion",
-            ast_nodes=[ast.ListComp, ast.DictComp, ast.SetComp, ast.GeneratorExp]
+            ast_nodes=[ast.ListComp, ast.DictComp, ast.SetComp, ast.GeneratorExp],
         )
 
         rules["lambda_functions"] = FeatureRule(
@@ -373,7 +373,7 @@ class StaticPythonSubsetValidator:
             tier=SubsetTier.TIER_4_UNSUPPORTED,
             status=FeatureStatus.NOT_SUPPORTED,
             description="Lambda functions require function pointer support",
-            ast_nodes=[ast.Lambda]
+            ast_nodes=[ast.Lambda],
         )
 
         rules["exceptions"] = FeatureRule(
@@ -381,7 +381,7 @@ class StaticPythonSubsetValidator:
             tier=SubsetTier.TIER_4_UNSUPPORTED,
             status=FeatureStatus.NOT_SUPPORTED,
             description="Exception handling requires runtime stack unwinding",
-            ast_nodes=[ast.Try, ast.Raise, ast.ExceptHandler]
+            ast_nodes=[ast.Try, ast.Raise, ast.ExceptHandler],
         )
 
         return rules
@@ -396,7 +396,7 @@ class StaticPythonSubsetValidator:
                 return False
 
         # No complex decorators
-        allowed_decorators = {'staticmethod', 'classmethod'}
+        allowed_decorators = {"staticmethod", "classmethod"}
         for decorator in node.decorator_list:
             if isinstance(decorator, ast.Name):
                 if decorator.id not in allowed_decorators:
@@ -440,7 +440,7 @@ class StaticPythonSubsetValidator:
                     if isinstance(stmt, ast.AnnAssign):
                         continue  # Type-annotated field - good
                     elif isinstance(stmt, ast.FunctionDef):
-                        if stmt.name.startswith('__'):
+                        if stmt.name.startswith("__"):
                             continue  # Magic methods are OK
                         # Regular methods should be simple
                         return self._validate_function_def(stmt)
@@ -474,7 +474,7 @@ class StaticPythonSubsetValidator:
     def _validate_no_dynamic_execution(self, node: ast.Call) -> bool:
         """Validate no dynamic code execution."""
         if isinstance(node.func, ast.Name):
-            forbidden_functions = {'eval', 'exec', 'compile', '__import__'}
+            forbidden_functions = {"eval", "exec", "compile", "__import__"}
             return node.func.id not in forbidden_functions
         return True
 
@@ -499,7 +499,7 @@ class StaticPythonSubsetValidator:
             "",
             "This report describes the features supported in the Static Python Subset",
             "for Python-to-C conversion.",
-            ""
+            "",
         ]
 
         for tier in SubsetTier:
@@ -507,10 +507,7 @@ class StaticPythonSubsetValidator:
             if not tier_rules:
                 continue
 
-            report_lines.extend([
-                f"## {tier.name.replace('_', ' ').title()}",
-                ""
-            ])
+            report_lines.extend([f"## {tier.name.replace('_', ' ').title()}", ""])
 
             for rule in tier_rules:
                 status_icon = {
@@ -518,37 +515,30 @@ class StaticPythonSubsetValidator:
                     FeatureStatus.PARTIALLY_SUPPORTED: "🟡",
                     FeatureStatus.EXPERIMENTAL: "🧪",
                     FeatureStatus.PLANNED: "📋",
-                    FeatureStatus.NOT_SUPPORTED: "❌"
+                    FeatureStatus.NOT_SUPPORTED: "❌",
                 }[rule.status]
 
-                report_lines.extend([
-                    f"### {status_icon} {rule.name}",
-                    f"**Status:** {rule.status.value.replace('_', ' ').title()}",
-                    f"**Description:** {rule.description}",
-                    ""
-                ])
+                report_lines.extend(
+                    [
+                        f"### {status_icon} {rule.name}",
+                        f"**Status:** {rule.status.value.replace('_', ' ').title()}",
+                        f"**Description:** {rule.description}",
+                        "",
+                    ]
+                )
 
                 if rule.c_mapping:
-                    report_lines.extend([
-                        f"**C Mapping:** {rule.c_mapping}",
-                        ""
-                    ])
+                    report_lines.extend([f"**C Mapping:** {rule.c_mapping}", ""])
 
                 if rule.constraints:
-                    report_lines.extend([
-                        "**Constraints:**",
-                        *[f"- {constraint}" for constraint in rule.constraints],
-                        ""
-                    ])
+                    report_lines.extend(
+                        ["**Constraints:**", *[f"- {constraint}" for constraint in rule.constraints], ""]
+                    )
 
                 if rule.examples:
                     for example_type, example_code in rule.examples.items():
-                        report_lines.extend([
-                            f"**{example_type.title()} Example:**",
-                            "```python",
-                            example_code,
-                            "```",
-                            ""
-                        ])
+                        report_lines.extend(
+                            [f"**{example_type.title()} Example:**", "```python", example_code, "```", ""]
+                        )
 
         return "\n".join(report_lines)

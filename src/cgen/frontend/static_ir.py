@@ -9,14 +9,14 @@ import ast
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Dict, List, Optional, Set
 
-from .ast_analyzer import StaticComplexity, TypeInfo
-from .type_inference import InferenceResult
+from .ast_analyzer import StaticComplexity
 
 
 class IRNodeType(Enum):
     """Types of IR nodes."""
+
     MODULE = "module"
     FUNCTION = "function"
     VARIABLE = "variable"
@@ -28,6 +28,7 @@ class IRNodeType(Enum):
 
 class IRDataType(Enum):
     """IR data types with C mapping information."""
+
     VOID = ("void", "void")
     INT = ("int", "int")
     FLOAT = ("float", "double")  # Python float maps to C double
@@ -47,6 +48,7 @@ class IRDataType(Enum):
 @dataclass
 class IRLocation:
     """Source location information for IR nodes."""
+
     line: int
     column: int = 0
     end_line: Optional[int] = None
@@ -57,6 +59,7 @@ class IRLocation:
 @dataclass
 class IRAnnotation:
     """Annotations for IR nodes providing metadata."""
+
     optimization_hints: List[str] = field(default_factory=list)
     performance_notes: List[str] = field(default_factory=list)
     conversion_notes: List[str] = field(default_factory=list)
@@ -70,21 +73,21 @@ class IRNode(ABC):
         self.node_type = node_type
         self.location = location
         self.annotations = IRAnnotation()
-        self.children: List['IRNode'] = []
-        self.parent: Optional['IRNode'] = None
+        self.children: List[IRNode] = []
+        self.parent: Optional[IRNode] = None
 
-    def add_child(self, child: 'IRNode'):
+    def add_child(self, child: "IRNode"):
         """Add a child node."""
         child.parent = self
         self.children.append(child)
 
-    def remove_child(self, child: 'IRNode'):
+    def remove_child(self, child: "IRNode"):
         """Remove a child node."""
         if child in self.children:
             child.parent = None
             self.children.remove(child)
 
-    def get_ancestors(self) -> List['IRNode']:
+    def get_ancestors(self) -> List["IRNode"]:
         """Get all ancestor nodes."""
         ancestors = []
         current = self.parent
@@ -93,7 +96,7 @@ class IRNode(ABC):
             current = current.parent
         return ancestors
 
-    def find_children_by_type(self, node_type: IRNodeType) -> List['IRNode']:
+    def find_children_by_type(self, node_type: IRNodeType) -> List["IRNode"]:
         """Find all children of a specific type."""
         return [child for child in self.children if child.node_type == node_type]
 
@@ -103,7 +106,7 @@ class IRNode(ABC):
         pass
 
     @abstractmethod
-    def accept(self, visitor: 'IRVisitor') -> Any:
+    def accept(self, visitor: "IRVisitor") -> Any:
         """Accept a visitor for the visitor pattern."""
         pass
 
@@ -111,6 +114,7 @@ class IRNode(ABC):
 @dataclass
 class IRType:
     """Type information in the IR."""
+
     base_type: IRDataType
     is_const: bool = False
     is_pointer: bool = False
@@ -126,8 +130,7 @@ class IRType:
 
     def is_aggregate(self) -> bool:
         """Check if type is an aggregate (struct/union/array)."""
-        return (self.base_type in [IRDataType.STRUCT, IRDataType.UNION] or
-                bool(self.array_dimensions))
+        return self.base_type in [IRDataType.STRUCT, IRDataType.UNION] or bool(self.array_dimensions)
 
     def to_c_declaration(self, var_name: str = "") -> str:
         """Generate C type declaration."""
@@ -160,16 +163,16 @@ class IRModule(IRNode):
         super().__init__(IRNodeType.MODULE, location)
         self.name = name
         self.imports: List[str] = []
-        self.functions: List['IRFunction'] = []
-        self.global_variables: List['IRVariable'] = []
-        self.type_declarations: List['IRTypeDeclaration'] = []
+        self.functions: List[IRFunction] = []
+        self.global_variables: List[IRVariable] = []
+        self.type_declarations: List[IRTypeDeclaration] = []
 
-    def add_function(self, function: 'IRFunction'):
+    def add_function(self, function: "IRFunction"):
         """Add a function to the module."""
         self.add_child(function)
         self.functions.append(function)
 
-    def add_global_variable(self, variable: 'IRVariable'):
+    def add_global_variable(self, variable: "IRVariable"):
         """Add a global variable to the module."""
         self.add_child(variable)
         self.global_variables.append(variable)
@@ -181,10 +184,10 @@ class IRModule(IRNode):
             "imports": self.imports,
             "functions": [f.to_dict() for f in self.functions],
             "global_variables": [v.to_dict() for v in self.global_variables],
-            "type_declarations": [t.to_dict() for t in self.type_declarations]
+            "type_declarations": [t.to_dict() for t in self.type_declarations],
         }
 
-    def accept(self, visitor: 'IRVisitor') -> Any:
+    def accept(self, visitor: "IRVisitor") -> Any:
         return visitor.visit_module(self)
 
 
@@ -195,34 +198,32 @@ class IRFunction(IRNode):
         super().__init__(IRNodeType.FUNCTION, location)
         self.name = name
         self.return_type = return_type
-        self.parameters: List['IRVariable'] = []
-        self.local_variables: List['IRVariable'] = []
-        self.body: List['IRStatement'] = []
+        self.parameters: List[IRVariable] = []
+        self.local_variables: List[IRVariable] = []
+        self.body: List[IRStatement] = []
         self.is_static: bool = False
         self.is_inline: bool = False
         self.complexity: StaticComplexity = StaticComplexity.SIMPLE
 
-    def add_parameter(self, param: 'IRVariable'):
+    def add_parameter(self, param: "IRVariable"):
         """Add a parameter to the function."""
         param.is_parameter = True
         self.add_child(param)
         self.parameters.append(param)
 
-    def add_local_variable(self, var: 'IRVariable'):
+    def add_local_variable(self, var: "IRVariable"):
         """Add a local variable to the function."""
         self.add_child(var)
         self.local_variables.append(var)
 
-    def add_statement(self, stmt: 'IRStatement'):
+    def add_statement(self, stmt: "IRStatement"):
         """Add a statement to the function body."""
         self.add_child(stmt)
         self.body.append(stmt)
 
     def get_signature(self) -> str:
         """Get C function signature."""
-        param_list = ", ".join(
-            param.ir_type.to_c_declaration(param.name) for param in self.parameters
-        )
+        param_list = ", ".join(param.ir_type.to_c_declaration(param.name) for param in self.parameters)
         if not param_list:
             param_list = "void"
 
@@ -246,10 +247,10 @@ class IRFunction(IRNode):
             "parameters": [p.to_dict() for p in self.parameters],
             "local_variables": [v.to_dict() for v in self.local_variables],
             "body": [s.to_dict() for s in self.body],
-            "complexity": self.complexity.name
+            "complexity": self.complexity.name,
         }
 
-    def accept(self, visitor: 'IRVisitor') -> Any:
+    def accept(self, visitor: "IRVisitor") -> Any:
         return visitor.visit_function(self)
 
 
@@ -260,7 +261,7 @@ class IRVariable(IRNode):
         super().__init__(IRNodeType.VARIABLE, location)
         self.name = name
         self.ir_type = ir_type
-        self.initial_value: Optional['IRExpression'] = None
+        self.initial_value: Optional[IRExpression] = None
         self.is_parameter: bool = False
         self.is_global: bool = False
         self.is_static: bool = False
@@ -273,10 +274,10 @@ class IRVariable(IRNode):
             "ir_type": str(self.ir_type),
             "is_parameter": self.is_parameter,
             "is_global": self.is_global,
-            "scope": self.scope
+            "scope": self.scope,
         }
 
-    def accept(self, visitor: 'IRVisitor') -> Any:
+    def accept(self, visitor: "IRVisitor") -> Any:
         return visitor.visit_variable(self)
 
 
@@ -298,8 +299,7 @@ class IRExpression(IRNode):
 class IRAssignment(IRStatement):
     """IR representation of an assignment statement."""
 
-    def __init__(self, target: IRVariable, value: IRExpression,
-                 location: Optional[IRLocation] = None):
+    def __init__(self, target: IRVariable, value: IRExpression, location: Optional[IRLocation] = None):
         super().__init__(location)
         self.target = target
         self.value = value
@@ -307,21 +307,23 @@ class IRAssignment(IRStatement):
         self.add_child(value)
 
     def to_dict(self) -> Dict[str, Any]:
-        return {
-            "type": "assignment",
-            "target": self.target.to_dict(),
-            "value": self.value.to_dict()
-        }
+        return {"type": "assignment", "target": self.target.to_dict(), "value": self.value.to_dict()}
 
-    def accept(self, visitor: 'IRVisitor') -> Any:
+    def accept(self, visitor: "IRVisitor") -> Any:
         return visitor.visit_assignment(self)
 
 
 class IRBinaryOperation(IRExpression):
     """IR representation of binary operations."""
 
-    def __init__(self, left: IRExpression, operator: str, right: IRExpression,
-                 result_type: IRType, location: Optional[IRLocation] = None):
+    def __init__(
+        self,
+        left: IRExpression,
+        operator: str,
+        right: IRExpression,
+        result_type: IRType,
+        location: Optional[IRLocation] = None,
+    ):
         super().__init__(result_type, location)
         self.left = left
         self.operator = operator
@@ -335,10 +337,10 @@ class IRBinaryOperation(IRExpression):
             "left": self.left.to_dict(),
             "operator": self.operator,
             "right": self.right.to_dict(),
-            "result_type": str(self.result_type)
+            "result_type": str(self.result_type),
         }
 
-    def accept(self, visitor: 'IRVisitor') -> Any:
+    def accept(self, visitor: "IRVisitor") -> Any:
         return visitor.visit_binary_operation(self)
 
 
@@ -350,13 +352,9 @@ class IRLiteral(IRExpression):
         self.value = value
 
     def to_dict(self) -> Dict[str, Any]:
-        return {
-            "type": "literal",
-            "value": str(self.value),
-            "ir_type": str(self.result_type)
-        }
+        return {"type": "literal", "value": str(self.value), "ir_type": str(self.result_type)}
 
-    def accept(self, visitor: 'IRVisitor') -> Any:
+    def accept(self, visitor: "IRVisitor") -> Any:
         return visitor.visit_literal(self)
 
 
@@ -368,21 +366,22 @@ class IRVariableReference(IRExpression):
         self.variable = variable
 
     def to_dict(self) -> Dict[str, Any]:
-        return {
-            "type": "variable_reference",
-            "variable": self.variable.name,
-            "ir_type": str(self.result_type)
-        }
+        return {"type": "variable_reference", "variable": self.variable.name, "ir_type": str(self.result_type)}
 
-    def accept(self, visitor: 'IRVisitor') -> Any:
+    def accept(self, visitor: "IRVisitor") -> Any:
         return visitor.visit_variable_reference(self)
 
 
 class IRFunctionCall(IRExpression):
     """IR representation of function calls."""
 
-    def __init__(self, function_name: str, arguments: List[IRExpression],
-                 return_type: IRType, location: Optional[IRLocation] = None):
+    def __init__(
+        self,
+        function_name: str,
+        arguments: List[IRExpression],
+        return_type: IRType,
+        location: Optional[IRLocation] = None,
+    ):
         super().__init__(return_type, location)
         self.function_name = function_name
         self.arguments = arguments
@@ -394,39 +393,39 @@ class IRFunctionCall(IRExpression):
             "type": "function_call",
             "function_name": self.function_name,
             "arguments": [arg.to_dict() for arg in self.arguments],
-            "return_type": str(self.result_type)
+            "return_type": str(self.result_type),
         }
 
-    def accept(self, visitor: 'IRVisitor') -> Any:
+    def accept(self, visitor: "IRVisitor") -> Any:
         return visitor.visit_function_call(self)
 
 
 class IRReturn(IRStatement):
     """IR representation of return statements."""
 
-    def __init__(self, value: Optional[IRExpression] = None,
-                 location: Optional[IRLocation] = None):
+    def __init__(self, value: Optional[IRExpression] = None, location: Optional[IRLocation] = None):
         super().__init__(location)
         self.value = value
         if value:
             self.add_child(value)
 
     def to_dict(self) -> Dict[str, Any]:
-        return {
-            "type": "return",
-            "value": self.value.to_dict() if self.value else None
-        }
+        return {"type": "return", "value": self.value.to_dict() if self.value else None}
 
-    def accept(self, visitor: 'IRVisitor') -> Any:
+    def accept(self, visitor: "IRVisitor") -> Any:
         return visitor.visit_return(self)
 
 
 class IRIf(IRStatement):
     """IR representation of if statements."""
 
-    def __init__(self, condition: IRExpression, then_body: List[IRStatement],
-                 else_body: Optional[List[IRStatement]] = None,
-                 location: Optional[IRLocation] = None):
+    def __init__(
+        self,
+        condition: IRExpression,
+        then_body: List[IRStatement],
+        else_body: Optional[List[IRStatement]] = None,
+        location: Optional[IRLocation] = None,
+    ):
         super().__init__(location)
         self.condition = condition
         self.then_body = then_body
@@ -443,18 +442,17 @@ class IRIf(IRStatement):
             "type": "if",
             "condition": self.condition.to_dict(),
             "then_body": [s.to_dict() for s in self.then_body],
-            "else_body": [s.to_dict() for s in self.else_body]
+            "else_body": [s.to_dict() for s in self.else_body],
         }
 
-    def accept(self, visitor: 'IRVisitor') -> Any:
+    def accept(self, visitor: "IRVisitor") -> Any:
         return visitor.visit_if(self)
 
 
 class IRWhile(IRStatement):
     """IR representation of while loops."""
 
-    def __init__(self, condition: IRExpression, body: List[IRStatement],
-                 location: Optional[IRLocation] = None):
+    def __init__(self, condition: IRExpression, body: List[IRStatement], location: Optional[IRLocation] = None):
         super().__init__(location)
         self.condition = condition
         self.body = body
@@ -464,22 +462,24 @@ class IRWhile(IRStatement):
             self.add_child(stmt)
 
     def to_dict(self) -> Dict[str, Any]:
-        return {
-            "type": "while",
-            "condition": self.condition.to_dict(),
-            "body": [s.to_dict() for s in self.body]
-        }
+        return {"type": "while", "condition": self.condition.to_dict(), "body": [s.to_dict() for s in self.body]}
 
-    def accept(self, visitor: 'IRVisitor') -> Any:
+    def accept(self, visitor: "IRVisitor") -> Any:
         return visitor.visit_while(self)
 
 
 class IRFor(IRStatement):
     """IR representation of for loops (range-based)."""
 
-    def __init__(self, variable: IRVariable, start: IRExpression,
-                 end: IRExpression, step: Optional[IRExpression],
-                 body: List[IRStatement], location: Optional[IRLocation] = None):
+    def __init__(
+        self,
+        variable: IRVariable,
+        start: IRExpression,
+        end: IRExpression,
+        step: Optional[IRExpression],
+        body: List[IRStatement],
+        location: Optional[IRLocation] = None,
+    ):
         super().__init__(location)
         self.variable = variable
         self.start = start
@@ -502,18 +502,17 @@ class IRFor(IRStatement):
             "start": self.start.to_dict(),
             "end": self.end.to_dict(),
             "step": self.step.to_dict() if self.step else None,
-            "body": [s.to_dict() for s in self.body]
+            "body": [s.to_dict() for s in self.body],
         }
 
-    def accept(self, visitor: 'IRVisitor') -> Any:
+    def accept(self, visitor: "IRVisitor") -> Any:
         return visitor.visit_for(self)
 
 
 class IRTypeDeclaration(IRNode):
     """IR representation of type declarations (structs, unions, enums)."""
 
-    def __init__(self, name: str, declaration_type: str,
-                 location: Optional[IRLocation] = None):
+    def __init__(self, name: str, declaration_type: str, location: Optional[IRLocation] = None):
         super().__init__(IRNodeType.TYPE_DECLARATION, location)
         self.name = name
         self.declaration_type = declaration_type  # "struct", "union", "enum"
@@ -529,10 +528,10 @@ class IRTypeDeclaration(IRNode):
             "type": "type_declaration",
             "name": self.name,
             "declaration_type": self.declaration_type,
-            "fields": [f.to_dict() for f in self.fields]
+            "fields": [f.to_dict() for f in self.fields],
         }
 
-    def accept(self, visitor: 'IRVisitor') -> Any:
+    def accept(self, visitor: "IRVisitor") -> Any:
         return visitor.visit_type_declaration(self)
 
 
@@ -807,11 +806,11 @@ class IRBuilder:
         """Extract IR type from AST annotation."""
         if isinstance(annotation, ast.Name):
             type_mapping = {
-                'int': IRDataType.INT,
-                'float': IRDataType.FLOAT,
-                'bool': IRDataType.BOOL,
-                'str': IRDataType.STRING,
-                'void': IRDataType.VOID
+                "int": IRDataType.INT,
+                "float": IRDataType.FLOAT,
+                "bool": IRDataType.BOOL,
+                "str": IRDataType.STRING,
+                "void": IRDataType.VOID,
             }
             base_type = type_mapping.get(annotation.id, IRDataType.VOID)
             return IRType(base_type)
@@ -827,28 +826,28 @@ class IRBuilder:
         """Extract location information from AST node."""
         return IRLocation(
             line=node.lineno,
-            column=getattr(node, 'col_offset', 0),
-            end_line=getattr(node, 'end_lineno', None),
-            end_column=getattr(node, 'end_col_offset', None)
+            column=getattr(node, "col_offset", 0),
+            end_line=getattr(node, "end_lineno", None),
+            end_column=getattr(node, "end_col_offset", None),
         )
 
     def _get_operator_string(self, op: ast.operator) -> str:
         """Convert AST operator to string."""
         operator_mapping = {
-            ast.Add: '+',
-            ast.Sub: '-',
-            ast.Mult: '*',
-            ast.Div: '/',
-            ast.FloorDiv: '//',
-            ast.Mod: '%',
-            ast.Pow: '**',
-            ast.LShift: '<<',
-            ast.RShift: '>>',
-            ast.BitOr: '|',
-            ast.BitXor: '^',
-            ast.BitAnd: '&'
+            ast.Add: "+",
+            ast.Sub: "-",
+            ast.Mult: "*",
+            ast.Div: "/",
+            ast.FloorDiv: "//",
+            ast.Mod: "%",
+            ast.Pow: "**",
+            ast.LShift: "<<",
+            ast.RShift: ">>",
+            ast.BitOr: "|",
+            ast.BitXor: "^",
+            ast.BitAnd: "&",
         }
-        return operator_mapping.get(type(op), '?')
+        return operator_mapping.get(type(op), "?")
 
 
 def build_ir_from_code(source_code: str, module_name: str = "main") -> IRModule:

@@ -5,9 +5,7 @@ from typing import Any, Union
 
 from . import core
 
-BuiltInTypes = namedtuple(
-    "BuiltInTypes", ["char", "short", "int", "long", "float", "double"]
-)
+BuiltInTypes = namedtuple("BuiltInTypes", ["char", "short", "int", "long", "float", "double"])
 
 types = BuiltInTypes(
     core.Type("char"),
@@ -72,9 +70,7 @@ class CFactory:
         """New endif preprocessor directove."""
         return core.EndifDirective(adjust=adjust)
 
-    def define(
-        self, left: str, right: str | None = None, adjust: int = 0
-    ) -> core.DefineDirective:
+    def define(self, left: str, right: str | None = None, adjust: int = 0) -> core.DefineDirective:
         """New define preprocessor directive."""
         return core.DefineDirective(left, right, adjust=adjust)
 
@@ -167,9 +163,7 @@ class CFactory:
 
     arg_types = int | float | str | core.Element
 
-    def func_call(
-        self, name: str, args: list[arg_types] | arg_types | None = None
-    ) -> core.FunctionCall:
+    def func_call(self, name: str, args: list[arg_types] | arg_types | None = None) -> core.FunctionCall:
         """New function call."""
         if args is None:
             return core.FunctionCall(name, None)
@@ -178,9 +172,7 @@ class CFactory:
         else:
             return core.FunctionCall(name, [args])
 
-    def func_return(
-        self, expression: int | float | str | core.Element
-    ) -> core.FunctionReturn:
+    def func_return(self, expression: int | float | str | core.Element) -> core.FunctionReturn:
         """New return expression."""
         return core.FunctionReturn(expression)
 

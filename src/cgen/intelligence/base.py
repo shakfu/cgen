@@ -4,13 +4,14 @@ import ast
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Union
+from typing import Any, Dict, List, Optional
 
 from ..frontend.ast_analyzer import AnalysisResult
 
 
 class AnalysisLevel(Enum):
     """Levels of analysis depth."""
+
     BASIC = "basic"
     INTERMEDIATE = "intermediate"
     ADVANCED = "advanced"
@@ -19,6 +20,7 @@ class AnalysisLevel(Enum):
 
 class OptimizationLevel(Enum):
     """Levels of optimization aggressiveness."""
+
     NONE = 0
     BASIC = 1
     MODERATE = 2
@@ -29,6 +31,7 @@ class OptimizationLevel(Enum):
 @dataclass
 class AnalysisContext:
     """Context information for analysis operations."""
+
     source_code: str
     ast_node: ast.AST
     analysis_result: AnalysisResult
@@ -45,6 +48,7 @@ class AnalysisContext:
 @dataclass
 class AnalysisReport:
     """Base class for analysis reports."""
+
     analyzer_name: str
     success: bool
     confidence: float  # 0.0 to 1.0
@@ -101,6 +105,7 @@ class BaseAnalyzer(ABC):
     def _get_cache_key(self, context: AnalysisContext) -> str:
         """Generate a cache key for the given context."""
         import hashlib
+
         key_data = f"{context.source_code}:{self.analysis_level.value}"
         return hashlib.md5(key_data.encode()).hexdigest()
 
@@ -114,7 +119,7 @@ class BaseOptimizer(ABC):
         self._enabled = True
 
     @abstractmethod
-    def optimize(self, context: AnalysisContext) -> 'OptimizationResult':
+    def optimize(self, context: AnalysisContext) -> "OptimizationResult":
         """Perform optimization on the given context.
 
         Args:
@@ -148,6 +153,7 @@ class BaseOptimizer(ABC):
 @dataclass
 class OptimizationResult:
     """Result of an optimization operation."""
+
     optimizer_name: str
     success: bool
     optimized_ast: Optional[ast.AST]
@@ -173,7 +179,7 @@ class BaseVerifier(ABC):
         self.name = name
 
     @abstractmethod
-    def verify(self, context: AnalysisContext, optimized_result: OptimizationResult) -> 'VerificationResult':
+    def verify(self, context: AnalysisContext, optimized_result: OptimizationResult) -> "VerificationResult":
         """Verify the correctness of an optimization.
 
         Args:
@@ -189,6 +195,7 @@ class BaseVerifier(ABC):
 @dataclass
 class VerificationResult:
     """Result of a verification operation."""
+
     verifier_name: str
     success: bool
     is_correct: bool
@@ -232,48 +239,48 @@ class IntelligencePipeline:
             Dictionary containing all analysis, optimization, and verification results
         """
         results = {
-            'analysis_reports': [],
-            'optimization_results': [],
-            'verification_results': [],
-            'final_success': False,
-            'pipeline_metadata': {}
+            "analysis_reports": [],
+            "optimization_results": [],
+            "verification_results": [],
+            "final_success": False,
+            "pipeline_metadata": {},
         }
 
         # Run analyzers
         for analyzer in self.analyzers:
             if analyzer.can_analyze(context):
                 report = analyzer.analyze(context)
-                results['analysis_reports'].append(report)
+                results["analysis_reports"].append(report)
 
         # Run optimizers
         for optimizer in self.optimizers:
             if optimizer.can_optimize(context):
                 opt_result = optimizer.optimize(context)
-                results['optimization_results'].append(opt_result)
+                results["optimization_results"].append(opt_result)
 
                 # Run verifiers on optimization results
                 for verifier in self.verifiers:
                     ver_result = verifier.verify(context, opt_result)
-                    results['verification_results'].append(ver_result)
+                    results["verification_results"].append(ver_result)
 
         # Determine overall success
-        results['final_success'] = self._evaluate_pipeline_success(results)
+        results["final_success"] = self._evaluate_pipeline_success(results)
 
         return results
 
     def _evaluate_pipeline_success(self, results: Dict[str, Any]) -> bool:
         """Evaluate if the pipeline execution was successful."""
         # Check if any critical errors occurred
-        for report in results['analysis_reports']:
+        for report in results["analysis_reports"]:
             if not report.success:
                 return False
 
         # Check if optimizations were successful and verified
-        for opt_result in results['optimization_results']:
+        for opt_result in results["optimization_results"]:
             if not opt_result.is_valid():
                 return False
 
-        for ver_result in results['verification_results']:
+        for ver_result in results["verification_results"]:
             if not ver_result.is_verified():
                 return False
 

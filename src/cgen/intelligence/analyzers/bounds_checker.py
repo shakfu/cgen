@@ -9,13 +9,14 @@ import ast
 import time
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple
 
 from ..base import AnalysisContext, AnalysisLevel, AnalysisReport, BaseAnalyzer
 
 
 class BoundsViolationType(Enum):
     """Types of bounds violations that can be detected."""
+
     ARRAY_INDEX_OUT_OF_BOUNDS = "array_index_out_of_bounds"
     NEGATIVE_INDEX = "negative_index"
     BUFFER_OVERFLOW = "buffer_overflow"
@@ -28,6 +29,7 @@ class BoundsViolationType(Enum):
 
 class MemoryRegionType(Enum):
     """Types of memory regions."""
+
     STACK = "stack"
     HEAP = "heap"
     STATIC = "static"
@@ -38,6 +40,7 @@ class MemoryRegionType(Enum):
 @dataclass
 class MemoryRegion:
     """Represents a memory region with bounds information."""
+
     name: str
     region_type: MemoryRegionType
     size: Optional[int] = None  # Size in elements, None = unknown size
@@ -69,6 +72,7 @@ class MemoryRegion:
 @dataclass
 class BoundsViolation:
     """Represents a detected bounds violation."""
+
     violation_type: BoundsViolationType
     variable_name: str
     line_number: int
@@ -82,6 +86,7 @@ class BoundsViolation:
 @dataclass
 class BoundsCheckingReport(AnalysisReport):
     """Extended analysis report for bounds checking."""
+
     memory_regions: Dict[str, MemoryRegion] = field(default_factory=dict)
     violations: List[BoundsViolation] = field(default_factory=list)
     safe_accesses: int = 0
@@ -132,8 +137,8 @@ class BoundsChecker(BaseAnalyzer):
                 warnings=[v.description for v in violations if v.severity == "warning"],
                 errors=[v.description for v in violations if v.severity == "error"],
                 metadata={
-                    'memory_regions_count': len(self._memory_regions),
-                    'analysis_level': self.analysis_level.value
+                    "memory_regions_count": len(self._memory_regions),
+                    "analysis_level": self.analysis_level.value,
                 },
                 execution_time_ms=execution_time,
                 memory_regions=self._memory_regions.copy(),
@@ -141,7 +146,7 @@ class BoundsChecker(BaseAnalyzer):
                 safe_accesses=safe_accesses,
                 unsafe_accesses=unsafe_accesses,
                 unknown_accesses=unknown_accesses,
-                memory_usage_estimate=self._estimate_memory_usage()
+                memory_usage_estimate=self._estimate_memory_usage(),
             )
 
         except Exception as e:
@@ -154,7 +159,7 @@ class BoundsChecker(BaseAnalyzer):
                 warnings=[],
                 errors=[f"Bounds checking analysis failed: {str(e)}"],
                 metadata={},
-                execution_time_ms=execution_time
+                execution_time_ms=execution_time,
             )
 
     def _analyze_function(self, func_node: ast.FunctionDef) -> List[BoundsViolation]:
@@ -168,7 +173,7 @@ class BoundsChecker(BaseAnalyzer):
                 name=arg.arg,
                 region_type=MemoryRegionType.PARAMETER,
                 is_initialized=True,
-                allocation_line=func_node.lineno
+                allocation_line=func_node.lineno,
             )
             self._memory_regions[arg.arg] = param_region
 
@@ -186,7 +191,7 @@ class BoundsChecker(BaseAnalyzer):
         violations = []
 
         for stmt in statements:
-            self._current_line = getattr(stmt, 'lineno', self._current_line)
+            self._current_line = getattr(stmt, "lineno", self._current_line)
             violations.extend(self._analyze_statement(stmt))
 
         return violations
@@ -256,10 +261,7 @@ class BoundsChecker(BaseAnalyzer):
             loop_var = for_stmt.target.id
             # Assume loop variable is properly bounded by the iterable
             loop_region = MemoryRegion(
-                name=loop_var,
-                region_type=MemoryRegionType.STACK,
-                is_initialized=True,
-                allocation_line=for_stmt.lineno
+                name=loop_var, region_type=MemoryRegionType.STACK, is_initialized=True, allocation_line=for_stmt.lineno
             )
             self._memory_regions[loop_var] = loop_region
 
@@ -353,15 +355,17 @@ class BoundsChecker(BaseAnalyzer):
 
             if memory_region is None:
                 # Unknown variable - potential issue
-                violations.append(BoundsViolation(
-                    violation_type=BoundsViolationType.UNINITIALIZED_ACCESS,
-                    variable_name=var_name,
-                    line_number=self._current_line,
-                    description=f"Access to undefined variable '{var_name}'",
-                    severity="warning",
-                    confidence=0.8,
-                    suggested_fix=f"Initialize variable '{var_name}' before use"
-                ))
+                violations.append(
+                    BoundsViolation(
+                        violation_type=BoundsViolationType.UNINITIALIZED_ACCESS,
+                        variable_name=var_name,
+                        line_number=self._current_line,
+                        description=f"Access to undefined variable '{var_name}'",
+                        severity="warning",
+                        confidence=0.8,
+                        suggested_fix=f"Initialize variable '{var_name}' before use",
+                    )
+                )
                 return violations
 
             # Analyze the index
@@ -384,15 +388,17 @@ class BoundsChecker(BaseAnalyzer):
                 violations.extend(self._check_slice_access(var_name, subscript.slice, memory_region))
             else:
                 # Complex index expression
-                violations.append(BoundsViolation(
-                    violation_type=BoundsViolationType.ARRAY_INDEX_OUT_OF_BOUNDS,
-                    variable_name=var_name,
-                    line_number=self._current_line,
-                    description=f"Complex index expression for '{var_name}' - bounds cannot be verified",
-                    severity="warning",
-                    confidence=0.5,
-                    suggested_fix="Use simple integer indices for better bounds checking"
-                ))
+                violations.append(
+                    BoundsViolation(
+                        violation_type=BoundsViolationType.ARRAY_INDEX_OUT_OF_BOUNDS,
+                        variable_name=var_name,
+                        line_number=self._current_line,
+                        description=f"Complex index expression for '{var_name}' - bounds cannot be verified",
+                        severity="warning",
+                        confidence=0.5,
+                        suggested_fix="Use simple integer indices for better bounds checking",
+                    )
+                )
 
             # Update last access line
             memory_region.last_access_line = self._current_line
@@ -425,26 +431,30 @@ class BoundsChecker(BaseAnalyzer):
         # Check for specific dangerous functions
         if isinstance(call.func, ast.Name):
             func_name = call.func.id
-            if func_name in ['malloc', 'calloc', 'realloc']:
-                violations.append(BoundsViolation(
-                    violation_type=BoundsViolationType.MEMORY_LEAK,
-                    variable_name=func_name,
-                    line_number=self._current_line,
-                    description=f"Memory allocation with '{func_name}' - ensure proper deallocation",
-                    severity="warning",
-                    confidence=0.7,
-                    suggested_fix="Ensure corresponding free() call"
-                ))
-            elif func_name == 'free':
-                violations.append(BoundsViolation(
-                    violation_type=BoundsViolationType.DOUBLE_FREE,
-                    variable_name=func_name,
-                    line_number=self._current_line,
-                    description="Memory deallocation - check for double free",
-                    severity="warning",
-                    confidence=0.6,
-                    suggested_fix="Set pointer to NULL after free()"
-                ))
+            if func_name in ["malloc", "calloc", "realloc"]:
+                violations.append(
+                    BoundsViolation(
+                        violation_type=BoundsViolationType.MEMORY_LEAK,
+                        variable_name=func_name,
+                        line_number=self._current_line,
+                        description=f"Memory allocation with '{func_name}' - ensure proper deallocation",
+                        severity="warning",
+                        confidence=0.7,
+                        suggested_fix="Ensure corresponding free() call",
+                    )
+                )
+            elif func_name == "free":
+                violations.append(
+                    BoundsViolation(
+                        violation_type=BoundsViolationType.DOUBLE_FREE,
+                        variable_name=func_name,
+                        line_number=self._current_line,
+                        description="Memory deallocation - check for double free",
+                        severity="warning",
+                        confidence=0.6,
+                        suggested_fix="Set pointer to NULL after free()",
+                    )
+                )
 
         return violations
 
@@ -457,25 +467,29 @@ class BoundsChecker(BaseAnalyzer):
 
         if memory_region is None:
             # Variable not yet seen - might be uninitialized
-            violations.append(BoundsViolation(
-                violation_type=BoundsViolationType.UNINITIALIZED_ACCESS,
-                variable_name=var_name,
-                line_number=self._current_line,
-                description=f"Potential use of uninitialized variable '{var_name}'",
-                severity="warning",
-                confidence=0.6,
-                suggested_fix=f"Initialize variable '{var_name}' before use"
-            ))
+            violations.append(
+                BoundsViolation(
+                    violation_type=BoundsViolationType.UNINITIALIZED_ACCESS,
+                    variable_name=var_name,
+                    line_number=self._current_line,
+                    description=f"Potential use of uninitialized variable '{var_name}'",
+                    severity="warning",
+                    confidence=0.6,
+                    suggested_fix=f"Initialize variable '{var_name}' before use",
+                )
+            )
         elif not memory_region.is_initialized:
-            violations.append(BoundsViolation(
-                violation_type=BoundsViolationType.UNINITIALIZED_ACCESS,
-                variable_name=var_name,
-                line_number=self._current_line,
-                description=f"Use of uninitialized variable '{var_name}'",
-                severity="error",
-                confidence=0.9,
-                suggested_fix=f"Initialize variable '{var_name}' before use"
-            ))
+            violations.append(
+                BoundsViolation(
+                    violation_type=BoundsViolationType.UNINITIALIZED_ACCESS,
+                    variable_name=var_name,
+                    line_number=self._current_line,
+                    description=f"Use of uninitialized variable '{var_name}'",
+                    severity="error",
+                    confidence=0.9,
+                    suggested_fix=f"Initialize variable '{var_name}' before use",
+                )
+            )
 
         return violations
 
@@ -493,7 +507,7 @@ class BoundsChecker(BaseAnalyzer):
                 size=size,
                 is_initialized=True,
                 allocation_line=self._current_line,
-                bounds=(0, size - 1)
+                bounds=(0, size - 1),
             )
             self._memory_regions[var_name] = memory_region
         elif isinstance(value_expr, ast.Constant):
@@ -502,7 +516,7 @@ class BoundsChecker(BaseAnalyzer):
                 name=var_name,
                 region_type=MemoryRegionType.STACK,
                 is_initialized=True,
-                allocation_line=self._current_line
+                allocation_line=self._current_line,
             )
             self._memory_regions[var_name] = memory_region
         else:
@@ -511,7 +525,7 @@ class BoundsChecker(BaseAnalyzer):
                 name=var_name,
                 region_type=MemoryRegionType.STACK,
                 is_initialized=True,
-                allocation_line=self._current_line
+                allocation_line=self._current_line,
             )
             self._memory_regions[var_name] = memory_region
 
@@ -522,25 +536,29 @@ class BoundsChecker(BaseAnalyzer):
         violations = []
 
         if index < 0:
-            violations.append(BoundsViolation(
-                violation_type=BoundsViolationType.NEGATIVE_INDEX,
-                variable_name=var_name,
-                line_number=self._current_line,
-                description=f"Negative index {index} for variable '{var_name}'",
-                severity="error",
-                confidence=1.0,
-                suggested_fix="Use non-negative indices"
-            ))
+            violations.append(
+                BoundsViolation(
+                    violation_type=BoundsViolationType.NEGATIVE_INDEX,
+                    variable_name=var_name,
+                    line_number=self._current_line,
+                    description=f"Negative index {index} for variable '{var_name}'",
+                    severity="error",
+                    confidence=1.0,
+                    suggested_fix="Use non-negative indices",
+                )
+            )
         elif region.is_bounded() and not region.is_index_safe(index):
-            violations.append(BoundsViolation(
-                violation_type=BoundsViolationType.ARRAY_INDEX_OUT_OF_BOUNDS,
-                variable_name=var_name,
-                line_number=self._current_line,
-                description=f"Index {index} out of bounds for '{var_name}' (size: {region.size})",
-                severity="error",
-                confidence=1.0,
-                suggested_fix=f"Use index in range [0, {region.size - 1}]"
-            ))
+            violations.append(
+                BoundsViolation(
+                    violation_type=BoundsViolationType.ARRAY_INDEX_OUT_OF_BOUNDS,
+                    variable_name=var_name,
+                    line_number=self._current_line,
+                    description=f"Index {index} out of bounds for '{var_name}' (size: {region.size})",
+                    severity="error",
+                    confidence=1.0,
+                    suggested_fix=f"Use index in range [0, {region.size - 1}]",
+                )
+            )
 
         return violations
 
@@ -550,38 +568,44 @@ class BoundsChecker(BaseAnalyzer):
 
         index_region = self._memory_regions.get(index_var)
         if index_region is None:
-            violations.append(BoundsViolation(
-                violation_type=BoundsViolationType.UNINITIALIZED_ACCESS,
-                variable_name=index_var,
-                line_number=self._current_line,
-                description=f"Index variable '{index_var}' may be uninitialized",
-                severity="warning",
-                confidence=0.7,
-                suggested_fix=f"Initialize index variable '{index_var}'"
-            ))
+            violations.append(
+                BoundsViolation(
+                    violation_type=BoundsViolationType.UNINITIALIZED_ACCESS,
+                    variable_name=index_var,
+                    line_number=self._current_line,
+                    description=f"Index variable '{index_var}' may be uninitialized",
+                    severity="warning",
+                    confidence=0.7,
+                    suggested_fix=f"Initialize index variable '{index_var}'",
+                )
+            )
 
         # General warning about variable indices
         if region.is_bounded():
-            violations.append(BoundsViolation(
-                violation_type=BoundsViolationType.ARRAY_INDEX_OUT_OF_BOUNDS,
-                variable_name=var_name,
-                line_number=self._current_line,
-                description=f"Variable index '{index_var}' for '{var_name}' - verify bounds at runtime",
-                severity="warning",
-                confidence=0.6,
-                suggested_fix=f"Add bounds check: if 0 <= {index_var} < {region.size}"
-            ))
+            violations.append(
+                BoundsViolation(
+                    violation_type=BoundsViolationType.ARRAY_INDEX_OUT_OF_BOUNDS,
+                    variable_name=var_name,
+                    line_number=self._current_line,
+                    description=f"Variable index '{index_var}' for '{var_name}' - verify bounds at runtime",
+                    severity="warning",
+                    confidence=0.6,
+                    suggested_fix=f"Add bounds check: if 0 <= {index_var} < {region.size}",
+                )
+            )
         else:
             # For unbounded regions (like parameters), always warn about variable indices
-            violations.append(BoundsViolation(
-                violation_type=BoundsViolationType.ARRAY_INDEX_OUT_OF_BOUNDS,
-                variable_name=var_name,
-                line_number=self._current_line,
-                description=f"Variable index '{index_var}' for '{var_name}' with unknown bounds - verify safety",
-                severity="warning",
-                confidence=0.7,
-                suggested_fix=f"Add bounds check: if 0 <= {index_var} < len({var_name})"
-            ))
+            violations.append(
+                BoundsViolation(
+                    violation_type=BoundsViolationType.ARRAY_INDEX_OUT_OF_BOUNDS,
+                    variable_name=var_name,
+                    line_number=self._current_line,
+                    description=f"Variable index '{index_var}' for '{var_name}' with unknown bounds - verify safety",
+                    severity="warning",
+                    confidence=0.7,
+                    suggested_fix=f"Add bounds check: if 0 <= {index_var} < len({var_name})",
+                )
+            )
 
         return violations
 
@@ -590,15 +614,17 @@ class BoundsChecker(BaseAnalyzer):
         violations = []
 
         # For simplicity, we'll just warn about slice access
-        violations.append(BoundsViolation(
-            violation_type=BoundsViolationType.ARRAY_INDEX_OUT_OF_BOUNDS,
-            variable_name=var_name,
-            line_number=self._current_line,
-            description=f"Slice access on '{var_name}' - verify bounds",
-            severity="warning",
-            confidence=0.5,
-            suggested_fix="Verify slice bounds are within array limits"
-        ))
+        violations.append(
+            BoundsViolation(
+                violation_type=BoundsViolationType.ARRAY_INDEX_OUT_OF_BOUNDS,
+                variable_name=var_name,
+                line_number=self._current_line,
+                description=f"Slice access on '{var_name}' - verify bounds",
+                severity="warning",
+                confidence=0.5,
+                suggested_fix="Verify slice bounds are within array limits",
+            )
+        )
 
         return violations
 
