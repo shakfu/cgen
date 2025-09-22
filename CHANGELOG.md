@@ -1,47 +1,18 @@
-# Changelog
+# CHANGELOG
 
-Notable changes.
+All notable project-wide changes will be documented in this file. Note that each subproject has its own CHANGELOG.
 
-## [v0.4.0] - 2024-03-28
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and [Commons Changelog](https://common-changelog.org). This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-### Changed
+## Types of Changes
 
-* Improved readability of example code
+- Added: for new features.
+- Changed: for changes in existing functionality.
+- Deprecated: for soon-to-be removed features.
+- Removed: for now removed features.
+- Fixed: for any bug fixes.
+- Security: in case of vulnerabilities.
 
-## [v0.3.2]
+---
 
-**Until v0.3.1:** Variables, functions and types were implicitly declared.
-
-**From v0.3.2:** Variables, functions and types needs explicit declaration.
-
-Due to a major design flaw in previous versions, breaking compatibility was necessary.
-
-### Removed
-
-* StuctRef (struct references).
-
-### Added
-
-* Declaration element
-* Constructor for `Function` takes an optional params argument.
-
-### Changed
-
-* Variables, functions, structs are no longer implicitly declared.
-  * Use explicit element `Declaration` for all declarations.
-* Method `FunctionCall.add_arg` renamed to `FunctionCall.append`.
-
-## [v0.3.1]
-
-### Added
-
-* Support struct declaratios and struct references
-
-## [v0.3.0]
-
-* New code base
-  * New core and factory modules
-  * New writer module with formatting options
-  * Annotate code with modern type hints
-* Added unit tests
-* Enabled linting with Pylint and flake8
+## [0.1.x]
