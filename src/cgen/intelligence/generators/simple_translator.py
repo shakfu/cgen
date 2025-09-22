@@ -27,7 +27,21 @@ class SimplePythonToCTranslator:
         lines.append("#include <math.h>")
         lines.append("")
 
-        # Process all top-level nodes
+        # Add global constants and variables first
+        for node in module_node.body:
+            if isinstance(node, ast.Assign):
+                const_code = self._translate_global_constant(node)
+                if const_code:
+                    lines.extend(const_code)
+            elif isinstance(node, ast.AnnAssign):
+                const_code = self._translate_global_ann_constant(node)
+                if const_code:
+                    lines.extend(const_code)
+
+        if any(isinstance(node, (ast.Assign, ast.AnnAssign)) for node in module_node.body):
+            lines.append("")
+
+        # Process function definitions
         for node in module_node.body:
             if isinstance(node, ast.FunctionDef):
                 func_code = self._translate_function(node)
@@ -59,9 +73,15 @@ class SimplePythonToCTranslator:
         params_str = ", ".join(params) if params else "void"
         lines.append(f"{return_type} {func_name}({params_str}) {{")
 
-        # Translate function body
+        # Translate function body (skip docstrings)
         self.indent_level = 1
-        for stmt in func_node.body:
+        for i, stmt in enumerate(func_node.body):
+            # Skip docstring (first statement that's a string constant)
+            if (i == 0 and isinstance(stmt, ast.Expr) and
+                isinstance(stmt.value, ast.Constant) and
+                isinstance(stmt.value.value, str)):
+                continue
+
             stmt_lines = self._translate_statement(stmt)
             if stmt_lines:
                 if isinstance(stmt_lines, list):
@@ -69,8 +89,9 @@ class SimplePythonToCTranslator:
                 else:
                     lines.append(stmt_lines)
 
-        # Add default return for main function
-        if func_name == "main" and return_type == "int":
+        # Add default return for main function if no return was found
+        has_return = any(isinstance(stmt, ast.Return) for stmt in func_node.body)
+        if func_name == "main" and return_type == "int" and not has_return:
             lines.append(self._indent("return 0;"))
 
         lines.append("}")
@@ -84,6 +105,8 @@ class SimplePythonToCTranslator:
             return self._translate_return(stmt)
         elif isinstance(stmt, ast.Assign):
             return self._translate_assignment(stmt)
+        elif isinstance(stmt, ast.AnnAssign):
+            return self._translate_ann_assignment(stmt)
         elif isinstance(stmt, ast.AugAssign):
             return self._translate_aug_assignment(stmt)
         elif isinstance(stmt, ast.If):
@@ -118,10 +141,35 @@ class SimplePythonToCTranslator:
                 if var_name not in self.variables:
                     # Variable declaration with initialization
                     self.variables[var_name] = var_type
-                    lines.append(self._indent(f"{var_type} {var_name} = {value_expr};"))
+
+                    # Special handling for array initialization
+                    if isinstance(assign_node.value, ast.List):
+                        array_size = len(assign_node.value.elts)
+                        element_type = "int"  # Default element type
+                        lines.append(self._indent(f"{element_type} {var_name}[{array_size}] = {value_expr};"))
+                    else:
+                        lines.append(self._indent(f"{var_type} {var_name} = {value_expr};"))
                 else:
                     # Simple assignment
                     lines.append(self._indent(f"{var_name} = {value_expr};"))
+
+        return lines
+
+    def _translate_ann_assignment(self, ann_assign_node: ast.AnnAssign) -> List[str]:
+        """Translate annotated assignment (var: type = value)."""
+        lines = []
+
+        if isinstance(ann_assign_node.target, ast.Name):
+            var_name = ann_assign_node.target.id
+            var_type = self._annotation_to_c_type(ann_assign_node.annotation)
+
+            if ann_assign_node.value:
+                value_expr = self._translate_expression(ann_assign_node.value)
+                lines.append(self._indent(f"{var_type} {var_name} = {value_expr};"))
+            else:
+                lines.append(self._indent(f"{var_type} {var_name};"))
+
+            self.variables[var_name] = var_type
 
         return lines
 
@@ -218,9 +266,13 @@ class SimplePythonToCTranslator:
                 start = "0"
                 end = "10"
 
-            # Declare loop variable and initialize
-            self.variables[loop_var] = "int"
-            lines.append(self._indent(f"int {loop_var} = {start};"))
+            # Check if loop variable is already declared
+            if loop_var not in self.variables:
+                self.variables[loop_var] = "int"
+                lines.append(self._indent(f"int {loop_var} = {start};"))
+            else:
+                lines.append(self._indent(f"{loop_var} = {start};"))
+
             lines.append(self._indent(f"while ({loop_var} < {end}) {{"))
 
             # Translate body
@@ -263,6 +315,10 @@ class SimplePythonToCTranslator:
             return self._translate_compare(expr)
         elif isinstance(expr, ast.Call):
             return self._translate_call(expr)
+        elif isinstance(expr, ast.Subscript):
+            return self._translate_subscript(expr)
+        elif isinstance(expr, ast.List):
+            return self._translate_list(expr)
         elif isinstance(expr, ast.BoolOp):
             return self._translate_bool_op(expr)
         else:
@@ -332,7 +388,7 @@ class SimplePythonToCTranslator:
             }
 
             c_op = op_map.get(type(op), '==')
-            return f"({left} {c_op} {right})"
+            return f"{left} {c_op} {right}"
 
         # For complex comparisons, create compound conditions
         conditions = []
@@ -429,6 +485,52 @@ class SimplePythonToCTranslator:
         all_args = [f'"{format_str}"'] + args
         return f"printf({', '.join(all_args)})"
 
+    def _translate_subscript(self, subscript: ast.Subscript) -> str:
+        """Translate array/list subscript access."""
+        array = self._translate_expression(subscript.value)
+        index = self._translate_expression(subscript.slice)
+        return f"{array}[{index}]"
+
+    def _translate_list(self, list_node: ast.List) -> str:
+        """Translate list literal to C array initializer."""
+        if not list_node.elts:
+            return "{}"
+
+        elements = [self._translate_expression(elt) for elt in list_node.elts]
+        return "{" + ", ".join(elements) + "}"
+
+    def _translate_global_constant(self, assign_node: ast.Assign) -> List[str]:
+        """Translate global constant assignment."""
+        lines = []
+
+        for target in assign_node.targets:
+            if isinstance(target, ast.Name):
+                var_name = target.id
+
+                # Check if it's a constant (ALL_CAPS naming convention)
+                if var_name.isupper():
+                    value_expr = self._translate_expression(assign_node.value)
+                    var_type = self._infer_variable_type(assign_node.value)
+                    lines.append(f"#define {var_name} {value_expr}")
+                    self.variables[var_name] = var_type
+
+        return lines
+
+    def _translate_global_ann_constant(self, ann_assign_node: ast.AnnAssign) -> List[str]:
+        """Translate global annotated constant assignment."""
+        lines = []
+
+        if isinstance(ann_assign_node.target, ast.Name):
+            var_name = ann_assign_node.target.id
+
+            # Check if it's a constant (ALL_CAPS naming convention)
+            if var_name.isupper() and ann_assign_node.value:
+                value_expr = self._translate_expression(ann_assign_node.value)
+                lines.append(f"#define {var_name} {value_expr}")
+                self.variables[var_name] = "int"  # Constants are treated as ints
+
+        return lines
+
     def _infer_parameter_type(self, arg: ast.arg, func_node: ast.FunctionDef) -> str:
         """Infer parameter type from annotations or usage."""
         if arg.annotation:
@@ -489,7 +591,22 @@ class SimplePythonToCTranslator:
             }
             return type_map.get(annotation.id, 'int')
         elif isinstance(annotation, ast.Constant):
-            return "void"  # None return type
+            if annotation.value is None:
+                return "void"  # None return type
+            return "void"
+        elif isinstance(annotation, ast.Subscript):
+            # Handle List[type], Tuple[type], etc.
+            if isinstance(annotation.value, ast.Name):
+                if annotation.value.id == 'List':
+                    # For now, return int* for List[int], double* for List[float], etc.
+                    element_type = self._annotation_to_c_type(annotation.slice)
+                    return f"{element_type}*"
+                elif annotation.value.id == 'Tuple':
+                    # Simplified tuple handling
+                    return "void*"
+        elif hasattr(annotation, 'id') and annotation.id == 'list':
+            # Handle bare 'list' type
+            return "int*"
 
         return "int"
 
