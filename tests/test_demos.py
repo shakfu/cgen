@@ -28,7 +28,7 @@ class TestDemos:
                 if demo_file.name != "__init__.py":
                     cls.demo_scripts.append(demo_file)
 
-        print(f"\n🔍 Discovered {len(cls.demo_scripts)} demo scripts in {cls.demos_dir}")
+        print(f"\n Discovered {len(cls.demo_scripts)} demo scripts in {cls.demos_dir}")
 
     def _run_demo_script(self, script_path: Path) -> tuple[bool, str, str]:
         """Run a demo script and return success status with output.
@@ -82,14 +82,14 @@ class TestDemos:
         # Check for successful completion indicators
         success_indicators = [
             "demo complete", "showcase complete", "demonstration complete",
-            "✅", "success", "passed"
+            "", "success", "passed"
         ]
 
         has_success_indicator = any(indicator in output_lower for indicator in success_indicators)
         if has_success_indicator:
-            messages.append("✅ Found success indicators")
+            messages.append(" Found success indicators")
         else:
-            messages.append("⚠️  No clear success indicators found")
+            messages.append("  No clear success indicators found")
 
         # Check for expected demo content based on script name
         if "intelligence_layer" in script_name:
@@ -99,23 +99,23 @@ class TestDemos:
                 "function specializer", "vectorization"
             ]
             found_sections = sum(1 for section in expected_sections if section in output_lower)
-            messages.append(f"📊 Found {found_sections}/{len(expected_sections)} expected sections")
+            messages.append(f" Found {found_sections}/{len(expected_sections)} expected sections")
 
         elif "optimization" in script_name:
             optimization_terms = ["speedup", "optimization", "performance", "simd", "vectoriz"]
             found_terms = sum(1 for term in optimization_terms if term in output_lower)
-            messages.append(f"🚀 Found {found_terms} optimization-related terms")
+            messages.append(f" Found {found_terms} optimization-related terms")
 
         elif "performance" in script_name:
             perf_terms = ["benchmark", "speedup", "performance", "gain", "improvement"]
             found_terms = sum(1 for term in perf_terms if term in output_lower)
-            messages.append(f"📈 Found {found_terms} performance-related terms")
+            messages.append(f" Found {found_terms} performance-related terms")
 
         # Check for error indicators (warnings, not failures)
         error_indicators = ["error:", "exception:", "traceback:", "failed:"]
         has_errors = any(indicator in output_lower for indicator in error_indicators)
         if has_errors:
-            messages.append("⚠️  Found error indicators in output")
+            messages.append("  Found error indicators in output")
 
         return messages
 
@@ -132,9 +132,9 @@ class TestDemos:
 
             if not success:
                 failures.append(f"{demo_script.name}: {stderr[:200]}")
-                print(f"❌ {demo_script.name} failed")
+                print(f" {demo_script.name} failed")
             else:
-                print(f"✅ {demo_script.name} passed")
+                print(f" {demo_script.name} passed")
 
                 # Validate output content
                 messages = self._validate_demo_output(stdout, demo_script.name)
@@ -145,7 +145,7 @@ class TestDemos:
             failure_msg = "\n".join(failures)
             pytest.fail(f"Demo scripts failed:\n{failure_msg}")
 
-        print(f"\n🎉 All {len(self.demo_scripts)} demo scripts passed!")
+        print(f"\n All {len(self.demo_scripts)} demo scripts passed!")
 
     def test_simple_demo(self):
         """Test the simple demo script."""
@@ -253,7 +253,7 @@ class TestDemos:
 
                 # Parse the AST to check for syntax errors
                 ast.parse(source, filename=str(script))
-                print(f"✅ {script.name} - Valid Python syntax")
+                print(f" {script.name} - Valid Python syntax")
 
             except SyntaxError as e:
                 pytest.fail(f"Syntax error in {script.name}: {e}")

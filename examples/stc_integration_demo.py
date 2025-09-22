@@ -167,9 +167,9 @@ def memory_safe_processing(size: int) -> int:
     print(c_code)
 
     # Demonstrate memory safety analysis
-    print("\n" + "─" * 70)
+    print("\n" + "" * 70)
     print("MEMORY SAFETY ANALYSIS:")
-    print("─" * 70)
+    print("" * 70)
 
     analysis = converter.analyze_memory_safety(python_code)
     print(f"Memory Errors: {len(analysis['memory_errors'])}")
@@ -182,7 +182,7 @@ def memory_safe_processing(size: int) -> int:
         for error in analysis['memory_errors']:
             print(f"  {error['severity'].upper()}: {error['message']} (line {error['line']})")
     else:
-        print("\n✅ No memory safety issues detected!")
+        print("\n No memory safety issues detected!")
 
     print("\n")
 
@@ -298,7 +298,7 @@ def error_prone_operations(data: list[int]) -> bool:
 
 def main():
     """Run all STC integration demonstrations."""
-    print("🚀 CGen Phase 6: STC Integration Demonstration")
+    print(" CGen Phase 6: STC Integration Demonstration")
     print("=" * 70)
     print("Showcasing advanced Python-to-C translation with:")
     print("• High-performance STC containers")
@@ -320,38 +320,38 @@ def main():
 
         # Summary
         print("=" * 70)
-        print("🎉 STC INTEGRATION SUMMARY")
+        print(" STC INTEGRATION SUMMARY")
         print("=" * 70)
-        print("✅ Container Type Mappings:")
+        print(" Container Type Mappings:")
         print("   • Python list[T] → STC vec<T>")
         print("   • Python dict[K,V] → STC hmap<K,V>")
         print("   • Python set[T] → STC hset<T>")
         print("   • Python str → STC cstr")
         print()
-        print("✅ Operation Translations:")
+        print(" Operation Translations:")
         print("   • append() → vec_push()")
         print("   • dict[key] → hmap_get()")
         print("   • set.add() → hset_insert()")
         print("   • len() → container_size()")
         print("   • in operator → container_contains()")
         print()
-        print("✅ Memory Management:")
+        print(" Memory Management:")
         print("   • Automatic cleanup generation")
         print("   • Exception-safe operations")
         print("   • Memory leak prevention")
         print("   • RAII-style resource management")
         print()
-        print("✅ Performance Optimization:")
+        print(" Performance Optimization:")
         print("   • Usage pattern analysis")
         print("   • Optimal container selection")
         print("   • Access pattern optimization")
         print()
-        print("🏆 Phase 6 STC Integration: COMPLETE!")
+        print(" Phase 6 STC Integration: COMPLETE!")
         print("Ready for production use with high-performance C code generation")
         print("=" * 70)
 
     except Exception as e:
-        print(f"\n❌ Error in STC integration demonstration: {e}")
+        print(f"\n Error in STC integration demonstration: {e}")
         import traceback
         traceback.print_exc()
         return False

@@ -228,11 +228,11 @@ class TestCorePerformance:
 
 def run_all_benchmarks():
     """Run all benchmarks and display results."""
-    print("🚀 Running CGen Performance Benchmarks")
+    print(" Running CGen Performance Benchmarks")
     print("=" * 60)
 
     # Run py2c benchmarks
-    print("\n📊 Python-to-C Conversion Benchmarks")
+    print("\n Python-to-C Conversion Benchmarks")
     print("-" * 40)
 
     for name, sample in BENCHMARK_SAMPLES.items():
@@ -242,7 +242,7 @@ def run_all_benchmarks():
             print(f"  {result}")
 
     # Run core benchmarks
-    print("\n⚙️  Core Generation Benchmarks")
+    print("\n  Core Generation Benchmarks")
     print("-" * 40)
 
     # CFactory benchmark
@@ -253,7 +253,7 @@ def run_all_benchmarks():
     result = benchmark_function(lambda: Writer(StyleOptions()), iterations=1000)
     print(f"  Writer creation: {result}")
 
-    print("\n🏁 Benchmark suite completed!")
+    print("\n Benchmark suite completed!")
 
 
 if __name__ == "__main__":

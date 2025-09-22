@@ -137,7 +137,7 @@ def run_comprehensive_intelligence_analysis():
         ("Call Graph Analyzer", CallGraphAnalyzer()),
     ]
 
-    print("\n📊 ANALYZERS")
+    print("\n ANALYZERS")
     print("-" * 30)
 
     for name, analyzer_obj in analyzers:
@@ -145,7 +145,7 @@ def run_comprehensive_intelligence_analysis():
             result = analyzer_obj.analyze(context)
             results[name] = result
 
-            print(f"\n🔬 {name}")
+            print(f"\n {name}")
             print(f"   Success: {result.success}")
             print(f"   Confidence: {result.confidence:.2f}")
 
@@ -160,7 +160,7 @@ def run_comprehensive_intelligence_analysis():
                     print(f"     • {warning}")
 
         except Exception as e:
-            print(f"\n❌ {name}: Error - {e}")
+            print(f"\n {name}: Error - {e}")
             results[name] = None
 
     # Run all optimizers
@@ -170,7 +170,7 @@ def run_comprehensive_intelligence_analysis():
         ("Function Specializer", FunctionSpecializer()),
     ]
 
-    print(f"\n🚀 OPTIMIZERS")
+    print(f"\n OPTIMIZERS")
     print("-" * 30)
 
     for name, optimizer_obj in optimizers:
@@ -178,7 +178,7 @@ def run_comprehensive_intelligence_analysis():
             result = optimizer_obj.optimize(context)
             results[name] = result
 
-            print(f"\n⚡ {name}")
+            print(f"\n {name}")
             print(f"   Success: {result.success}")
             print(f"   Performance Gain: {result.performance_gain_estimate:.2f}x")
 
@@ -188,11 +188,11 @@ def run_comprehensive_intelligence_analysis():
                     print(f"     • {transform}")
 
         except Exception as e:
-            print(f"\n❌ {name}: Error - {e}")
+            print(f"\n {name}: Error - {e}")
             results[name] = None
 
     # Vectorization detector (special case)
-    print(f"\n🎯 VECTORIZATION ANALYSIS")
+    print(f"\n VECTORIZATION ANALYSIS")
     print("-" * 30)
 
     try:
@@ -200,7 +200,7 @@ def run_comprehensive_intelligence_analysis():
         vector_result = detector.analyze(context.ast_node)
         results["Vectorization Detector"] = vector_result
 
-        print(f"\n⚡ Vectorization Detector")
+        print(f"\n Vectorization Detector")
         print(f"   Loops Analyzed: {vector_result.total_loops_analyzed}")
         print(f"   Vectorizable: {vector_result.vectorizable_loops}")
 
@@ -216,7 +216,7 @@ def run_comprehensive_intelligence_analysis():
             print(f"   Average Vectorization Speedup: {avg_speedup:.2f}x")
 
     except Exception as e:
-        print(f"\n❌ Vectorization Detector: Error - {e}")
+        print(f"\n Vectorization Detector: Error - {e}")
         results["Vectorization Detector"] = None
 
     return results
@@ -224,7 +224,7 @@ def run_comprehensive_intelligence_analysis():
 
 def generate_c_with_py2c():
     """Generate C code using the existing py2c converter."""
-    print(f"\n🔧 C Code Generation with py2c")
+    print(f"\n C Code Generation with py2c")
     print("=" * 60)
 
     try:
@@ -236,21 +236,21 @@ def generate_c_with_py2c():
         writer = cfile.Writer(cfile.StyleOptions())
         c_code = writer.write_str(c_ast)
 
-        print("✅ C code generation successful!")
+        print(" C code generation successful!")
         return c_code
 
     except Exception as e:
-        print(f"❌ C code generation failed: {e}")
+        print(f" C code generation failed: {e}")
         return None
 
 
 def test_c_compilation(c_code):
     """Test if the generated C code compiles."""
-    print(f"\n🔨 C Code Compilation Test")
+    print(f"\n C Code Compilation Test")
     print("=" * 60)
 
     if not c_code:
-        print("❌ No C code to compile")
+        print(" No C code to compile")
         return False
 
     try:
@@ -263,24 +263,24 @@ def test_c_compilation(c_code):
         executable = c_file.replace('.c', '.out')
         cmd = ['gcc', '-o', executable, c_file, '-lm']
 
-        print(f"🔧 Compiling: {' '.join(cmd)}")
+        print(f" Compiling: {' '.join(cmd)}")
         result = subprocess.run(cmd, capture_output=True, text=True)
 
         if result.returncode == 0:
-            print("✅ Compilation successful!")
+            print(" Compilation successful!")
 
             # Try to run (basic test)
-            print("🚀 Testing execution...")
+            print(" Testing execution...")
             # Note: The generated code might not have a main function
             # This is just a compilation test
             return True
         else:
-            print(f"❌ Compilation failed:")
+            print(f" Compilation failed:")
             print(f"   {result.stderr}")
             return False
 
     except Exception as e:
-        print(f"💥 Error: {e}")
+        print(f" Error: {e}")
         return False
 
     finally:
@@ -296,7 +296,7 @@ def test_c_compilation(c_code):
 
 def main():
     """Main demonstration."""
-    print("🚀 CGen Intelligence Layer - Complete Analysis Demo")
+    print(" CGen Intelligence Layer - Complete Analysis Demo")
     print("=" * 70)
     print("This demo shows how the intelligence layer analyzes Python code")
     print("and provides insights that would guide optimized C code generation.")
@@ -309,7 +309,7 @@ def main():
     c_code = generate_c_with_py2c()
 
     if c_code:
-        print(f"\n📝 Generated C Code")
+        print(f"\n Generated C Code")
         print("-" * 40)
         print(c_code)
 
@@ -319,7 +319,7 @@ def main():
         compilation_success = False
 
     # Step 4: Analysis Summary
-    print(f"\n📊 Intelligence Analysis Summary")
+    print(f"\n Intelligence Analysis Summary")
     print("=" * 70)
 
     # Count successful components
@@ -332,7 +332,7 @@ def main():
                                   (hasattr(result, 'candidates') and len(result.candidates) > 0)
                               ))
 
-    print(f"📈 Analysis Components:")
+    print(f" Analysis Components:")
     print(f"   Successful Analyzers: {successful_analyzers}")
     print(f"   Successful Optimizers: {successful_optimizers}")
 
@@ -350,14 +350,14 @@ def main():
 
     estimated_total_speedup = compile_speedup * vector_speedup
 
-    print(f"\n🚀 Estimated Performance Improvements:")
+    print(f"\n Estimated Performance Improvements:")
     print(f"   Compile-time optimizations: {compile_speedup:.2f}x")
     print(f"   Vectorization opportunities: {vector_speedup:.2f}x")
     print(f"   Combined estimated speedup: {estimated_total_speedup:.2f}x")
 
-    print(f"\n🔧 Code Generation:")
-    print(f"   C Code Generation: {'✅' if c_code else '❌'}")
-    print(f"   Compilation Test: {'✅' if compilation_success else '❌'}")
+    print(f"\n Code Generation:")
+    print(f"   C Code Generation: {'' if c_code else ''}")
+    print(f"   Compilation Test: {'' if compilation_success else ''}")
 
     # Final status
     overall_success = (
@@ -367,11 +367,11 @@ def main():
     )
 
     if overall_success:
-        print(f"\n🎉 Intelligence Layer Demo Successful!")
-        print(f"✅ Python analysis → optimization insights → C generation pipeline working")
-        print(f"📈 The intelligence layer identified {estimated_total_speedup:.2f}x potential speedup")
+        print(f"\n Intelligence Layer Demo Successful!")
+        print(f" Python analysis → optimization insights → C generation pipeline working")
+        print(f" The intelligence layer identified {estimated_total_speedup:.2f}x potential speedup")
     else:
-        print(f"\n⚠️  Demo completed with some limitations")
+        print(f"\n  Demo completed with some limitations")
 
     return overall_success
 

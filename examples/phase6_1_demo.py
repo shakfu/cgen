@@ -18,11 +18,11 @@ from cgen.core.stc_py2c import convert_python_to_c_with_stc
 
 def demo_complete_container_support():
     """Demonstrate complete STC container type support."""
-    print("🎯 PHASE 6.1 COMPLETE: STC Container Support Achievement")
+    print(" PHASE 6.1 COMPLETE: STC Container Support Achievement")
     print("=" * 70)
 
     # Dict container demo
-    print("\n📚 DICTIONARY CONTAINERS (dict → STC hmap)")
+    print("\n DICTIONARY CONTAINERS (dict → STC hmap)")
     print("-" * 50)
 
     dict_code = '''
@@ -39,14 +39,14 @@ def process_dict() -> int:
     print("Generated C with STC hmap:")
     print(c_dict)
 
-    print("✅ Dict Features Working:")
-    print(f"  • Container Type: {'✓' if 'CacheMap' in c_dict else '✗'} STC hmap generated")
-    print(f"  • Initialization: {'✓' if '_insert(' in c_dict else '✗'} Dict literal → STC insert")
-    print(f"  • Size Function: {'✓' if '_size(' in c_dict else '✗'} len() → STC size")
-    print(f"  • Memory Safety: {'✓' if '_drop(' in c_dict else '✗'} Automatic cleanup")
+    print(" Dict Features Working:")
+    print(f"  • Container Type: {'' if 'CacheMap' in c_dict else ''} STC hmap generated")
+    print(f"  • Initialization: {'' if '_insert(' in c_dict else ''} Dict literal → STC insert")
+    print(f"  • Size Function: {'' if '_size(' in c_dict else ''} len() → STC size")
+    print(f"  • Memory Safety: {'' if '_drop(' in c_dict else ''} Automatic cleanup")
 
     # Set container demo
-    print("\n🎲 SET CONTAINERS (set → STC hset)")
+    print("\n SET CONTAINERS (set → STC hset)")
     print("-" * 50)
 
     set_code = '''
@@ -63,14 +63,14 @@ def process_set() -> int:
     print("Generated C with STC hset:")
     print(c_set)
 
-    print("✅ Set Features Working:")
-    print(f"  • Container Type: {'✓' if 'ItemsSet' in c_set else '✗'} STC hset generated")
-    print(f"  • Initialization: {'✓' if '_insert(' in c_set else '✗'} Set literal → STC insert")
-    print(f"  • Size Function: {'✓' if '_size(' in c_set else '✗'} len() → STC size")
-    print(f"  • Memory Safety: {'✓' if '_drop(' in c_set else '✗'} Automatic cleanup")
+    print(" Set Features Working:")
+    print(f"  • Container Type: {'' if 'ItemsSet' in c_set else ''} STC hset generated")
+    print(f"  • Initialization: {'' if '_insert(' in c_set else ''} Set literal → STC insert")
+    print(f"  • Size Function: {'' if '_size(' in c_set else ''} len() → STC size")
+    print(f"  • Memory Safety: {'' if '_drop(' in c_set else ''} Automatic cleanup")
 
     # String container demo
-    print("\n📝 STRING CONTAINERS (str → STC cstr)")
+    print("\n STRING CONTAINERS (str → STC cstr)")
     print("-" * 50)
 
     string_code = '''
@@ -87,15 +87,15 @@ def process_string() -> int:
     print("Generated C with STC cstr:")
     print(c_string)
 
-    print("✅ String Features Working:")
-    print(f"  • String Type: {'✓' if 'cstr' in c_string else '✗'} STC cstr generated")
-    print(f"  • Size Function: {'✓' if 'cstr_size(' in c_string else '✗'} len() → cstr_size")
-    print(f"  • String Support: {'✓' if 'text' in c_string else '✗'} String variables handled")
+    print(" String Features Working:")
+    print(f"  • String Type: {'' if 'cstr' in c_string else ''} STC cstr generated")
+    print(f"  • Size Function: {'' if 'cstr_size(' in c_string else ''} len() → cstr_size")
+    print(f"  • String Support: {'' if 'text' in c_string else ''} String variables handled")
 
 
 def demo_comprehensive_container_operations():
     """Demonstrate comprehensive container operations."""
-    print("\n\n🚀 COMPREHENSIVE CONTAINER OPERATIONS")
+    print("\n\n COMPREHENSIVE CONTAINER OPERATIONS")
     print("=" * 70)
 
     # Multi-container function
@@ -142,16 +142,16 @@ def data_processing() -> int:
         "Multi-Container": c_complex.count("=") >= 7
     }
 
-    print("\n🎯 COMPREHENSIVE ANALYSIS:")
+    print("\n COMPREHENSIVE ANALYSIS:")
     print("-" * 40)
     working_count = 0
     for feature, is_working in features.items():
-        status = "✅ WORKING" if is_working else "❌ Missing"
+        status = " WORKING" if is_working else " Missing"
         if is_working:
             working_count += 1
         print(f"  {feature}: {status}")
 
-    print(f"\n📊 SUCCESS METRICS:")
+    print(f"\n SUCCESS METRICS:")
     print(f"  • Features Working: {working_count}/{len(features)}")
     print(f"  • Success Rate: {working_count/len(features)*100:.1f}%")
     print(f"  • Container Types: {len([f for f in features if f.endswith(')') and features[f]])}")
@@ -159,22 +159,22 @@ def data_processing() -> int:
 
 def demo_phase_6_1_achievements():
     """Summarize Phase 6.1 achievements."""
-    print("\n\n🏆 PHASE 6.1 ACHIEVEMENTS SUMMARY")
+    print("\n\n PHASE 6.1 ACHIEVEMENTS SUMMARY")
     print("=" * 70)
 
     achievements = [
-        "✅ Complete dict[K,V] → STC hmap translation",
-        "✅ Complete set[T] → STC hset translation",
-        "✅ Complete str → STC cstr translation",
-        "✅ All Python container types now supported",
-        "✅ Type-safe container operations",
-        "✅ Automatic memory management for all containers",
-        "✅ Exception-safe wrapper generation",
-        "✅ 389 comprehensive tests passing (100% success rate)",
-        "✅ Multi-container function support",
-        "✅ Container size operations (len → size)",
-        "✅ Container initialization (literals → STC operations)",
-        "✅ Memory leak prevention with automatic cleanup"
+        " Complete dict[K,V] → STC hmap translation",
+        " Complete set[T] → STC hset translation",
+        " Complete str → STC cstr translation",
+        " All Python container types now supported",
+        " Type-safe container operations",
+        " Automatic memory management for all containers",
+        " Exception-safe wrapper generation",
+        " 389 comprehensive tests passing (100% success rate)",
+        " Multi-container function support",
+        " Container size operations (len → size)",
+        " Container initialization (literals → STC operations)",
+        " Memory leak prevention with automatic cleanup"
     ]
 
     print("Phase 6.1: Complete STC Container Support - SUCCESS!")
@@ -182,14 +182,14 @@ def demo_phase_6_1_achievements():
     for achievement in achievements:
         print(f"  {achievement}")
 
-    print(f"\n📈 PROGRESS UPDATE:")
-    print(f"  • Phase 6.1: ✅ COMPLETE - All container types implemented")
+    print(f"\n PROGRESS UPDATE:")
+    print(f"  • Phase 6.1:  COMPLETE - All container types implemented")
     print(f"  • Test Coverage: 389 tests passing (up from 384)")
     print(f"  • Container Types: list, dict, set, str → vec, hmap, hset, cstr")
     print(f"  • Memory Safety: Automatic cleanup for all container types")
     print(f"  • Type Safety: Strong typing preserved in generated C code")
 
-    print(f"\n🎯 READY FOR PHASE 6.2:")
+    print(f"\n READY FOR PHASE 6.2:")
     print(f"  • Enhanced Documentation and Usability")
     print(f"  • README update with new capabilities")
     print(f"  • API documentation for all container operations")
@@ -198,7 +198,7 @@ def demo_phase_6_1_achievements():
 
 def main():
     """Run Phase 6.1 completion demonstration."""
-    print("🚀 CGEN PHASE 6.1: COMPLETE STC CONTAINER SUPPORT")
+    print(" CGEN PHASE 6.1: COMPLETE STC CONTAINER SUPPORT")
     print("Advanced Intelligence - Container Integration Achievement")
     print()
 
@@ -207,15 +207,15 @@ def main():
         demo_comprehensive_container_operations()
         demo_phase_6_1_achievements()
 
-        print("\n" + "🎉" * 70)
+        print("\n" + "" * 70)
         print("PHASE 6.1 SUCCESSFULLY COMPLETED!")
         print("All Python container types now translate to high-performance STC containers")
-        print("🎉" * 70)
+        print("" * 70)
 
         return True
 
     except Exception as e:
-        print(f"\n❌ Error in demonstration: {e}")
+        print(f"\n Error in demonstration: {e}")
         import traceback
         traceback.print_exc()
         return False

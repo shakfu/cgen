@@ -121,8 +121,18 @@ class Writer(Formatter):
             "IfStatement": self._write_if_statement,
             "WhileLoop": self._write_while_loop,
             "ForLoop": self._write_for_loop,
+            # TIER 2 elements
+            "BreakStatement": self._write_break_statement,
+            "ContinueStatement": self._write_continue_statement,
+            "DoWhileLoop": self._write_do_while_loop,
+            "TernaryOperator": self._write_ternary_operator,
+            "SizeofOperator": self._write_sizeof_operator,
+            "AddressOfOperator": self._write_address_of_operator,
+            "DereferenceOperator": self._write_dereference_operator,
         }
         self.last_element = ElementType.NONE
+
+        # Writer methods for additional syntactical elements are defined below
 
     def write_file(self, sequence: core.Sequence, file_path: str):
         """Writes the sequence to file using pre-selected format style."""
@@ -734,3 +744,111 @@ class Writer(Formatter):
             self._write_line("}")
 
         self.last_element = ElementType.STATEMENT
+
+
+    def _add_tier2_writers(self):
+        """Add TIER 2 writer methods to this Writer instance."""
+        pass  # Methods are defined below
+
+    # TIER 2 syntactical elements writers
+    def _write_break_statement(self, elem) -> None:
+        """Write break statement."""
+        self._write("break")
+        self.last_element = ElementType.STATEMENT
+
+    def _write_continue_statement(self, elem) -> None:
+        """Write continue statement."""
+        self._write("continue")
+        self.last_element = ElementType.STATEMENT
+
+    def _write_do_while_loop(self, elem) -> None:
+        """Write do-while loop."""
+        self._write("do")
+
+        # Handle brace style
+        if self.style.break_before_braces == BreakBeforeBraces.ATTACH:
+            self._write(" ")
+        else:
+            self._eol()
+
+        # Write body
+        if isinstance(elem.body, core.Block):
+            self._write_block(elem.body)
+        else:
+            self._write("{")
+            self._eol()
+            self._indent()
+            self._write_element(elem.body)
+            self._dedent()
+            self._write_line("}")
+
+        # Write while condition
+        self._write(" while (")
+        if isinstance(elem.condition, str):
+            self._write(elem.condition)
+        else:
+            self._write_element(elem.condition)
+        self._write(")")
+
+        self.last_element = ElementType.STATEMENT
+
+    def _write_ternary_operator(self, elem) -> None:
+        """Write ternary conditional operator."""
+        # Write condition
+        if isinstance(elem.condition, str):
+            self._write(elem.condition)
+        else:
+            self._write_element(elem.condition)
+
+        self._write(" ? ")
+
+        # Write true expression
+        if isinstance(elem.true_expr, str):
+            self._write(elem.true_expr)
+        else:
+            self._write_element(elem.true_expr)
+
+        self._write(" : ")
+
+        # Write false expression
+        if isinstance(elem.false_expr, str):
+            self._write(elem.false_expr)
+        else:
+            self._write_element(elem.false_expr)
+
+        self.last_element = ElementType.STATEMENT
+
+    def _write_sizeof_operator(self, elem) -> None:
+        """Write sizeof operator."""
+        self._write("sizeof(")
+
+        if isinstance(elem.operand, str):
+            self._write(elem.operand)
+        else:
+            self._write_element(elem.operand)
+
+        self._write(")")
+        self.last_element = ElementType.STATEMENT
+
+    def _write_address_of_operator(self, elem) -> None:
+        """Write address-of operator."""
+        self._write("&")
+
+        if isinstance(elem.operand, str):
+            self._write(elem.operand)
+        else:
+            self._write_element(elem.operand)
+
+        self.last_element = ElementType.STATEMENT
+
+    def _write_dereference_operator(self, elem) -> None:
+        """Write dereference operator."""
+        self._write("*")
+
+        if isinstance(elem.operand, str):
+            self._write(elem.operand)
+        else:
+            self._write_element(elem.operand)
+
+        self.last_element = ElementType.STATEMENT
+

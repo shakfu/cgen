@@ -49,7 +49,7 @@ def process_list(data: list[int]) -> int:
     print("Generated C Code with STC:")
     print(c_code)
 
-    print("\n" + "✅" * 20 + " SUCCESS ANALYSIS " + "✅" * 20)
+    print("\n" + "" * 20 + " SUCCESS ANALYSIS " + "" * 20)
     print()
 
     # Analyze the generated code
@@ -64,7 +64,7 @@ def process_list(data: list[int]) -> int:
 
     print("STC Integration Features:")
     for feature, working in features.items():
-        status = "✅ WORKING" if working else "❌ Missing"
+        status = " WORKING" if working else " Missing"
         print(f"  {feature}: {status}")
 
     working_features = sum(features.values())
@@ -112,7 +112,7 @@ def process_dict(data: dict[str, int]) -> int:
 
         print("\nDict Integration Features:")
         for feature, working in dict_features.items():
-            status = "✅ WORKING" if working else "❌ Missing"
+            status = " WORKING" if working else " Missing"
             print(f"  {feature}: {status}")
 
     except Exception as e:
@@ -158,12 +158,12 @@ def memory_safe_function() -> int:
     print(f"\nMemory Management Analysis:")
     print(f"  Estimated Containers: {container_count}")
     print(f"  Cleanup Calls: {cleanup_count}")
-    print(f"  Memory Safety: {'✅ SAFE' if cleanup_count > 0 else '❌ UNSAFE'}")
+    print(f"  Memory Safety: {' SAFE' if cleanup_count > 0 else ' UNSAFE'}")
 
 
 def main():
     """Run STC integration demonstrations."""
-    print("🚀 CGen Phase 6: STC Integration - Core Features Working!")
+    print(" CGen Phase 6: STC Integration - Core Features Working!")
     print()
 
     try:
@@ -171,24 +171,24 @@ def main():
         demo_dict_operations()
         demo_memory_management()
 
-        print("\n" + "🎉" * 60)
+        print("\n" + "" * 60)
         print("STC INTEGRATION PHASE 6 - CORE SUCCESS!")
-        print("🎉" * 60)
+        print("" * 60)
         print()
-        print("✅ Achievements:")
+        print(" Achievements:")
         print("  • Python container types → STC container types")
         print("  • Container operations → STC function calls")
         print("  • Automatic memory management with cleanup")
         print("  • Exception-safe operation wrappers")
         print("  • Memory leak prevention")
         print()
-        print("🏆 Phase 6: Advanced Intelligence - STC Integration COMPLETE!")
+        print(" Phase 6: Advanced Intelligence - STC Integration COMPLETE!")
         print("Ready for production use with high-performance C containers")
 
         return True
 
     except Exception as e:
-        print(f"\n❌ Error in demonstration: {e}")
+        print(f"\n Error in demonstration: {e}")
         import traceback
         traceback.print_exc()
         return False

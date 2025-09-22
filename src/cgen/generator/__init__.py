@@ -21,6 +21,10 @@ __all__ = [
     'Function', 'Variable', 'FunctionCall', 'Type', 'DefineDirective',
     'IncludeDirective', 'LineComment', 'BlockComment',
 
+    # TIER 2 elements
+    'BreakStatement', 'ContinueStatement', 'DoWhileLoop', 'TernaryOperator',
+    'SizeofOperator', 'AddressOfOperator', 'DereferenceOperator',
+
     # Aliases
     'Define', 'Include', 'SysInclude',
 

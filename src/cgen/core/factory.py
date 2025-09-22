@@ -195,3 +195,32 @@ class CFactory:
     def for_loop(self, init: Any = None, condition: Any = None, increment: Any = None, body: Any = None) -> core.ForLoop:
         """New for loop."""
         return core.ForLoop(init, condition, increment, body)
+
+    # Additional syntactical elements
+    def break_statement(self) -> "core.BreakStatement":
+        """New break statement for loop control."""
+        return core.BreakStatement()
+
+    def continue_statement(self) -> "core.ContinueStatement":
+        """New continue statement for loop control."""
+        return core.ContinueStatement()
+
+    def do_while_loop(self, body: Any, condition: Any) -> "core.DoWhileLoop":
+        """New do-while loop."""
+        return core.DoWhileLoop(body, condition)
+
+    def ternary(self, condition: Any, true_expr: Any, false_expr: Any) -> "core.TernaryOperator":
+        """New ternary conditional operator (condition ? true_expr : false_expr)."""
+        return core.TernaryOperator(condition, true_expr, false_expr)
+
+    def sizeof(self, operand: Union[str, core.DataType, core.Element]) -> "core.SizeofOperator":
+        """New sizeof operator."""
+        return core.SizeofOperator(operand)
+
+    def address_of(self, operand: Union[str, core.Element]) -> "core.AddressOfOperator":
+        """New address-of operator (&)."""
+        return core.AddressOfOperator(operand)
+
+    def dereference(self, operand: Union[str, core.Element]) -> "core.DereferenceOperator":
+        """New dereference operator (*)."""
+        return core.DereferenceOperator(operand)

@@ -106,19 +106,19 @@ def create_analysis_context(code: str) -> AnalysisContext:
 
 def test_theorem_prover():
     """Test basic Z3 theorem prover functionality."""
-    print("🔬 Testing Z3 Theorem Prover Integration")
+    print(" Testing Z3 Theorem Prover Integration")
     print("=" * 50)
 
     prover = TheoremProver()
 
     if not prover.z3_available:
-        print("⚠️  Z3 not available - using mock implementation")
+        print("  Z3 not available - using mock implementation")
         print("   Install with: pip install z3-solver")
     else:
-        print("✅ Z3 theorem prover available")
+        print(" Z3 theorem prover available")
 
     # Test bounds checking property
-    print("\n📊 Testing bounds checking property...")
+    print("\n Testing bounds checking property...")
     bounds_prop = prover.create_bounds_check_property("array", "i", 10)
     bounds_result = prover.verify_property(bounds_prop)
 
@@ -127,7 +127,7 @@ def test_theorem_prover():
     print(f"   Time: {bounds_result.proof_time:.3f}s")
 
     # Test overflow safety property
-    print("\n⚡ Testing overflow safety property...")
+    print("\n Testing overflow safety property...")
     overflow_prop = prover.create_overflow_safety_property("add", ["x", "y"])
     overflow_result = prover.verify_property(overflow_prop)
 
@@ -140,13 +140,13 @@ def test_theorem_prover():
 
 def test_memory_safety_verification():
     """Test memory safety verification capabilities."""
-    print("\n🛡️  Testing Memory Safety Verification")
+    print("\n  Testing Memory Safety Verification")
     print("=" * 50)
 
     bounds_prover = BoundsProver()
 
     # Test safe array access
-    print("\n✅ Testing safe array access...")
+    print("\n Testing safe array access...")
     safe_context = create_analysis_context(TEST_ALGORITHMS['array_sum'])
     safe_proof = bounds_prover.verify_memory_safety(safe_context)
 
@@ -159,7 +159,7 @@ def test_memory_safety_verification():
         print(f"     • {rec}")
 
     # Test unsafe array access
-    print("\n❌ Testing potentially unsafe array access...")
+    print("\n Testing potentially unsafe array access...")
     unsafe_context = create_analysis_context(TEST_ALGORITHMS['unsafe_array_access'])
     unsafe_proof = bounds_prover.verify_memory_safety(unsafe_context)
 
@@ -176,13 +176,13 @@ def test_memory_safety_verification():
 
 def test_algorithm_correctness():
     """Test algorithm correctness verification."""
-    print("\n🎯 Testing Algorithm Correctness Verification")
+    print("\n Testing Algorithm Correctness Verification")
     print("=" * 50)
 
     correctness_prover = CorrectnessProver()
 
     # Test factorial correctness
-    print("\n🔢 Testing factorial correctness...")
+    print("\n Testing factorial correctness...")
     factorial_context = create_analysis_context(TEST_ALGORITHMS['factorial'])
     factorial_proof = correctness_prover.verify_algorithm_correctness(factorial_context)
 
@@ -194,7 +194,7 @@ def test_algorithm_correctness():
     print(f"   Failed properties: {len(factorial_proof.failed_properties)}")
 
     # Test binary search correctness
-    print("\n🔍 Testing binary search correctness...")
+    print("\n Testing binary search correctness...")
     search_context = create_analysis_context(TEST_ALGORITHMS['binary_search'])
     search_proof = correctness_prover.verify_algorithm_correctness(search_context)
 
@@ -208,7 +208,7 @@ def test_algorithm_correctness():
 
 def test_performance_analysis():
     """Test performance bound analysis."""
-    print("\n📈 Testing Performance Bound Analysis")
+    print("\n Testing Performance Bound Analysis")
     print("=" * 50)
 
     performance_analyzer = PerformanceAnalyzer()
@@ -222,7 +222,7 @@ def test_performance_analysis():
     ]
 
     for alg_name, expected_complexity in algorithms_to_test:
-        print(f"\n⚡ Analyzing {alg_name}...")
+        print(f"\n Analyzing {alg_name}...")
         context = create_analysis_context(TEST_ALGORITHMS[alg_name])
         analysis = performance_analyzer.analyze_performance_bounds(context)
 
@@ -230,7 +230,7 @@ def test_performance_analysis():
         print(f"   Time complexity: {analysis.time_complexity.value}")
         print(f"   Space complexity: {analysis.space_complexity.value}")
         print(f"   Expected: {expected_complexity.value}")
-        print(f"   Match: {'✅' if analysis.time_complexity == expected_complexity else '❌'}")
+        print(f"   Match: {'' if analysis.time_complexity == expected_complexity else ''}")
         print(f"   Confidence: {analysis.confidence:.2f}")
         print(f"   Verification time: {analysis.verification_time:.3f}s")
 
@@ -249,14 +249,14 @@ def test_performance_analysis():
 
 def test_integration_pipeline():
     """Test integrated formal verification pipeline."""
-    print("\n🔄 Testing Integrated Verification Pipeline")
+    print("\n Testing Integrated Verification Pipeline")
     print("=" * 50)
 
     # Choose a complex algorithm for comprehensive analysis
     test_code = TEST_ALGORITHMS['matrix_multiply']
     context = create_analysis_context(test_code)
 
-    print(f"📝 Analyzing algorithm: matrix_multiply")
+    print(f" Analyzing algorithm: matrix_multiply")
     print(f"   Code length: {len(test_code.split())} lines")
 
     # Run all verification components
@@ -265,7 +265,7 @@ def test_integration_pipeline():
     correctness_prover = CorrectnessProver(theorem_prover)
     performance_analyzer = PerformanceAnalyzer(theorem_prover)
 
-    print("\n🔬 Running comprehensive analysis...")
+    print("\n Running comprehensive analysis...")
 
     # Memory safety
     memory_proof = bounds_prover.verify_memory_safety(context)
@@ -277,9 +277,9 @@ def test_integration_pipeline():
     performance_analysis = performance_analyzer.analyze_performance_bounds(context)
 
     # Integrated results
-    print(f"\n📊 Integrated Verification Results")
-    print(f"   Memory Safety: {'✅ SAFE' if memory_proof.is_safe else '❌ UNSAFE'}")
-    print(f"   Algorithm Correctness: {'✅ CORRECT' if correctness_proof.is_correct else '❌ INCORRECT'}")
+    print(f"\n Integrated Verification Results")
+    print(f"   Memory Safety: {' SAFE' if memory_proof.is_safe else ' UNSAFE'}")
+    print(f"   Algorithm Correctness: {' CORRECT' if correctness_proof.is_correct else ' INCORRECT'}")
     print(f"   Time Complexity: {performance_analysis.time_complexity.value}")
     print(f"   Space Complexity: {performance_analysis.space_complexity.value}")
 
@@ -315,7 +315,7 @@ def test_integration_pipeline():
 
 def main():
     """Run comprehensive formal verification demonstration."""
-    print("🚀 CGen Phase 4: Advanced Intelligence - Formal Verification")
+    print(" CGen Phase 4: Advanced Intelligence - Formal Verification")
     print("=" * 70)
     print("Demonstrating formal verification capabilities:")
     print("• Z3 theorem prover integration")
@@ -335,28 +335,28 @@ def main():
         integration_results = test_integration_pipeline()
 
         # Summary
-        print(f"\n🎉 Phase 4 Formal Verification Summary")
+        print(f"\n Phase 4 Formal Verification Summary")
         print("=" * 50)
-        print("✅ Z3 Theorem Prover: Integrated")
-        print("✅ Memory Safety Verification: Implemented")
-        print("✅ Algorithm Correctness: Implemented")
-        print("✅ Performance Analysis: Implemented")
-        print("✅ Integrated Pipeline: Working")
+        print(" Z3 Theorem Prover: Integrated")
+        print(" Memory Safety Verification: Implemented")
+        print(" Algorithm Correctness: Implemented")
+        print(" Performance Analysis: Implemented")
+        print(" Integrated Pipeline: Working")
 
-        print(f"\n📈 Capabilities Demonstrated:")
+        print(f"\n Capabilities Demonstrated:")
         print(f"   • Formal property verification")
         print(f"   • Memory bounds checking")
         print(f"   • Algorithm correctness proofs")
         print(f"   • Complexity analysis and bounds")
         print(f"   • Performance optimization recommendations")
 
-        print(f"\n🏆 Phase 4: Advanced Intelligence - COMPLETED!")
+        print(f"\n Phase 4: Advanced Intelligence - COMPLETED!")
         print(f"Ready for Phase 5: Domain Extensions")
 
         return True
 
     except Exception as e:
-        print(f"\n❌ Error in formal verification testing: {e}")
+        print(f"\n Error in formal verification testing: {e}")
         import traceback
         traceback.print_exc()
         return False

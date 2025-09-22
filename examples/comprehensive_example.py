@@ -219,25 +219,25 @@ def run_intelligence_analysis(code: str):
     analyzer_results = {}
 
     for name, analyzer in analyzers:
-        print(f"\n🔬 {name}")
+        print(f"\n {name}")
         try:
             result = analyzer.analyze(context)
             analyzer_results[name] = result
-            print(f"  ✅ Success: {result.success}")
-            print(f"  🎯 Confidence: {result.confidence:.2f}")
+            print(f"   Success: {result.success}")
+            print(f"   Confidence: {result.confidence:.2f}")
 
             if result.warnings:
-                print(f"  ⚠️  Warnings: {len(result.warnings)}")
+                print(f"    Warnings: {len(result.warnings)}")
                 for warning in result.warnings[:2]:
                     print(f"    • {warning}")
 
             if result.findings:
-                print(f"  🔎 Findings: {len(result.findings)}")
+                print(f"   Findings: {len(result.findings)}")
                 for finding in result.findings[:2]:
                     print(f"    • {finding}")
 
         except Exception as e:
-            print(f"  ❌ Error: {e}")
+            print(f"   Error: {e}")
             analyzer_results[name] = None
 
     # Run all optimizers
@@ -250,31 +250,31 @@ def run_intelligence_analysis(code: str):
     optimizer_results = {}
 
     for name, optimizer in optimizers:
-        print(f"\n🚀 {name}")
+        print(f"\n {name}")
         try:
             result = optimizer.optimize(context)
             optimizer_results[name] = result
-            print(f"  ✅ Success: {result.success}")
-            print(f"  📈 Performance Gain: {result.performance_gain_estimate:.2f}x")
+            print(f"   Success: {result.success}")
+            print(f"   Performance Gain: {result.performance_gain_estimate:.2f}x")
 
             if result.transformations:
-                print(f"  🔧 Transformations: {len(result.transformations)}")
+                print(f"   Transformations: {len(result.transformations)}")
                 for transform in result.transformations[:2]:
                     print(f"    • {transform}")
 
         except Exception as e:
-            print(f"  ❌ Error: {e}")
+            print(f"   Error: {e}")
             optimizer_results[name] = None
 
     # Run vectorization detector separately (different interface)
-    print(f"\n⚡ Vectorization Detector")
+    print(f"\n Vectorization Detector")
     try:
         detector = VectorizationDetector()
         vector_report = detector.analyze(context.ast_node)
 
-        print(f"  ✅ Success: True")
-        print(f"  🔄 Loops Analyzed: {vector_report.total_loops_analyzed}")
-        print(f"  ⚡ Vectorizable: {vector_report.vectorizable_loops}")
+        print(f"   Success: True")
+        print(f"   Loops Analyzed: {vector_report.total_loops_analyzed}")
+        print(f"   Vectorizable: {vector_report.vectorizable_loops}")
 
         total_speedup = 0
         for candidate in vector_report.candidates:
@@ -283,12 +283,12 @@ def run_intelligence_analysis(code: str):
 
         if vector_report.candidates:
             avg_speedup = total_speedup / len(vector_report.candidates)
-            print(f"  📊 Average Vectorization Speedup: {avg_speedup:.2f}x")
+            print(f"   Average Vectorization Speedup: {avg_speedup:.2f}x")
 
         optimizer_results["Vectorization Detector"] = vector_report
 
     except Exception as e:
-        print(f"  ❌ Error: {e}")
+        print(f"   Error: {e}")
         optimizer_results["Vectorization Detector"] = None
 
     return analyzer_results, optimizer_results
@@ -296,7 +296,7 @@ def run_intelligence_analysis(code: str):
 
 def generate_optimized_c_code(analysis_results, optimization_results):
     """Generate C code based on intelligence layer analysis."""
-    print("\n\n🔧 Generating Optimized C Code")
+    print("\n\n Generating Optimized C Code")
     print("=" * 50)
 
     # Create C factory
@@ -312,7 +312,7 @@ def generate_optimized_c_code(analysis_results, optimization_results):
     c_file.append(C.blank())
 
     # Add compile-time optimized constants
-    print("📊 Adding optimized constants...")
+    print(" Adding optimized constants...")
     compile_time_result = optimization_results.get("Compile-Time Evaluator")
     if compile_time_result and compile_time_result.success:
         # Pre-computed constants based on analysis
@@ -324,7 +324,7 @@ def generate_optimized_c_code(analysis_results, optimization_results):
         c_file.add(C.blank())
 
     # Generate factorial function (identified as recursive by call graph)
-    print("🔄 Generating recursive factorial function...")
+    print(" Generating recursive factorial function...")
     factorial_func = C.function("factorial", "int")
     factorial_func.add_param("n", "int")
     factorial_body = C.block()
@@ -335,7 +335,7 @@ def generate_optimized_c_code(analysis_results, optimization_results):
     c_file.add(C.blank())
 
     # Generate vectorizable dot product function
-    print("⚡ Generating vectorizable dot product...")
+    print(" Generating vectorizable dot product...")
     vectorization_result = optimization_results.get("Vectorization Detector")
     if vectorization_result and vectorization_result.candidates:
         c_file.add(C.line_comment("Vectorizable dot product - SIMD optimization opportunity"))
@@ -383,7 +383,7 @@ def generate_optimized_c_code(analysis_results, optimization_results):
     c_file.add(C.blank())
 
     # Generate optimized constant computation function
-    print("📐 Generating constant-optimized function...")
+    print(" Generating constant-optimized function...")
     const_func = C.function("compute_with_constants", "double")
     const_func.add_param("x", "double")
 
@@ -402,7 +402,7 @@ def generate_optimized_c_code(analysis_results, optimization_results):
     c_file.add(C.blank())
 
     # Generate matrix multiplication with loop optimization hints
-    print("🔄 Generating loop-optimized matrix multiplication...")
+    print(" Generating loop-optimized matrix multiplication...")
     loop_result = optimization_results.get("Loop Analyzer")
     if loop_result and loop_result.success:
         c_file.add(C.line_comment("Matrix multiplication - loop optimization opportunities detected"))
@@ -463,7 +463,7 @@ def generate_optimized_c_code(analysis_results, optimization_results):
     c_file.add(C.blank())
 
     # Generate main function with test code
-    print("🎯 Generating main function...")
+    print(" Generating main function...")
     main_func = C.function("main", "int")
     main_body = C.block()
 
@@ -491,7 +491,7 @@ def generate_optimized_c_code(analysis_results, optimization_results):
 
 def compile_and_validate_c_code(c_code: str) -> bool:
     """Compile the generated C code and validate it works."""
-    print("\n\n🔨 Compiling and Validating C Code")
+    print("\n\n Compiling and Validating C Code")
     print("=" * 50)
 
     try:
@@ -504,34 +504,34 @@ def compile_and_validate_c_code(c_code: str) -> bool:
         executable_path = c_file_path.replace('.c', '')
         compile_cmd = ['gcc', '-o', executable_path, c_file_path, '-lm', '-O2']
 
-        print(f"🔧 Compiling: {' '.join(compile_cmd)}")
+        print(f" Compiling: {' '.join(compile_cmd)}")
         compile_result = subprocess.run(compile_cmd, capture_output=True, text=True)
 
         if compile_result.returncode == 0:
-            print("✅ Compilation successful!")
+            print(" Compilation successful!")
 
             # Run the executable
-            print("🚀 Running executable...")
+            print(" Running executable...")
             run_result = subprocess.run([executable_path], capture_output=True, text=True)
 
             if run_result.returncode == 0:
-                print("✅ Execution successful!")
-                print("📤 Output:")
+                print(" Execution successful!")
+                print(" Output:")
                 for line in run_result.stdout.strip().split('\n'):
                     print(f"  {line}")
                 return True
             else:
-                print("❌ Execution failed!")
+                print(" Execution failed!")
                 print(f"Error: {run_result.stderr}")
                 return False
 
         else:
-            print("❌ Compilation failed!")
+            print(" Compilation failed!")
             print(f"Error: {compile_result.stderr}")
             return False
 
     except Exception as e:
-        print(f"💥 Exception during compilation: {e}")
+        print(f" Exception during compilation: {e}")
         return False
 
     finally:
@@ -547,7 +547,7 @@ def compile_and_validate_c_code(c_code: str) -> bool:
 
 def main():
     """Main demonstration function."""
-    print("🚀 CGen Comprehensive Example - Intelligence to C Code")
+    print(" CGen Comprehensive Example - Intelligence to C Code")
     print("=" * 70)
     print("Demonstrating the complete pipeline:")
     print("Python → Intelligence Analysis → Optimized C Code → Compilation")
@@ -563,7 +563,7 @@ def main():
     writer = cfile.Writer()
     c_code = writer.write(c_file)
 
-    print("\n\n📝 Generated C Code")
+    print("\n\n Generated C Code")
     print("=" * 50)
     print(c_code)
 
@@ -571,7 +571,7 @@ def main():
     success = compile_and_validate_c_code(c_code)
 
     # Step 5: Summary
-    print("\n\n📊 Summary")
+    print("\n\n Summary")
     print("=" * 50)
 
     successful_analyzers = sum(1 for r in analyzer_results.values() if r and r.success)
@@ -581,7 +581,7 @@ def main():
                                if r and (hasattr(r, 'success') and r.success or hasattr(r, 'candidates')))
     total_optimizers = len(optimizer_results)
 
-    print(f"📈 Intelligence Layer Results:")
+    print(f" Intelligence Layer Results:")
     print(f"  • Analyzers: {successful_analyzers}/{total_analyzers} successful")
     print(f"  • Optimizers: {successful_optimizers}/{total_optimizers} successful")
 
@@ -596,15 +596,15 @@ def main():
         avg_vector_speedup = sum(c.estimated_speedup for c in vector_result.candidates) / len(vector_result.candidates)
         total_speedup *= avg_vector_speedup
 
-    print(f"🚀 Estimated Performance Improvement: {total_speedup:.2f}x")
-    print(f"🔧 C Code Generation: {'✅ Success' if c_code else '❌ Failed'}")
-    print(f"🔨 Compilation & Execution: {'✅ Success' if success else '❌ Failed'}")
+    print(f" Estimated Performance Improvement: {total_speedup:.2f}x")
+    print(f" C Code Generation: {' Success' if c_code else ' Failed'}")
+    print(f" Compilation & Execution: {' Success' if success else ' Failed'}")
 
     if success:
-        print("\n🎉 Complete pipeline successful!")
-        print("Python code → Intelligence analysis → C generation → Compilation ✅")
+        print("\n Complete pipeline successful!")
+        print("Python code → Intelligence analysis → C generation → Compilation ")
     else:
-        print("\n⚠️  Pipeline completed with issues")
+        print("\n  Pipeline completed with issues")
 
     return success
 

@@ -60,17 +60,17 @@ def calculate_area(radius: float) -> float:
                              AnalysisLevel.BASIC, OptimizationLevel.MODERATE)
 
     # Run analyzers
-    print("📊 Static Analyzer...")
+    print(" Static Analyzer...")
     static_analyzer = StaticAnalyzer()
     static_result = static_analyzer.analyze(context)
     print(f"   Success: {static_result.success}, Confidence: {static_result.confidence:.2f}")
 
-    print("⚡ Compile-Time Evaluator...")
+    print(" Compile-Time Evaluator...")
     evaluator = CompileTimeEvaluator()
     eval_result = evaluator.optimize(context)
     print(f"   Success: {eval_result.success}, Speedup: {eval_result.performance_gain_estimate:.2f}x")
 
-    print("🚀 Vectorization Detector...")
+    print(" Vectorization Detector...")
     detector = VectorizationDetector()
     vector_result = detector.analyze(context.ast_node)
     print(f"   Vectorizable loops: {vector_result.vectorizable_loops}/{vector_result.total_loops_analyzed}")
@@ -84,24 +84,24 @@ def calculate_area(radius: float) -> float:
 
 def generate_basic_c_code():
     """Generate basic C code using cfile."""
-    print("\n🔧 C Code Generation")
+    print("\n C Code Generation")
     print("-" * 40)
 
     C = cfile.CFactory()
     code = C.sequence()
 
     # Add includes
-    print("📁 Adding includes...")
+    print(" Adding includes...")
     code.append(C.sysinclude("stdio.h"))
     code.append(C.blank())
 
     # Add optimized constant
-    print("📐 Adding optimized constants...")
+    print(" Adding optimized constants...")
     code.append(C.define("PI", "3.14159"))
     code.append(C.blank())
 
     # Simple function using basic cfile constructs
-    print("🔧 Generating functions...")
+    print(" Generating functions...")
 
     # Factorial function (simplified)
     factorial = C.function("factorial", "int")
@@ -130,7 +130,7 @@ def generate_basic_c_code():
     code.append(C.blank())
 
     # Main function
-    print("🎯 Generating main function...")
+    print(" Generating main function...")
     main = C.function("main", "int")
 
     main_body = C.block()
@@ -158,7 +158,7 @@ def generate_basic_c_code():
 
 def test_compilation(c_code_str):
     """Test C code compilation."""
-    print(f"\n🔨 Compilation Test")
+    print(f"\n Compilation Test")
     print("-" * 40)
 
     try:
@@ -171,30 +171,30 @@ def test_compilation(c_code_str):
         executable = c_file.replace('.c', '.out')
         cmd = ['gcc', '-o', executable, c_file]
 
-        print(f"🔧 Compiling with: {' '.join(cmd)}")
+        print(f" Compiling with: {' '.join(cmd)}")
         result = subprocess.run(cmd, capture_output=True, text=True)
 
         if result.returncode == 0:
-            print("✅ Compilation successful!")
+            print(" Compilation successful!")
 
             # Try to run
-            print("🚀 Testing execution...")
+            print(" Testing execution...")
             run_result = subprocess.run([executable], capture_output=True, text=True, timeout=5)
 
             if run_result.returncode == 0:
-                print("✅ Execution successful!")
-                print("📤 Output:")
+                print(" Execution successful!")
+                print(" Output:")
                 for line in run_result.stdout.strip().split('\n'):
                     print(f"   {line}")
                 return True
             else:
-                print(f"❌ Execution failed: {run_result.stderr}")
+                print(f" Execution failed: {run_result.stderr}")
         else:
-            print(f"❌ Compilation failed:")
+            print(f" Compilation failed:")
             print(f"   {result.stderr}")
 
     except Exception as e:
-        print(f"💥 Error: {e}")
+        print(f" Error: {e}")
 
     finally:
         # Cleanup
@@ -211,7 +211,7 @@ def test_compilation(c_code_str):
 
 def main():
     """Main demonstration."""
-    print("🚀 Minimal CGen Pipeline Demo")
+    print(" Minimal CGen Pipeline Demo")
     print("=" * 50)
 
     # Step 1: Intelligence analysis
@@ -224,7 +224,7 @@ def main():
     writer = cfile.Writer()
     c_code = writer.write_str(c_ast)
 
-    print(f"\n📝 Generated C Code")
+    print(f"\n Generated C Code")
     print("-" * 40)
     print(c_code)
 
@@ -232,26 +232,26 @@ def main():
     success = test_compilation(c_code)
 
     # Step 5: Summary
-    print(f"\n📊 Demo Results")
+    print(f"\n Demo Results")
     print("=" * 50)
 
     static_ok = analysis_results['static'].success
     speedup = analysis_results['compile_time'].performance_gain_estimate
     vectors = analysis_results['vectorization'].vectorizable_loops
 
-    print(f"📈 Intelligence Analysis:")
-    print(f"   Static Analysis: {'✅' if static_ok else '❌'}")
+    print(f" Intelligence Analysis:")
+    print(f"   Static Analysis: {'' if static_ok else ''}")
     print(f"   Compile-time Speedup: {speedup:.2f}x")
     print(f"   Vectorizable Loops: {vectors}")
 
-    print(f"🔧 C Code Generation: ✅")
-    print(f"🔨 Compilation: {'✅' if success else '❌'}")
+    print(f" C Code Generation: ")
+    print(f" Compilation: {'' if success else ''}")
 
     if success:
-        print(f"\n🎉 Complete pipeline working!")
-        print(f"Python analysis → C generation → compilation → execution ✅")
+        print(f"\n Complete pipeline working!")
+        print(f"Python analysis → C generation → compilation → execution ")
     else:
-        print(f"\n⚠️  Pipeline needs debugging")
+        print(f"\n  Pipeline needs debugging")
 
     return success
 

@@ -29,18 +29,18 @@ def test_function_with_body():
     code = C.sequence()
 
     # Add includes
-    print("📁 Adding includes...")
+    print(" Adding includes...")
     code.append(C.sysinclude("stdio.h"))
     code.append(C.blank())
 
     # Add compile-time constant
-    print("📊 Adding optimized constant...")
+    print(" Adding optimized constant...")
     code.append(C.line_comment("Compile-time optimized constant"))
     code.append(C.define("PI", "3.141592653589793"))
     code.append(C.blank())
 
     # Create function with body using enhanced API
-    print("🔧 Creating function with body...")
+    print(" Creating function with body...")
     factorial_func = C.function("factorial", "int")
     factorial_func.make_param("n", "int")
 
@@ -52,7 +52,7 @@ def test_function_with_body():
     code.append(C.blank())
 
     # Create another function
-    print("📐 Creating area function...")
+    print(" Creating area function...")
     area_func = C.function("compute_area", "double")
     area_func.make_param("radius", "double")
     area_func.add_statement("return PI * radius * radius")
@@ -61,7 +61,7 @@ def test_function_with_body():
     code.append(C.blank())
 
     # Create main function
-    print("🎯 Creating main function...")
+    print(" Creating main function...")
     main_func = C.function("main", "int")
 
     # Add main body
@@ -74,7 +74,7 @@ def test_function_with_body():
     code.append(C.declaration(main_func))
 
     # Generate C code
-    print("\n📝 Generated C Code:")
+    print("\n Generated C Code:")
     print("-" * 40)
     c_code = writer.write_str(code)
     print(c_code)
@@ -114,7 +114,7 @@ def test_intelligence_aware_generation():
     code.append(C.blank())
 
     # Test vectorizable loop
-    print("⚡ Creating vectorizable loop...")
+    print(" Creating vectorizable loop...")
     loop_body = C.block()
     loop_body.append(C.statement("result[i] = a[i] + b[i]"))
 
@@ -145,7 +145,7 @@ def test_intelligence_aware_generation():
     code.append(C.declaration(add_func))
 
     # Generate code
-    print("\n📝 Intelligence-Aware Generated Code:")
+    print("\n Intelligence-Aware Generated Code:")
     print("-" * 40)
     c_code = writer.write_str(code)
     print(c_code)
@@ -159,7 +159,7 @@ def test_intelligence_aware_generation():
 
 def main():
     """Run all tests."""
-    print("🚀 CGen Integrated Generator Test Suite")
+    print(" CGen Integrated Generator Test Suite")
     print("=" * 60)
 
     try:
@@ -169,8 +169,8 @@ def main():
         # Test intelligence-aware features
         smart_code = test_intelligence_aware_generation()
 
-        print(f"\n✅ All tests completed successfully!")
-        print(f"📈 The integrated generator supports:")
+        print(f"\n All tests completed successfully!")
+        print(f" The integrated generator supports:")
         print(f"   • Function definitions with bodies")
         print(f"   • Intelligence-aware code generation")
         print(f"   • Optimization annotations")
@@ -179,7 +179,7 @@ def main():
         return True
 
     except Exception as e:
-        print(f"\n❌ Test failed: {e}")
+        print(f"\n Test failed: {e}")
         import traceback
         traceback.print_exc()
         return False

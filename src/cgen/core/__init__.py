@@ -4,6 +4,15 @@ from .factory import CFactory
 from .py2c import PythonToCConverter, convert_python_file_to_c, convert_python_to_c
 from .style import Alignment, BreakBeforeBraces, StyleOptions
 from .writer import Writer
+from .core import (
+    BreakStatement,
+    ContinueStatement,
+    DoWhileLoop,
+    TernaryOperator,
+    SizeofOperator,
+    AddressOfOperator,
+    DereferenceOperator,
+)
 
 __all__ = [
     "CFactory",
@@ -14,4 +23,12 @@ __all__ = [
     "PythonToCConverter",
     "convert_python_to_c",
     "convert_python_file_to_c",
+    # TIER 2 elements
+    "BreakStatement",
+    "ContinueStatement",
+    "DoWhileLoop",
+    "TernaryOperator",
+    "SizeofOperator",
+    "AddressOfOperator",
+    "DereferenceOperator",
 ]

@@ -66,26 +66,26 @@ def analyze_python_code():
     static_analyzer = StaticAnalyzer()
     static_result = static_analyzer.analyze(context)
     results['static'] = static_result
-    print(f"📊 Static Analysis: Success={static_result.success}, Confidence={static_result.confidence:.2f}")
+    print(f" Static Analysis: Success={static_result.success}, Confidence={static_result.confidence:.2f}")
 
     # Compile-time evaluation
     evaluator = CompileTimeEvaluator()
     eval_result = evaluator.optimize(context)
     results['compile_time'] = eval_result
-    print(f"⚡ Compile-time Optimization: Success={eval_result.success}, Speedup={eval_result.performance_gain_estimate:.2f}x")
+    print(f" Compile-time Optimization: Success={eval_result.success}, Speedup={eval_result.performance_gain_estimate:.2f}x")
 
     # Vectorization detection
     detector = VectorizationDetector()
     vector_result = detector.analyze(context.ast_node)
     results['vectorization'] = vector_result
-    print(f"🚀 Vectorization: {vector_result.vectorizable_loops}/{vector_result.total_loops_analyzed} loops vectorizable")
+    print(f" Vectorization: {vector_result.vectorizable_loops}/{vector_result.total_loops_analyzed} loops vectorizable")
 
     return results
 
 
 def generate_simple_c_code():
     """Generate simple but functional C code."""
-    print("\n🔧 Generating C Code")
+    print("\n Generating C Code")
     print("-" * 30)
 
     C = cfile.CFactory()
@@ -96,12 +96,12 @@ def generate_simple_c_code():
     code.append(C.blank())
 
     # Constants (optimized based on analysis)
-    print("📐 Adding optimized constant...")
+    print(" Adding optimized constant...")
     code.append(C.define("PI", "3.14159"))
     code.append(C.blank())
 
     # Simple factorial function
-    print("🔄 Generating factorial function...")
+    print(" Generating factorial function...")
     factorial = C.function("factorial", "int")
     factorial.make_param("n", "int")
 
@@ -115,7 +115,7 @@ def generate_simple_c_code():
     code.append(C.blank())
 
     # Simple area calculation function
-    print("📊 Generating optimized area function...")
+    print(" Generating optimized area function...")
     area_func = C.function("compute_area", "double")
     area_func.make_param("radius", "double")
 
@@ -127,7 +127,7 @@ def generate_simple_c_code():
     code.append(C.blank())
 
     # Main function
-    print("🎯 Generating main function...")
+    print(" Generating main function...")
     main = C.function("main", "int")
 
     main_body = C.block()
@@ -147,7 +147,7 @@ def generate_simple_c_code():
 
 def compile_and_test(c_code_str):
     """Compile and test the C code."""
-    print(f"\n🔨 Compiling and Testing")
+    print(f"\n Compiling and Testing")
     print("-" * 30)
 
     try:
@@ -160,29 +160,29 @@ def compile_and_test(c_code_str):
         executable = c_file.replace('.c', '.exe')
         cmd = ['gcc', '-o', executable, c_file]
 
-        print(f"🔧 Compiling: gcc -o {executable} {c_file}")
+        print(f" Compiling: gcc -o {executable} {c_file}")
         result = subprocess.run(cmd, capture_output=True, text=True)
 
         if result.returncode == 0:
-            print("✅ Compilation successful!")
+            print(" Compilation successful!")
 
             # Run
-            print("🚀 Running executable...")
+            print(" Running executable...")
             run_result = subprocess.run([executable], capture_output=True, text=True)
 
             if run_result.returncode == 0:
-                print("✅ Execution successful!")
-                print("📤 Program output:")
+                print(" Execution successful!")
+                print(" Program output:")
                 for line in run_result.stdout.strip().split('\n'):
                     print(f"   {line}")
                 return True
             else:
-                print(f"❌ Execution failed: {run_result.stderr}")
+                print(f" Execution failed: {run_result.stderr}")
         else:
-            print(f"❌ Compilation failed: {result.stderr}")
+            print(f" Compilation failed: {result.stderr}")
 
     except Exception as e:
-        print(f"💥 Error: {e}")
+        print(f" Error: {e}")
 
     finally:
         # Cleanup
@@ -199,7 +199,7 @@ def compile_and_test(c_code_str):
 
 def main():
     """Main pipeline demonstration."""
-    print("🚀 CGen Working Pipeline Example")
+    print(" CGen Working Pipeline Example")
     print("=" * 50)
 
     # Step 1: Analyze Python code
@@ -212,7 +212,7 @@ def main():
     writer = cfile.Writer()
     c_code = writer.write_str(c_ast)
 
-    print(f"\n📝 Generated C Code")
+    print(f"\n Generated C Code")
     print("-" * 30)
     print(c_code)
 
@@ -220,25 +220,25 @@ def main():
     success = compile_and_test(c_code)
 
     # Step 5: Summary
-    print(f"\n📊 Pipeline Results")
+    print(f"\n Pipeline Results")
     print("=" * 50)
 
     static_success = analysis_results['static'].success
     compile_speedup = analysis_results['compile_time'].performance_gain_estimate
     vector_count = analysis_results['vectorization'].vectorizable_loops
 
-    print(f"📈 Static Analysis: {'✅' if static_success else '❌'}")
-    print(f"⚡ Compile-time Speedup: {compile_speedup:.2f}x")
-    print(f"🚀 Vectorizable Loops: {vector_count}")
-    print(f"🔧 C Generation: ✅")
-    print(f"🔨 Compilation & Execution: {'✅' if success else '❌'}")
+    print(f" Static Analysis: {'' if static_success else ''}")
+    print(f" Compile-time Speedup: {compile_speedup:.2f}x")
+    print(f" Vectorizable Loops: {vector_count}")
+    print(f" C Generation: ")
+    print(f" Compilation & Execution: {'' if success else ''}")
 
     if success:
-        print(f"\n🎉 Complete pipeline successful!")
-        print(f"Python → Intelligence Analysis → C Generation → Compilation → Execution ✅")
+        print(f"\n Complete pipeline successful!")
+        print(f"Python → Intelligence Analysis → C Generation → Compilation → Execution ")
         return True
     else:
-        print(f"\n⚠️  Pipeline had issues")
+        print(f"\n  Pipeline had issues")
         return False
 
 

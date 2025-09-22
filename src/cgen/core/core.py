@@ -627,3 +627,99 @@ class ForLoop(Element):
         else:
             # Treat as single statement
             return Statement(body)
+
+
+class BreakStatement(Element):
+    """Break statement for loop control."""
+
+    def __init__(self) -> None:
+        pass
+
+
+class ContinueStatement(Element):
+    """Continue statement for loop control."""
+
+    def __init__(self) -> None:
+        pass
+
+
+class DoWhileLoop(Element):
+    """Do-while loop construct."""
+
+    def __init__(self, body: Any, condition: Any) -> None:
+        self.body = self._convert_body(body)
+        self.condition = self._convert_condition(condition)
+
+    def _convert_condition(self, condition: Any) -> Union[str, Element]:
+        """Convert condition to appropriate type."""
+        if isinstance(condition, (str, Element)):
+            return condition
+        elif isinstance(condition, bool):
+            return "true" if condition else "false"
+        elif isinstance(condition, (int, float)):
+            return str(condition)
+        else:
+            raise NotImplementedError(f"Unsupported condition type: {type(condition)}")
+
+    def _convert_body(self, body: Any) -> Union[Block, Statement, Sequence]:
+        """Convert body to appropriate type."""
+        if body is None:
+            return Block()
+        elif isinstance(body, (Block, Statement, Sequence)):
+            return body
+        elif isinstance(body, list):
+            seq = Sequence()
+            for item in body:
+                seq.append(item)
+            return seq
+        else:
+            # Treat as single statement
+            return Statement(body)
+
+
+class TernaryOperator(Element):
+    """Ternary conditional operator (condition ? true_expr : false_expr)."""
+
+    def __init__(self, condition: Any, true_expr: Any, false_expr: Any) -> None:
+        self.condition = self._convert_expression(condition)
+        self.true_expr = self._convert_expression(true_expr)
+        self.false_expr = self._convert_expression(false_expr)
+
+    def _convert_expression(self, expr: Any) -> Union[str, Element]:
+        """Convert expression to appropriate type."""
+        if isinstance(expr, (str, Element)):
+            return expr
+        elif isinstance(expr, (int, float, bool)):
+            return str(expr)
+        else:
+            raise NotImplementedError(f"Unsupported expression type: {type(expr)}")
+
+
+class SizeofOperator(Element):
+    """Sizeof operator for getting size of types or expressions."""
+
+    def __init__(self, operand: Union[str, DataType, Element]) -> None:
+        self.operand = operand
+        self.is_type = isinstance(operand, (str, DataType))
+
+
+class AddressOfOperator(Element):
+    """Address-of operator (&) for getting address of variables."""
+
+    def __init__(self, operand: Union[str, Element]) -> None:
+        # Validate that string operands are not empty
+        if isinstance(operand, str):
+            if not operand.strip():
+                raise ValueError("address-of operand cannot be empty")
+            # Only validate simple identifiers, allow complex expressions like array[0]
+            if operand.isidentifier():
+                _validate_c_identifier(operand, "address-of operand")
+        self.operand = operand
+
+
+class DereferenceOperator(Element):
+    """Dereference operator (*) for accessing value at pointer address."""
+
+    def __init__(self, operand: Union[str, Element]) -> None:
+        self.operand = operand
+

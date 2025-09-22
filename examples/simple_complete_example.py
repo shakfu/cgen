@@ -73,35 +73,35 @@ def analyze_with_intelligence_layer(code: str):
     results = {}
 
     # Static Analysis
-    print("🔬 Static Analyzer...")
+    print(" Static Analyzer...")
     static_analyzer = StaticAnalyzer()
     static_result = static_analyzer.analyze(context)
     results['static'] = static_result
     print(f"  Success: {static_result.success}, Confidence: {static_result.confidence:.2f}")
 
     # Bounds Checking
-    print("🛡️  Bounds Checker...")
+    print("  Bounds Checker...")
     bounds_checker = BoundsChecker()
     bounds_result = bounds_checker.analyze(context)
     results['bounds'] = bounds_result
     print(f"  Success: {bounds_result.success}, Confidence: {bounds_result.confidence:.2f}")
 
     # Call Graph Analysis
-    print("📞 Call Graph Analyzer...")
+    print(" Call Graph Analyzer...")
     call_graph = CallGraphAnalyzer()
     graph_result = call_graph.analyze(context)
     results['call_graph'] = graph_result
     print(f"  Success: {graph_result.success}, Confidence: {graph_result.confidence:.2f}")
 
     # Compile-Time Evaluation
-    print("⚡ Compile-Time Evaluator...")
+    print(" Compile-Time Evaluator...")
     evaluator = CompileTimeEvaluator()
     eval_result = evaluator.optimize(context)
     results['compile_time'] = eval_result
     print(f"  Success: {eval_result.success}, Speedup: {eval_result.performance_gain_estimate:.2f}x")
 
     # Vectorization Detection
-    print("🚀 Vectorization Detector...")
+    print(" Vectorization Detector...")
     detector = VectorizationDetector()
     vector_result = detector.analyze(context.ast_node)
     results['vectorization'] = vector_result
@@ -112,7 +112,7 @@ def analyze_with_intelligence_layer(code: str):
 
 def generate_c_code(analysis_results):
     """Generate C code using cfile library."""
-    print("\n🔧 Generating C Code")
+    print("\n Generating C Code")
     print("=" * 40)
 
     C = cfile.CFactory()
@@ -126,13 +126,13 @@ def generate_c_code(analysis_results):
     # Add optimized constants (from compile-time analysis)
     eval_result = analysis_results.get('compile_time')
     if eval_result and eval_result.success:
-        print("📊 Adding compile-time optimized constants...")
+        print(" Adding compile-time optimized constants...")
         code.append(C.line_comment("Compile-time optimized constants"))
         code.append(C.define("PI", "3.141592653589793"))
         code.append(C.blank())
 
     # Generate factorial function (identified by call graph analysis)
-    print("🔄 Generating factorial function...")
+    print(" Generating factorial function...")
     factorial_func = C.function("factorial", "int")
     factorial_func.add_param(C.variable("n", "int"))
 
@@ -151,7 +151,7 @@ def generate_c_code(analysis_results):
     code.append(C.blank())
 
     # Generate optimized circle area function
-    print("📐 Generating optimized circle area function...")
+    print(" Generating optimized circle area function...")
     area_func = C.function("compute_circle_area", "double")
     area_func.add_param(C.variable("radius", "double"))
 
@@ -167,7 +167,7 @@ def generate_c_code(analysis_results):
 
     # Generate bounds-checked array sum
     bounds_result = analysis_results.get('bounds')
-    print("🛡️  Generating memory-safe array sum...")
+    print("  Generating memory-safe array sum...")
     if bounds_result and bounds_result.confidence > 0.8:
         code.append(C.line_comment("Memory safety verified by static analysis"))
 
@@ -202,7 +202,7 @@ def generate_c_code(analysis_results):
     # Generate vectorizable vector addition function
     vector_result = analysis_results.get('vectorization')
     if vector_result and vector_result.vectorizable_loops > 0:
-        print("⚡ Generating vectorizable function...")
+        print(" Generating vectorizable function...")
         code.append(C.line_comment("Vectorizable operation - SIMD optimization opportunity"))
 
     vector_func = C.function("vector_add", "void")
@@ -236,7 +236,7 @@ def generate_c_code(analysis_results):
     code.append(C.blank())
 
     # Generate main function with tests
-    print("🎯 Generating main function...")
+    print(" Generating main function...")
     main_func = C.function("main", "int")
 
     main_body = C.block()
@@ -274,7 +274,7 @@ def generate_c_code(analysis_results):
 
 def compile_and_run(c_code: str):
     """Compile and run the generated C code."""
-    print("\n🔨 Compiling and Running C Code")
+    print("\n Compiling and Running C Code")
     print("=" * 40)
 
     try:
@@ -287,31 +287,31 @@ def compile_and_run(c_code: str):
         executable = c_file.replace('.c', '')
         cmd = ['gcc', '-o', executable, c_file, '-lm']
 
-        print(f"🔧 Compiling: {' '.join(cmd)}")
+        print(f" Compiling: {' '.join(cmd)}")
         result = subprocess.run(cmd, capture_output=True, text=True)
 
         if result.returncode == 0:
-            print("✅ Compilation successful!")
+            print(" Compilation successful!")
 
             # Run
-            print("🚀 Running executable...")
+            print(" Running executable...")
             run_result = subprocess.run([executable], capture_output=True, text=True)
 
             if run_result.returncode == 0:
-                print("✅ Execution successful!")
-                print("📤 Output:")
+                print(" Execution successful!")
+                print(" Output:")
                 for line in run_result.stdout.strip().split('\n'):
                     print(f"  {line}")
                 return True
             else:
-                print(f"❌ Execution failed: {run_result.stderr}")
+                print(f" Execution failed: {run_result.stderr}")
                 return False
         else:
-            print(f"❌ Compilation failed: {result.stderr}")
+            print(f" Compilation failed: {result.stderr}")
             return False
 
     except Exception as e:
-        print(f"💥 Exception: {e}")
+        print(f" Exception: {e}")
         return False
 
     finally:
@@ -327,7 +327,7 @@ def compile_and_run(c_code: str):
 
 def main():
     """Main demonstration."""
-    print("🚀 CGen Complete Pipeline Example")
+    print(" CGen Complete Pipeline Example")
     print("=" * 50)
     print("Python → Intelligence Analysis → C Generation → Compilation")
     print("=" * 50)
@@ -342,7 +342,7 @@ def main():
     writer = cfile.Writer()
     c_code = writer.write_str(c_code_ast)
 
-    print("\n📝 Generated C Code")
+    print("\n Generated C Code")
     print("=" * 40)
     print(c_code)
 
@@ -350,7 +350,7 @@ def main():
     success = compile_and_run(c_code)
 
     # Step 5: Summary
-    print(f"\n📊 Pipeline Summary")
+    print(f"\n Pipeline Summary")
     print("=" * 40)
 
     # Count successful components
@@ -363,10 +363,10 @@ def main():
     if analysis_results.get('vectorization') and analysis_results['vectorization'].vectorizable_loops > 0:
         optimizers_success += 1
 
-    print(f"📈 Intelligence Analysis: {analyzers_success}/3 analyzers successful")
-    print(f"🚀 Optimizations: {optimizers_success}/2 optimizers found opportunities")
-    print(f"🔧 C Code Generation: ✅ Success")
-    print(f"🔨 Compilation: {'✅ Success' if success else '❌ Failed'}")
+    print(f" Intelligence Analysis: {analyzers_success}/3 analyzers successful")
+    print(f" Optimizations: {optimizers_success}/2 optimizers found opportunities")
+    print(f" C Code Generation:  Success")
+    print(f" Compilation: {' Success' if success else ' Failed'}")
 
     # Calculate estimated performance improvement
     eval_result = analysis_results.get('compile_time')
@@ -377,13 +377,13 @@ def main():
         vector_speedup = sum(c.estimated_speedup for c in vector_result.candidates) / len(vector_result.candidates)
         speedup *= vector_speedup
 
-    print(f"📊 Estimated Performance Improvement: {speedup:.2f}x")
+    print(f" Estimated Performance Improvement: {speedup:.2f}x")
 
     if success:
-        print("\n🎉 Complete pipeline successful!")
+        print("\n Complete pipeline successful!")
         print("All components working: Python analysis → C generation → compilation → execution")
     else:
-        print("\n⚠️  Pipeline partially successful")
+        print("\n  Pipeline partially successful")
 
     return success
 

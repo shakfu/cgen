@@ -66,35 +66,35 @@ def analyze_python_code():
     results = {}
 
     # Static Analysis
-    print("🔬 Static Analyzer...")
+    print(" Static Analyzer...")
     static_analyzer = StaticAnalyzer()
     static_result = static_analyzer.analyze(context)
     results['static'] = static_result
     print(f"  Success: {static_result.success}, Confidence: {static_result.confidence:.2f}")
 
     # Bounds Checking
-    print("🛡️  Bounds Checker...")
+    print("  Bounds Checker...")
     bounds_checker = BoundsChecker()
     bounds_result = bounds_checker.analyze(context)
     results['bounds'] = bounds_result
     print(f"  Success: {bounds_result.success}, Confidence: {bounds_result.confidence:.2f}")
 
     # Call Graph Analysis
-    print("📞 Call Graph Analyzer...")
+    print(" Call Graph Analyzer...")
     call_graph = CallGraphAnalyzer()
     graph_result = call_graph.analyze(context)
     results['call_graph'] = graph_result
     print(f"  Success: {graph_result.success}, Confidence: {graph_result.confidence:.2f}")
 
     # Compile-Time Evaluation
-    print("⚡ Compile-Time Evaluator...")
+    print(" Compile-Time Evaluator...")
     evaluator = CompileTimeEvaluator()
     eval_result = evaluator.optimize(context)
     results['compile_time'] = eval_result
     print(f"  Success: {eval_result.success}, Speedup: {eval_result.performance_gain_estimate:.2f}x")
 
     # Vectorization Detection
-    print("🚀 Vectorization Detector...")
+    print(" Vectorization Detector...")
     detector = VectorizationDetector()
     vector_result = detector.analyze(context.ast_node)
     results['vectorization'] = vector_result
@@ -105,11 +105,11 @@ def analyze_python_code():
 
 def generate_c_code_with_correct_api():
     """Generate C code using correct cfile API - simplified approach."""
-    print("\n🔧 Generating C Code")
+    print("\n Generating C Code")
     print("=" * 40)
 
     # Create C code manually as string since cfile may only support declarations
-    print("📁 Creating optimized C code with intelligence insights...")
+    print(" Creating optimized C code with intelligence insights...")
 
     c_code = """#include <stdio.h>
 #include <math.h>
@@ -179,13 +179,13 @@ int main() {
 }
 """
 
-    print("✅ Generated optimized C code with intelligence insights")
+    print(" Generated optimized C code with intelligence insights")
     return c_code
 
 
 def compile_and_run(c_code: str):
     """Compile and run the generated C code."""
-    print(f"\n🔨 Compiling and Running")
+    print(f"\n Compiling and Running")
     print("=" * 40)
 
     try:
@@ -198,31 +198,31 @@ def compile_and_run(c_code: str):
         executable = c_file.replace('.c', '')
         cmd = ['gcc', '-o', executable, c_file, '-lm']
 
-        print(f"🔧 Compiling: {' '.join(cmd)}")
+        print(f" Compiling: {' '.join(cmd)}")
         result = subprocess.run(cmd, capture_output=True, text=True)
 
         if result.returncode == 0:
-            print("✅ Compilation successful!")
+            print(" Compilation successful!")
 
             # Run
-            print("🚀 Running executable...")
+            print(" Running executable...")
             run_result = subprocess.run([executable], capture_output=True, text=True)
 
             if run_result.returncode == 0:
-                print("✅ Execution successful!")
-                print("📤 Output:")
+                print(" Execution successful!")
+                print(" Output:")
                 for line in run_result.stdout.strip().split('\n'):
                     print(f"  {line}")
                 return True
             else:
-                print(f"❌ Execution failed: {run_result.stderr}")
+                print(f" Execution failed: {run_result.stderr}")
                 return False
         else:
-            print(f"❌ Compilation failed: {result.stderr}")
+            print(f" Compilation failed: {result.stderr}")
             return False
 
     except Exception as e:
-        print(f"💥 Exception: {e}")
+        print(f" Exception: {e}")
         return False
 
     finally:
@@ -238,7 +238,7 @@ def compile_and_run(c_code: str):
 
 def main():
     """Main demonstration."""
-    print("🚀 Complete Working CGen Pipeline")
+    print(" Complete Working CGen Pipeline")
     print("=" * 50)
     print("Python Analysis → C Generation → Compilation → Execution")
     print("=" * 50)
@@ -249,7 +249,7 @@ def main():
     # Step 2: Generate C Code
     c_code = generate_c_code_with_correct_api()
 
-    print(f"\n📝 Generated C Code")
+    print(f"\n Generated C Code")
     print("=" * 40)
     print(c_code)
 
@@ -257,7 +257,7 @@ def main():
     success = compile_and_run(c_code)
 
     # Step 5: Summary
-    print(f"\n📊 Complete Pipeline Results")
+    print(f"\n Complete Pipeline Results")
     print("=" * 40)
 
     # Count successful components
@@ -273,17 +273,17 @@ def main():
         vector_speedup = sum(c.estimated_speedup for c in vector_result.candidates) / len(vector_result.candidates)
         speedup *= vector_speedup
 
-    print(f"📈 Intelligence Analysis: {analyzers_success}/3 analyzers successful")
-    print(f"⚡ Estimated Performance Improvement: {speedup:.2f}x")
-    print(f"🔧 C Code Generation: ✅ Success")
-    print(f"🔨 Compilation & Execution: {'✅ Success' if success else '❌ Failed'}")
+    print(f" Intelligence Analysis: {analyzers_success}/3 analyzers successful")
+    print(f" Estimated Performance Improvement: {speedup:.2f}x")
+    print(f" C Code Generation:  Success")
+    print(f" Compilation & Execution: {' Success' if success else ' Failed'}")
 
     if success:
-        print(f"\n🎉 Complete pipeline successful!")
-        print(f"✅ Python → Intelligence Analysis → C Generation → Compilation → Execution")
-        print(f"📈 Demonstrated {speedup:.2f}x potential performance improvement")
+        print(f"\n Complete pipeline successful!")
+        print(f" Python → Intelligence Analysis → C Generation → Compilation → Execution")
+        print(f" Demonstrated {speedup:.2f}x potential performance improvement")
     else:
-        print(f"\n⚠️  Pipeline had compilation/execution issues")
+        print(f"\n  Pipeline had compilation/execution issues")
 
     return success
 
