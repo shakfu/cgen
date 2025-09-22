@@ -1,16 +1,19 @@
 """Tests for the Symbolic Executor in the Intelligence Layer."""
 
-import unittest
 import ast
+
+import pytest
+
+from src.cgen.frontend.ast_analyzer import AnalysisResult, FunctionInfo
 from src.cgen.intelligence.analyzers.symbolic_executor import SymbolicExecutor, SymbolicValueType
 from src.cgen.intelligence.base import AnalysisContext, AnalysisLevel
-from src.cgen.frontend.ast_analyzer import AnalysisResult, FunctionInfo
 
 
-class TestSymbolicExecutor(unittest.TestCase):
+class TestSymbolicExecutor:
     """Test cases for the SymbolicExecutor."""
 
-    def setUp(self):
+
+    def setup_method(self):
         """Set up test fixtures."""
         self.executor = SymbolicExecutor(AnalysisLevel.BASIC)
 
@@ -39,10 +42,10 @@ def add(x: int, y: int) -> int:
 
         report = self.executor.analyze(context)
 
-        self.assertTrue(report.success)
-        self.assertGreater(report.confidence, 0.7)
-        self.assertGreater(report.total_paths, 0)
-        self.assertGreaterEqual(report.completed_paths, 0)
+        assert report.success
+        assert report.confidence > 0.7
+        assert report.total_paths > 0
+        assert report.completed_paths >= 0
 
     def test_conditional_execution(self):
         """Test symbolic execution with conditional branches."""
@@ -72,9 +75,9 @@ def abs_value(x: int) -> int:
 
         report = self.executor.analyze(context)
 
-        self.assertTrue(report.success)
+        assert report.success
         # Should generate at least 2 paths (true and false branches)
-        self.assertGreaterEqual(report.total_paths, 2)
+        assert report.total_paths >= 2
 
         # Check that we have path conditions
         all_conditions = []
@@ -82,7 +85,7 @@ def abs_value(x: int) -> int:
             all_conditions.extend(path.path_conditions)
 
         # Should have conditions for both branches
-        self.assertGreater(len(all_conditions), 0)
+        assert len(all_conditions) > 0
 
     def test_loop_execution(self):
         """Test symbolic execution with a simple loop."""
@@ -111,11 +114,11 @@ def count_up(n: int) -> int:
 
         report = self.executor.analyze(context)
 
-        self.assertTrue(report.success)
-        self.assertGreater(report.total_paths, 0)
+        assert report.success
+        assert report.total_paths > 0
 
         # Loops should generate multiple paths due to unrolling
-        self.assertGreaterEqual(report.total_paths, 1)
+        assert report.total_paths >= 1
 
     def test_variable_assignment_tracking(self):
         """Test tracking of variable assignments."""
@@ -144,11 +147,11 @@ def calculate(x: int, y: int) -> int:
 
         report = self.executor.analyze(context)
 
-        self.assertTrue(report.success)
-        self.assertGreater(report.total_paths, 0)
+        assert report.success
+        assert report.total_paths > 0
 
         # Check that at least one path was completed
-        self.assertGreater(report.completed_paths, 0)
+        assert report.completed_paths > 0
 
     def test_division_by_zero_detection(self):
         """Test detection of potential division by zero."""
@@ -175,10 +178,10 @@ def divide(x: int, y: int) -> int:
 
         report = self.executor.analyze(context)
 
-        self.assertTrue(report.success)
+        assert report.success
         # Note: Basic symbolic executor might not detect all division by zero cases
         # but should complete execution without errors
-        self.assertGreater(report.total_paths, 0)
+        assert report.total_paths > 0
 
     def test_complex_control_flow(self):
         """Test symbolic execution with complex control flow."""
@@ -211,13 +214,13 @@ def complex_logic(x: int, y: int) -> int:
 
         report = self.executor.analyze(context)
 
-        self.assertTrue(report.success)
+        assert report.success
         # Should generate multiple paths for nested conditions
-        self.assertGreaterEqual(report.total_paths, 3)  # At least 3 different paths
+        assert report.total_paths >= 3  # At least 3 different paths
 
         # Check coverage information
-        self.assertIn('coverage_percentage', report.coverage_info)
-        self.assertGreaterEqual(report.coverage_info['coverage_percentage'], 0)
+        assert 'coverage_percentage' in report.coverage_info
+        assert report.coverage_info['coverage_percentage'] >= 0
 
     def test_error_handling(self):
         """Test symbolic executor error handling."""
@@ -245,7 +248,7 @@ def simple() -> None:
         report = self.executor.analyze(context)
 
         # Should handle gracefully
-        self.assertIsNotNone(report)
+        assert report is not None
 
     def test_coverage_calculation(self):
         """Test coverage calculation functionality."""
@@ -274,16 +277,16 @@ def test_coverage(x: int) -> int:
 
         report = self.executor.analyze(context)
 
-        self.assertTrue(report.success)
+        assert report.success
 
         # Check coverage information structure
-        self.assertIn('total_lines', report.coverage_info)
-        self.assertIn('covered_lines', report.coverage_info)
-        self.assertIn('coverage_percentage', report.coverage_info)
-        self.assertIn('uncovered_lines', report.coverage_info)
+        assert 'total_lines' in report.coverage_info
+        assert 'covered_lines' in report.coverage_info
+        assert 'coverage_percentage' in report.coverage_info
+        assert 'uncovered_lines' in report.coverage_info
 
         # Should have reasonable coverage
-        self.assertGreaterEqual(report.coverage_info['coverage_percentage'], 0)
+        assert report.coverage_info['coverage_percentage'] >= 0
 
     def test_path_limit_handling(self):
         """Test that path explosion is properly limited."""
@@ -322,10 +325,9 @@ def many_paths(a: int, b: int, c: int, d: int) -> int:
 
         report = self.executor.analyze(context)
 
-        self.assertTrue(report.success)
+        assert report.success
         # Should be limited by max_paths
-        self.assertLessEqual(report.total_paths, self.executor._max_paths)
+        assert report.total_paths <= self.executor._max_paths
 
 
-if __name__ == '__main__':
-    unittest.main()
+# This file has been converted to pytest style

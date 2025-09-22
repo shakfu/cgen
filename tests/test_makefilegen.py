@@ -1,50 +1,50 @@
 """Test module for CGen makefilegen functionality."""
 
-import unittest
 import tempfile
-import os
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 from cgen.builder.makefilegen import (
     Builder,
-    MakefileGenerator,
     CGenMakefileGenerator,
+    MakefileGenerator,
     unique_list,
 )
 
 
-class TestUniqueList(unittest.TestCase):
+class TestUniqueList:
     """Test the unique_list utility function."""
 
     def test_empty_list(self):
         """Test unique_list with empty list."""
         result = unique_list([])
-        self.assertEqual(result, [])
+        assert result == []
 
     def test_no_duplicates(self):
         """Test unique_list with no duplicates."""
         input_list = [1, 2, 3, 4, 5]
         result = unique_list(input_list)
-        self.assertEqual(result, [1, 2, 3, 4, 5])
+        assert result == [1, 2, 3, 4, 5]
 
     def test_with_duplicates(self):
         """Test unique_list with duplicates."""
         input_list = [1, 2, 2, 3, 1, 4, 3, 5]
         result = unique_list(input_list)
-        self.assertEqual(result, [1, 2, 3, 4, 5])
+        assert result == [1, 2, 3, 4, 5]
 
     def test_preserves_order(self):
         """Test that unique_list preserves the original order."""
-        input_list = ['c', 'a', 'b', 'a', 'c']
+        input_list = ["c", "a", "b", "a", "c"]
         result = unique_list(input_list)
-        self.assertEqual(result, ['c', 'a', 'b'])
+        assert result == ["c", "a", "b"]
 
 
-class TestBuilder(unittest.TestCase):
+class TestBuilder:
     """Test the Builder class for direct compilation."""
 
-    def setUp(self):
+    def setup_method(self):
         """Set up test fixtures."""
         self.temp_dir = tempfile.mkdtemp()
         self.source_file = Path(self.temp_dir) / "test.c"
@@ -56,7 +56,7 @@ int main() {
 }
 """)
 
-    def tearDown(self):
+    def teardown_method(self):
         """Clean up test fixtures."""
         import shutil
         shutil.rmtree(self.temp_dir)
@@ -70,11 +70,11 @@ int main() {
             std="c99"
         )
 
-        self.assertEqual(builder.name, "test_program")
-        self.assertEqual(builder.source_dir, Path(self.temp_dir))
-        self.assertEqual(builder.compiler, "gcc")
-        self.assertEqual(builder.std, "c99")
-        self.assertTrue(builder.use_stc)
+        assert builder.name == "test_program"
+        assert builder.source_dir == Path(self.temp_dir)
+        assert builder.compiler == "gcc"
+        assert builder.std == "c99"
+        assert builder.use_stc
 
     def test_disable_stc(self):
         """Test Builder with STC disabled."""
@@ -84,16 +84,16 @@ int main() {
             use_stc=False
         )
 
-        self.assertFalse(builder.use_stc)
-        self.assertIsNone(builder.stc_include_path)
+        assert not builder.use_stc
+        assert builder.stc_include_path is None
 
     def test_get_source_files(self):
         """Test getting source files from directory."""
         builder = Builder(source_dir=self.temp_dir)
         source_files = builder.get_source_files()
 
-        self.assertEqual(len(source_files), 1)
-        self.assertEqual(source_files[0].name, "test.c")
+        assert len(source_files) == 1
+        assert source_files[0].name == "test.c"
 
     def test_build_command_generation(self):
         """Test build command generation."""
@@ -110,18 +110,18 @@ int main() {
 
         cmd = builder.build_command()
 
-        self.assertIn("gcc", cmd)
-        self.assertIn("-std=c99", cmd)
-        self.assertIn("-Wall", cmd)
-        self.assertIn("-O2", cmd)
-        self.assertIn("-I", cmd)
-        self.assertIn("/usr/include", cmd)
-        self.assertIn("-l", cmd)
-        self.assertIn("m", cmd)
-        self.assertIn("-o", cmd)
-        self.assertIn("test_program", cmd)
+        assert "gcc" in cmd
+        assert "-std=c99" in cmd
+        assert "-Wall" in cmd
+        assert "-O2" in cmd
+        assert "-I" in cmd
+        assert "/usr/include" in cmd
+        assert "-l" in cmd
+        assert "m" in cmd
+        assert "-o" in cmd
+        assert "test_program" in cmd
 
-    @patch('subprocess.run')
+    @patch("subprocess.run")
     def test_build_success(self, mock_run):
         """Test successful build execution."""
         mock_run.return_value = MagicMock(returncode=0, stdout="", stderr="")
@@ -133,10 +133,10 @@ int main() {
         )
 
         result = builder.build(verbose=False)
-        self.assertTrue(result)
+        assert result
         mock_run.assert_called_once()
 
-    @patch('subprocess.run')
+    @patch("subprocess.run")
     def test_build_failure(self, mock_run):
         """Test build failure handling."""
         from subprocess import CalledProcessError
@@ -149,13 +149,13 @@ int main() {
         )
 
         result = builder.build(verbose=False)
-        self.assertFalse(result)
+        assert not result
 
 
-class TestMakefileGenerator(unittest.TestCase):
+class TestMakefileGenerator:
     """Test the MakefileGenerator class."""
 
-    def setUp(self):
+    def setup_method(self):
         """Set up test fixtures."""
         # Use build directory for test outputs
         self.test_build_dir = Path("build/test_outputs")
@@ -163,7 +163,7 @@ class TestMakefileGenerator(unittest.TestCase):
 
         self.temp_dir = tempfile.mkdtemp()
 
-    def tearDown(self):
+    def teardown_method(self):
         """Clean up test fixtures."""
         import shutil
         shutil.rmtree(self.temp_dir)
@@ -178,12 +178,12 @@ class TestMakefileGenerator(unittest.TestCase):
             std="c99"
         )
 
-        self.assertEqual(generator.name, "test_project")
-        self.assertEqual(generator.source_dir, Path(self.temp_dir))
-        self.assertEqual(generator.build_dir, self.test_build_dir)
-        self.assertEqual(generator.compiler, "gcc")
-        self.assertEqual(generator.std, "c99")
-        self.assertTrue(generator.use_stc)
+        assert generator.name == "test_project"
+        assert generator.source_dir == Path(self.temp_dir)
+        assert generator.build_dir == self.test_build_dir
+        assert generator.compiler == "gcc"
+        assert generator.std == "c99"
+        assert generator.use_stc
 
     def test_disable_stc(self):
         """Test MakefileGenerator with STC disabled."""
@@ -194,15 +194,15 @@ class TestMakefileGenerator(unittest.TestCase):
             use_stc=False
         )
 
-        self.assertFalse(generator.use_stc)
-        self.assertIsNone(generator.stc_include_path)
+        assert not generator.use_stc
+        assert generator.stc_include_path is None
 
     def test_comment_addition(self):
         """Test adding comments to Makefile."""
         generator = MakefileGenerator(build_dir=str(self.test_build_dir))
         generator.comment("Test comment")
 
-        self.assertIn("# Test comment", generator.content)
+        assert "# Test comment" in generator.content
 
     def test_variable_definition(self):
         """Test adding variable definitions."""
@@ -210,8 +210,8 @@ class TestMakefileGenerator(unittest.TestCase):
         generator.variable("CC", "gcc")
         generator.variable("CFLAGS", "-Wall", conditional=True)
 
-        self.assertIn("CC = gcc", generator.content)
-        self.assertIn("CFLAGS ?= -Wall", generator.content)
+        assert "CC = gcc" in generator.content
+        assert "CFLAGS ?= -Wall" in generator.content
 
     def test_target_definition(self):
         """Test adding target definitions."""
@@ -224,9 +224,9 @@ class TestMakefileGenerator(unittest.TestCase):
         )
 
         content_str = "\n".join(generator.content)
-        self.assertIn(".PHONY: all", content_str)
-        self.assertIn("all: main", content_str)
-        self.assertIn("\t@echo 'Build complete'", content_str)
+        assert ".PHONY: all" in content_str
+        assert "all: main" in content_str
+        assert "\t@echo 'Build complete'" in content_str
 
     def test_pattern_rule(self):
         """Test adding pattern rules."""
@@ -238,8 +238,8 @@ class TestMakefileGenerator(unittest.TestCase):
         )
 
         content_str = "\n".join(generator.content)
-        self.assertIn("%.o: %.c", content_str)
-        self.assertIn("\t$(CC) $(CFLAGS) -c $< -o $@", content_str)
+        assert "%.o: %.c" in content_str
+        assert "\t$(CC) $(CFLAGS) -c $< -o $@" in content_str
 
     def test_makefile_generation(self):
         """Test complete Makefile generation."""
@@ -256,14 +256,14 @@ class TestMakefileGenerator(unittest.TestCase):
         makefile_content = generator.generate_makefile()
 
         # Check for basic Makefile structure
-        self.assertIn("CC = gcc", makefile_content)
-        self.assertIn("TARGET = test_project", makefile_content)
-        self.assertIn("SRCDIR = src", makefile_content)
-        self.assertIn("CFLAGS = -Wall -O2", makefile_content)
-        self.assertIn("INCLUDES = -Iinclude", makefile_content)
-        self.assertIn("LIBS = -lm", makefile_content)
-        self.assertIn("all: test_project", makefile_content)
-        self.assertIn(".PHONY:", makefile_content)
+        assert "CC = gcc" in makefile_content
+        assert "TARGET = test_project" in makefile_content
+        assert "SRCDIR = src" in makefile_content
+        assert "CFLAGS = -Wall -O2" in makefile_content
+        assert "INCLUDES = -Iinclude" in makefile_content
+        assert "LIBS = -lm" in makefile_content
+        assert "all: test_project" in makefile_content
+        assert ".PHONY:" in makefile_content
 
     def test_stc_configuration(self):
         """Test STC configuration in Makefile."""
@@ -276,9 +276,9 @@ class TestMakefileGenerator(unittest.TestCase):
 
         makefile_content = generator.generate_makefile()
 
-        self.assertIn("STC_INCLUDE = /path/to/stc", makefile_content)
-        self.assertIn("STC_FLAGS = -DSTC_ENABLED", makefile_content)
-        self.assertIn("STC container support", makefile_content)
+        assert "STC_INCLUDE = /path/to/stc" in makefile_content
+        assert "STC_FLAGS = -DSTC_ENABLED" in makefile_content
+        assert "STC container support" in makefile_content
 
     def test_write_makefile(self):
         """Test writing Makefile to build directory."""
@@ -291,17 +291,17 @@ class TestMakefileGenerator(unittest.TestCase):
 
         result = generator.write_makefile(str(makefile_path))
 
-        self.assertTrue(result)
-        self.assertTrue(makefile_path.exists())
+        assert result
+        assert makefile_path.exists()
 
         content = makefile_path.read_text()
-        self.assertIn("test_project", content)
+        assert "test_project" in content
 
 
-class TestCGenMakefileGenerator(unittest.TestCase):
+class TestCGenMakefileGenerator:
     """Test the CGenMakefileGenerator class."""
 
-    def setUp(self):
+    def setup_method(self):
         """Set up test fixtures."""
         # Use build directory for test outputs
         self.test_build_dir = Path("build/test_outputs")
@@ -317,7 +317,7 @@ int main() {
 }
 """)
 
-    def tearDown(self):
+    def teardown_method(self):
         """Clean up test fixtures."""
         import shutil
         shutil.rmtree(self.temp_dir)
@@ -325,7 +325,7 @@ int main() {
     def test_initialization(self):
         """Test CGenMakefileGenerator initialization."""
         generator = CGenMakefileGenerator("my_project")
-        self.assertEqual(generator.project_name, "my_project")
+        assert generator.project_name == "my_project"
 
     def test_create_for_generated_code_makefile(self):
         """Test creating Makefile for generated C code."""
@@ -339,11 +339,11 @@ int main() {
             additional_includes=["include"]
         )
 
-        self.assertIsInstance(makefile_generator, MakefileGenerator)
-        self.assertEqual(makefile_generator.name, "test_program")
-        self.assertIn("-DDEBUG", makefile_generator.flags)
-        self.assertIn("include", makefile_generator.include_dirs)
-        self.assertFalse(makefile_generator.use_stc)
+        assert isinstance(makefile_generator, MakefileGenerator)
+        assert makefile_generator.name == "test_program"
+        assert "-DDEBUG" in makefile_generator.flags
+        assert "include" in makefile_generator.include_dirs
+        assert not makefile_generator.use_stc
 
     def test_create_for_generated_code_builder(self):
         """Test creating Builder for generated C code."""
@@ -357,20 +357,20 @@ int main() {
             additional_includes=["include"]
         )
 
-        self.assertIsInstance(builder, Builder)
-        self.assertEqual(builder.name, "test_program")
-        self.assertIn("-DDEBUG", builder.flags)
-        self.assertIn("include", builder.include_dirs)
-        self.assertFalse(builder.use_stc)
+        assert isinstance(builder, Builder)
+        assert builder.name == "test_program"
+        assert "-DDEBUG" in builder.flags
+        assert "include" in builder.include_dirs
+        assert not builder.use_stc
 
     def test_file_not_found_error(self):
         """Test error handling for non-existent C file."""
         cgen_generator = CGenMakefileGenerator("test_project")
 
-        with self.assertRaises(FileNotFoundError):
+        with pytest.raises(FileNotFoundError):
             cgen_generator.create_for_generated_code("nonexistent.c")
 
-        with self.assertRaises(FileNotFoundError):
+        with pytest.raises(FileNotFoundError):
             cgen_generator.create_builder_for_generated_code("nonexistent.c")
 
     def test_default_output_name(self):
@@ -382,8 +382,7 @@ int main() {
             use_stc=False
         )
 
-        self.assertEqual(makefile_generator.name, "test")  # stem of test.c
+        assert makefile_generator.name == "test"  # stem of test.c
 
 
-if __name__ == '__main__':
-    unittest.main()
+# This file has been converted to pytest style

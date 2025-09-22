@@ -1,8 +1,10 @@
 """Tests for the Function Specializer Optimizer."""
 
 import ast
-import unittest
 from unittest.mock import Mock
+
+import pytest
+
 
 from src.cgen.frontend.ast_analyzer import AnalysisResult
 from src.cgen.intelligence.base import AnalysisContext, OptimizationLevel
@@ -15,10 +17,11 @@ from src.cgen.intelligence.optimizers.function_specializer import (
 )
 
 
-class TestFunctionSpecializer(unittest.TestCase):
+class TestFunctionSpecializer:
     """Test cases for the FunctionSpecializer."""
 
-    def setUp(self):
+
+    def setup_method(self):
         """Set up test fixtures."""
         self.specializer = FunctionSpecializer()
 
@@ -47,19 +50,19 @@ def main():
         context = self._create_analysis_context(source)
         result = self.specializer.optimize(context)
 
-        self.assertTrue(result.success)
+        assert result.success
         report = result.metadata.get("report")
-        self.assertIsInstance(report, SpecializationReport)
+        assert isinstance(report, SpecializationReport)
 
         # Check function profiles
-        self.assertIn("add", report.function_profiles)
-        self.assertIn("main", report.function_profiles)
+        assert "add" in report.function_profiles
+        assert "main" in report.function_profiles
 
         add_profile = report.function_profiles["add"]
-        self.assertEqual(len(add_profile.parameters), 2)
-        self.assertEqual(add_profile.parameters[0].name, "x")
-        self.assertEqual(add_profile.parameters[1].name, "y")
-        self.assertEqual(add_profile.total_calls, 3)
+        assert len(add_profile.parameters) == 2
+        assert add_profile.parameters[0].name == "x"
+        assert add_profile.parameters[1].name == "y"
+        assert add_profile.total_calls == 3
 
     def test_call_pattern_classification(self):
         """Test classification of call patterns."""
@@ -89,15 +92,15 @@ def main():
         context = self._create_analysis_context(source)
         result = self.specializer.optimize(context)
 
-        self.assertTrue(result.success)
+        assert result.success
         report = result.metadata.get("report")
 
         # Check call patterns
         small_profile = report.function_profiles["small_function"]
-        self.assertEqual(small_profile.call_pattern, CallPattern.SINGLE_USE)
+        assert small_profile.call_pattern == CallPattern.SINGLE_USE
 
         constant_profile = report.function_profiles["constant_function"]
-        self.assertEqual(constant_profile.total_calls, 3)
+        assert constant_profile.total_calls == 3
         # Should be classified as constant args pattern
 
     def test_constant_specialization_candidate(self):
@@ -118,7 +121,7 @@ def main():
         context = self._create_analysis_context(source)
         result = self.specializer.optimize(context)
 
-        self.assertTrue(result.success)
+        assert result.success
         report = result.metadata.get("report")
 
         # Should generate constant specialization for exponent=8
@@ -126,14 +129,14 @@ def main():
             c for c in report.specialization_candidates
             if c.specialization_type == SpecializationType.CONSTANT_FOLDING
         ]
-        self.assertGreater(len(constant_candidates), 0)
+        assert len(constant_candidates) > 0
 
         # Check if there's a specialization for the constant exponent
         exponent_specialization = any(
             "exponent" in c.parameter_bindings and c.parameter_bindings["exponent"] == 8
             for c in constant_candidates
         )
-        self.assertTrue(exponent_specialization)
+        assert exponent_specialization
 
     def test_type_specialization_candidate(self):
         """Test generation of type specialization candidates."""
@@ -150,7 +153,7 @@ def main():
         context = self._create_analysis_context(source)
         result = self.specializer.optimize(context)
 
-        self.assertTrue(result.success)
+        assert result.success
         report = result.metadata.get("report")
 
         # Should generate type specialization candidates
@@ -160,7 +163,7 @@ def main():
         ]
 
         # May have type specializations based on call patterns
-        self.assertGreaterEqual(len(type_candidates), 0)
+        assert len(type_candidates) >= 0
 
     def test_inline_candidate_generation(self):
         """Test generation of inline candidates for small functions."""
@@ -179,7 +182,7 @@ def main():
         context = self._create_analysis_context(source)
         result = self.specializer.optimize(context)
 
-        self.assertTrue(result.success)
+        assert result.success
         report = result.metadata.get("report")
 
         # Should suggest inlining for small functions
@@ -189,7 +192,7 @@ def main():
         ]
 
         # Small functions should be candidates for inlining
-        self.assertGreaterEqual(len(inline_candidates), 0)
+        assert len(inline_candidates) >= 0
 
     def test_pure_function_detection(self):
         """Test detection of pure functions."""
@@ -209,15 +212,15 @@ def side_effect_function(x):
         context = self._create_analysis_context(source)
         result = self.specializer.optimize(context)
 
-        self.assertTrue(result.success)
+        assert result.success
         report = result.metadata.get("report")
 
         # Check purity analysis
         pure_profile = report.function_profiles["pure_function"]
-        self.assertTrue(pure_profile.is_pure)
+        assert pure_profile.is_pure
 
         impure_profile = report.function_profiles["impure_function"]
-        self.assertTrue(impure_profile.has_side_effects)
+        assert impure_profile.has_side_effects
 
     def test_recursive_function_detection(self):
         """Test detection of recursive functions."""
@@ -238,18 +241,18 @@ def non_recursive(x):
         context = self._create_analysis_context(source)
         result = self.specializer.optimize(context)
 
-        self.assertTrue(result.success)
+        assert result.success
         report = result.metadata.get("report")
 
         # Check recursion detection
         factorial_profile = report.function_profiles["factorial"]
-        self.assertTrue(factorial_profile.is_recursive)
+        assert factorial_profile.is_recursive
 
         fibonacci_profile = report.function_profiles["fibonacci"]
-        self.assertTrue(fibonacci_profile.is_recursive)
+        assert fibonacci_profile.is_recursive
 
         non_recursive_profile = report.function_profiles["non_recursive"]
-        self.assertFalse(non_recursive_profile.is_recursive)
+        assert not non_recursive_profile.is_recursive
 
     def test_memoization_candidate(self):
         """Test generation of memoization candidates."""
@@ -272,7 +275,7 @@ def main():
         context = self._create_analysis_context(source)
         result = self.specializer.optimize(context)
 
-        self.assertTrue(result.success)
+        assert result.success
         report = result.metadata.get("report")
 
         # Should suggest memoization for pure, expensive functions
@@ -282,7 +285,7 @@ def main():
         ]
 
         # May suggest memoization if function is pure and complex
-        self.assertGreaterEqual(len(memoization_candidates), 0)
+        assert len(memoization_candidates) >= 0
 
     def test_complexity_scoring(self):
         """Test function complexity scoring."""
@@ -312,14 +315,14 @@ def compute_value(x):
         context = self._create_analysis_context(source)
         result = self.specializer.optimize(context)
 
-        self.assertTrue(result.success)
+        assert result.success
         report = result.metadata.get("report")
 
         # Check complexity scores
         simple_score = report.function_profiles["simple_function"].complexity_score
         complex_score = report.function_profiles["complex_function"].complexity_score
 
-        self.assertLess(simple_score, complex_score)
+        assert simple_score < complex_score
 
     def test_optimization_level_impact(self):
         """Test impact of different optimization levels."""
@@ -332,6 +335,7 @@ def main():
     result2 = test_function(5, 20)
 """
 
+
         # Test basic level
         basic_specializer = FunctionSpecializer(OptimizationLevel.BASIC)
         context = self._create_analysis_context(source)
@@ -343,13 +347,12 @@ def main():
         aggressive_result = aggressive_specializer.optimize(context)
         aggressive_report = aggressive_result.metadata.get("report")
 
-        self.assertTrue(basic_result.success)
-        self.assertTrue(aggressive_result.success)
+        assert basic_result.success
+        assert aggressive_result.success
 
         # Aggressive level might generate more candidates
-        self.assertGreaterEqual(
-            len(aggressive_report.specialization_candidates),
-            len(basic_report.specialization_candidates)
+        assert (
+            len(aggressive_report.specialization_candidates) >= len(basic_report.specialization_candidates)
         )
 
     def test_parameter_value_distribution(self):
@@ -368,14 +371,14 @@ def main():
         context = self._create_analysis_context(source)
         result = self.specializer.optimize(context)
 
-        self.assertTrue(result.success)
+        assert result.success
         report = result.metadata.get("report")
 
         multiply_profile = report.function_profiles["multiply_by_factor"]
         factor_param = multiply_profile.parameters[1]  # factor parameter
 
         # Should track value distribution
-        self.assertGreater(len(factor_param.value_distribution), 0)
+        assert len(factor_param.value_distribution) > 0
 
     def test_specialization_creation(self):
         """Test creation of specialized functions."""
@@ -391,17 +394,17 @@ def main():
         context = self._create_analysis_context(source)
         result = self.specializer.optimize(context)
 
-        self.assertTrue(result.success)
+        assert result.success
         report = result.metadata.get("report")
 
         # Should create some specializations
-        self.assertGreaterEqual(len(report.specialization_results), 0)
+        assert len(report.specialization_results) >= 0
 
         # Check specialization properties
         for spec_result in report.specialization_results:
-            self.assertIsNotNone(spec_result.specialized_function)
-            self.assertIsNotNone(spec_result.original_function)
-            self.assertGreater(spec_result.performance_gain, 1.0)
+            assert spec_result.specialized_function is not None
+            assert spec_result.original_function is not None
+            assert spec_result.performance_gain > 1.0
 
     def test_call_site_analysis(self):
         """Test analysis of call sites."""
@@ -423,17 +426,17 @@ def caller3():
         context = self._create_analysis_context(source)
         result = self.specializer.optimize(context)
 
-        self.assertTrue(result.success)
+        assert result.success
         report = result.metadata.get("report")
 
         helper_profile = report.function_profiles["helper"]
-        self.assertEqual(len(helper_profile.call_sites), 3)
+        assert len(helper_profile.call_sites) == 3
 
         # Check call site information
         for call_site in helper_profile.call_sites:
-            self.assertIsNotNone(call_site.caller_name)
-            self.assertGreater(call_site.line_number, 0)
-            self.assertEqual(len(call_site.argument_values), 2)
+            assert call_site.caller_name is not None
+            assert call_site.line_number > 0
+            assert len(call_site.argument_values) == 2
 
     def test_performance_estimation(self):
         """Test performance gain estimation."""
@@ -447,9 +450,9 @@ def main():
         context = self._create_analysis_context(source)
         result = self.specializer.optimize(context)
 
-        self.assertTrue(result.success)
-        self.assertGreaterEqual(result.performance_gain_estimate, 1.0)
-        self.assertLessEqual(result.performance_gain_estimate, 10.0)  # Capped maximum
+        assert result.success
+        assert result.performance_gain_estimate >= 1.0
+        assert result.performance_gain_estimate <= 10.0  # Capped maximum
 
     def test_safety_analysis(self):
         """Test safety analysis of specializations."""
@@ -463,11 +466,11 @@ def main():
         context = self._create_analysis_context(source)
         result = self.specializer.optimize(context)
 
-        self.assertTrue(result.success)
-        self.assertTrue(result.is_safe())
+        assert result.success
+        assert result.is_safe()
 
         safety = result.safety_analysis
-        self.assertTrue(safety.get("all_specializations_safe", True))
+        assert safety.get("all_specializations_safe", True)
 
     def test_empty_program(self):
         """Test analysis of empty program."""
@@ -478,10 +481,10 @@ pass
         context = self._create_analysis_context(source)
         result = self.specializer.optimize(context)
 
-        self.assertTrue(result.success)
+        assert result.success
         report = result.metadata.get("report")
-        self.assertEqual(report.total_functions, 0)
-        self.assertEqual(len(report.specialization_candidates), 0)
+        assert report.total_functions == 0
+        assert len(report.specialization_candidates) == 0
 
     def test_function_with_no_calls(self):
         """Test analysis of function with no calls."""
@@ -495,12 +498,12 @@ def main():
         context = self._create_analysis_context(source)
         result = self.specializer.optimize(context)
 
-        self.assertTrue(result.success)
+        assert result.success
         report = result.metadata.get("report")
 
         unused_profile = report.function_profiles["unused_function"]
-        self.assertEqual(unused_profile.total_calls, 0)
-        self.assertEqual(len(unused_profile.call_sites), 0)
+        assert unused_profile.total_calls == 0
+        assert len(unused_profile.call_sites) == 0
 
     def test_error_handling(self):
         """Test error handling with malformed input."""
@@ -512,8 +515,8 @@ def main():
         result = self.specializer.optimize(invalid_context)
 
         # Should handle gracefully
-        self.assertFalse(result.success)
-        self.assertIn("error", result.metadata)
+        assert not result.success
+        assert "error" in result.metadata
 
     def test_transformations_reporting(self):
         """Test reporting of transformations performed."""
@@ -528,12 +531,12 @@ def main():
         context = self._create_analysis_context(source)
         result = self.specializer.optimize(context)
 
-        self.assertTrue(result.success)
-        self.assertGreater(len(result.transformations), 0)
+        assert result.success
+        assert len(result.transformations) > 0
 
         # Check transformation descriptions
         transformations_text = " ".join(result.transformations)
-        self.assertIn("functions", transformations_text)
+        assert "functions" in transformations_text
 
     def test_candidate_properties(self):
         """Test properties of specialization candidates."""
@@ -549,16 +552,16 @@ def main():
         context = self._create_analysis_context(source)
         result = self.specializer.optimize(context)
 
-        self.assertTrue(result.success)
+        assert result.success
         report = result.metadata.get("report")
 
         for candidate in report.specialization_candidates:
-            self.assertIsInstance(candidate, SpecializationCandidate)
-            self.assertGreater(candidate.confidence, 0.0)
-            self.assertLessEqual(candidate.confidence, 1.0)
-            self.assertGreater(candidate.estimated_speedup, 1.0)
-            self.assertGreaterEqual(candidate.call_site_coverage, 0.0)
-            self.assertLessEqual(candidate.call_site_coverage, 1.0)
+            assert isinstance(candidate, SpecializationCandidate)
+            assert candidate.confidence > 0.0
+            assert candidate.confidence <= 1.0
+            assert candidate.estimated_speedup > 1.0
+            assert candidate.call_site_coverage >= 0.0
+            assert candidate.call_site_coverage <= 1.0
 
     def test_function_body_size_analysis(self):
         """Test analysis of function body sizes."""
@@ -585,14 +588,14 @@ def large_function(data):
         context = self._create_analysis_context(source)
         result = self.specializer.optimize(context)
 
-        self.assertTrue(result.success)
+        assert result.success
         report = result.metadata.get("report")
 
         # Check body sizes
         tiny_size = report.function_profiles["tiny_function"].body_size
         large_size = report.function_profiles["large_function"].body_size
 
-        self.assertLess(tiny_size, large_size)
+        assert tiny_size < large_size
 
     def test_return_type_analysis(self):
         """Test analysis of return types."""
@@ -606,14 +609,14 @@ def untyped_function(x):
         context = self._create_analysis_context(source)
         result = self.specializer.optimize(context)
 
-        self.assertTrue(result.success)
+        assert result.success
         report = result.metadata.get("report")
 
         typed_profile = report.function_profiles["typed_function"]
-        self.assertEqual(typed_profile.return_type, "str")
+        assert typed_profile.return_type == "str"
 
         untyped_profile = report.function_profiles["untyped_function"]
-        self.assertIsNone(untyped_profile.return_type)
+        assert untyped_profile.return_type is None
 
     def test_specialization_confidence_scoring(self):
         """Test confidence scoring for specializations."""
@@ -641,13 +644,13 @@ def main():
         context = self._create_analysis_context(source)
         result = self.specializer.optimize(context)
 
-        self.assertTrue(result.success)
+        assert result.success
         report = result.metadata.get("report")
 
         # Check confidence scores
         for candidate in report.specialization_candidates:
-            self.assertGreater(candidate.confidence, 0.0)
-            self.assertLessEqual(candidate.confidence, 1.0)
+            assert candidate.confidence > 0.0
+            assert candidate.confidence <= 1.0
 
 
 if __name__ == "__main__":

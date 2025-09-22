@@ -1,8 +1,8 @@
 """Pytest configuration and fixtures for cgen tests."""
 
 import sys
-import os
 from pathlib import Path
+
 import pytest
 
 # Add src directory to Python path
@@ -54,23 +54,23 @@ def kr_style():
 def sample_python_code():
     """Provide sample Python code for testing."""
     return {
-        'simple_function': '''
+        "simple_function": """
 def add(x: int, y: int) -> int:
     return x + y
-''',
-        'void_function': '''
+""",
+        "void_function": """
 def print_hello():
     pass
-''',
-        'with_variables': '''
+""",
+        "with_variables": """
 def calculate(x: int, y: float) -> float:
     result: float = x * y
     return result
-''',
-        'multiple_operations': '''
+""",
+        "multiple_operations": """
 def complex_calc(a: int, b: int, c: int) -> int:
     return a + b * c - 10
-'''
+"""
     }
 
 
@@ -78,21 +78,21 @@ def complex_calc(a: int, b: int, c: int) -> int:
 def expected_c_code():
     """Provide expected C code outputs for testing."""
     return {
-        'simple_function': '''#include <stdio.h>
+        "simple_function": """#include <stdio.h>
 #include <stdbool.h>
 
 int add(int x, int y)
 {
     return x + y;
 }
-''',
-        'void_function': '''#include <stdio.h>
+""",
+        "void_function": """#include <stdio.h>
 #include <stdbool.h>
 
 void print_hello()
 {
 }
-'''
+"""
     }
 
 

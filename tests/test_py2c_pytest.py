@@ -1,7 +1,8 @@
 """Pytest-style tests for Python to C converter."""
 
 import pytest
-from cgen.core.py2c import PythonToCConverter, convert_python_to_c, UnsupportedFeatureError, TypeMappingError
+
+from cgen.core.py2c import TypeMappingError, convert_python_to_c
 
 
 @pytest.mark.py2c
@@ -11,7 +12,7 @@ class TestPythonToCConverter:
 
     def test_simple_function_conversion(self, py2c_converter, sample_python_code):
         """Test conversion of a simple function."""
-        python_code = sample_python_code['simple_function']
+        python_code = sample_python_code["simple_function"]
         c_sequence = py2c_converter.convert_code(python_code)
 
         # Check that we get a sequence with the function
@@ -24,14 +25,14 @@ class TestPythonToCConverter:
 
     def test_void_function(self, py2c_converter, sample_python_code):
         """Test function with no return type."""
-        python_code = sample_python_code['void_function']
+        python_code = sample_python_code["void_function"]
         c_code = convert_python_to_c(python_code)
 
         assert "void print_hello(void)" in c_code
 
     def test_function_with_variable_declaration(self, py2c_converter, sample_python_code):
         """Test function with local variable."""
-        python_code = sample_python_code['with_variables']
+        python_code = sample_python_code["with_variables"]
         c_code = convert_python_to_c(python_code)
 
         assert "double calculate(int x, double y)" in c_code
@@ -40,7 +41,7 @@ class TestPythonToCConverter:
 
     def test_multiple_operations(self, py2c_converter, sample_python_code):
         """Test function with multiple arithmetic operations."""
-        python_code = sample_python_code['multiple_operations']
+        python_code = sample_python_code["multiple_operations"]
         c_code = convert_python_to_c(python_code)
 
         assert "int complex_calc(int a, int b, int c)" in c_code
@@ -62,42 +63,42 @@ class TestPythonToCConverter:
 
     def test_string_type_mapping(self, py2c_converter):
         """Test string type mapping."""
-        python_code = '''
+        python_code = """
 def greet(name: str) -> str:
     return name
-'''
+"""
         c_code = convert_python_to_c(python_code)
         assert "char* greet(char* name)" in c_code
 
     def test_list_type_to_pointer(self, py2c_converter):
         """Test list type conversion to pointer."""
-        python_code = '''
+        python_code = """
 def process_array(data: list[int]) -> int:
     return 0
-'''
+"""
         c_code = convert_python_to_c(python_code)
         assert "int process_array(int* data)" in c_code
 
     def test_function_call_conversion(self, py2c_converter):
         """Test function call conversion."""
-        python_code = '''
+        python_code = """
 def main() -> int:
     result: int = add(5, 3)
     return result
-'''
+"""
         c_code = convert_python_to_c(python_code)
         assert "result = add(5, 3);" in c_code
 
     def test_constants_conversion(self, py2c_converter):
         """Test conversion of various constants."""
-        python_code = '''
+        python_code = """
 def test_constants() -> int:
     a: int = 42
     b: float = 3.14
     c: bool = True
     d: bool = False
     return a
-'''
+"""
         c_code = convert_python_to_c(python_code)
         assert "a = 42;" in c_code
         assert "b = 3.14;" in c_code  # Note: will be double, but value should be there
@@ -106,10 +107,10 @@ def test_constants() -> int:
 
     def test_function_with_no_return_annotation(self, py2c_converter):
         """Test function without return type annotation defaults to void."""
-        python_code = '''
+        python_code = """
 def no_return():
     pass
-'''
+"""
         c_code = convert_python_to_c(python_code)
         assert "void no_return(void)" in c_code
 
@@ -128,29 +129,29 @@ def documented_function(x: int) -> int:
     # Error handling tests
     def test_missing_type_annotation_error(self, py2c_converter):
         """Test error when type annotation is missing."""
-        python_code = '''
+        python_code = """
 def bad_function(x):
     return x
-'''
+"""
         with pytest.raises(TypeMappingError, match="Parameter 'x' must have type annotation"):
             convert_python_to_c(python_code)
 
     def test_unsupported_type_error(self, py2c_converter):
         """Test error for unsupported types."""
-        python_code = '''
+        python_code = """
 def bad_function(x: dict) -> dict:
     return x
-'''
+"""
         with pytest.raises(TypeMappingError, match="Unsupported type"):
             convert_python_to_c(python_code)
 
     def test_variable_assignment_without_declaration(self, py2c_converter):
         """Test error when assigning to undeclared variable."""
-        python_code = '''
+        python_code = """
 def bad_function() -> int:
     x = 5
     return x
-'''
+"""
         with pytest.raises(TypeMappingError, match="Variable 'x' must be declared with type annotation first"):
             convert_python_to_c(python_code)
 
@@ -165,14 +166,14 @@ class TestFileOperations:
         from cgen.core.py2c import convert_python_file_to_c
 
         # Create temporary files
-        python_file = temp_python_file(sample_python_code['simple_function'])
+        python_file = temp_python_file(sample_python_code["simple_function"])
         c_file = temp_c_file()
 
         # Convert
         convert_python_file_to_c(python_file, c_file)
 
         # Verify output file exists and contains expected content
-        with open(c_file, 'r') as f:
+        with open(c_file) as f:
             content = f.read()
             assert "int add(int x, int y)" in content
 
@@ -184,7 +185,7 @@ class TestPerformance:
 
     def test_conversion_performance(self, py2c_converter, performance_timer, sample_python_code):
         """Test conversion performance for simple functions."""
-        python_code = sample_python_code['simple_function']
+        python_code = sample_python_code["simple_function"]
 
         with performance_timer() as timer:
             for _ in range(100):  # Convert 100 times

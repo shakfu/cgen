@@ -1,14 +1,15 @@
 """Performance benchmarking utilities for cgen tests."""
 
-import time
-import statistics
 import gc
+import statistics
+import time
 from contextlib import contextmanager
-from typing import List, Dict, Any, Callable
+from typing import Any, Callable, Dict, List
+
 import pytest
 
-from cgen.core.py2c import convert_python_to_c, PythonToCConverter
-from cgen.core import CFactory, Writer, StyleOptions
+from cgen.core import CFactory, StyleOptions, Writer
+from cgen.core.py2c import PythonToCConverter, convert_python_to_c
 
 
 class BenchmarkResult:
@@ -30,14 +31,14 @@ class BenchmarkResult:
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
         return {
-            'name': self.name,
-            'mean': self.mean,
-            'median': self.median,
-            'stdev': self.stdev,
-            'min': self.min_time,
-            'max': self.max_time,
-            'iterations': self.iterations,
-            'times': self.times
+            "name": self.name,
+            "mean": self.mean,
+            "median": self.median,
+            "stdev": self.stdev,
+            "min": self.min_time,
+            "max": self.max_time,
+            "iterations": self.iterations,
+            "times": self.times
         }
 
 
@@ -83,12 +84,12 @@ def benchmark_function(func: Callable, *args, iterations: int = 100, warmup: int
 
 # Benchmark test fixtures and sample data
 BENCHMARK_SAMPLES = {
-    'tiny_function': '''
+    "tiny_function": """
 def add(x: int, y: int) -> int:
     return x + y
-''',
+""",
 
-    'small_function': '''
+    "small_function": """
 def calculate(a: int, b: float, c: bool) -> float:
     result: float = 0.0
     if c:
@@ -96,9 +97,9 @@ def calculate(a: int, b: float, c: bool) -> float:
     else:
         result = a - b
     return result
-''',
+""",
 
-    'medium_function': '''
+    "medium_function": """
 def matrix_multiply_2x2(a11: float, a12: float, a21: float, a22: float,
                        b11: float, b12: float, b21: float, b22: float) -> tuple[float, float, float, float]:
     c11: float = a11 * b11 + a12 * b21
@@ -106,15 +107,15 @@ def matrix_multiply_2x2(a11: float, a12: float, a21: float, a22: float,
     c21: float = a21 * b11 + a22 * b21
     c22: float = a21 * b12 + a22 * b22
     return (c11, c12, c21, c22)
-''',
+""",
 
-    'large_function': None  # Will be generated dynamically
+    "large_function": None  # Will be generated dynamically
 }
 
 
 def generate_large_function(num_variables: int = 50) -> str:
     """Generate a large function for benchmarking."""
-    lines = [f"def large_calculation(x: int) -> int:"]
+    lines = ["def large_calculation(x: int) -> int:"]
 
     # Generate many variable declarations and operations
     for i in range(num_variables):
@@ -130,7 +131,7 @@ def generate_large_function(num_variables: int = 50) -> str:
 
 
 # Initialize large function sample
-BENCHMARK_SAMPLES['large_function'] = generate_large_function()
+BENCHMARK_SAMPLES["large_function"] = generate_large_function()
 
 
 @pytest.mark.benchmark
@@ -141,7 +142,7 @@ class TestPy2CPerformance:
         """Benchmark conversion of tiny functions."""
         result = benchmark_function(
             convert_python_to_c,
-            BENCHMARK_SAMPLES['tiny_function'],
+            BENCHMARK_SAMPLES["tiny_function"],
             iterations=1000
         )
         print(f"\nTiny function benchmark: {result}")
@@ -151,7 +152,7 @@ class TestPy2CPerformance:
         """Benchmark conversion of small functions."""
         result = benchmark_function(
             convert_python_to_c,
-            BENCHMARK_SAMPLES['small_function'],
+            BENCHMARK_SAMPLES["small_function"],
             iterations=500
         )
         print(f"\nSmall function benchmark: {result}")
@@ -161,7 +162,7 @@ class TestPy2CPerformance:
         """Benchmark conversion of medium functions."""
         result = benchmark_function(
             convert_python_to_c,
-            BENCHMARK_SAMPLES['medium_function'],
+            BENCHMARK_SAMPLES["medium_function"],
             iterations=200
         )
         print(f"\nMedium function benchmark: {result}")
@@ -172,7 +173,7 @@ class TestPy2CPerformance:
         """Benchmark conversion of large functions."""
         result = benchmark_function(
             convert_python_to_c,
-            BENCHMARK_SAMPLES['large_function'],
+            BENCHMARK_SAMPLES["large_function"],
             iterations=50
         )
         print(f"\nLarge function benchmark: {result}")

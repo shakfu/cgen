@@ -1,8 +1,11 @@
 """Tests for the CGen Frontend - Static Python Analysis Layer."""
 
-import sys
 import os
+import sys
 from pathlib import Path
+
+import pytest
+
 
 # Add src directory to Python path for development testing
 project_root = Path(__file__).parent.parent
@@ -10,23 +13,23 @@ src_path = project_root / "src"
 if str(src_path) not in sys.path:
     sys.path.insert(0, str(src_path))
 
-try:
-    import pytest
-    HAS_PYTEST = True
-except ImportError:
-    HAS_PYTEST = False
+HAS_PYTEST = True
 
-import unittest
 from cgen.frontend import (
-    ASTAnalyzer, analyze_python_code,
-    TypeInferenceEngine, InferenceMethod,
-    StaticConstraintChecker, ConstraintSeverity,
-    StaticPythonSubsetValidator, SubsetTier,
-    build_ir_from_code, IRDataType
+    ASTAnalyzer,
+    ConstraintSeverity,
+    InferenceMethod,
+    IRDataType,
+    StaticConstraintChecker,
+    StaticPythonSubsetValidator,
+    SubsetTier,
+    TypeInferenceEngine,
+    analyze_python_code,
+    build_ir_from_code,
 )
 
 
-class TestASTAnalyzer(unittest.TestCase):
+class TestASTAnalyzer:
     """Test the AST analysis framework."""
 
     def test_simple_function_analysis(self):
@@ -101,8 +104,9 @@ def complex_func(x: int) -> int:
         assert simple_func.complexity.value < complex_func.complexity.value
 
 
-class TestTypeInference(unittest.TestCase):
+class TestTypeInference:
     """Test the type inference system."""
+
 
     def test_literal_type_inference(self):
         """Test type inference for literals."""
@@ -146,8 +150,9 @@ class TestTypeInference(unittest.TestCase):
         assert result.confidence > 0.8
 
 
-class TestConstraintChecker(unittest.TestCase):
+class TestConstraintChecker:
     """Test the static constraint checker."""
+
 
     def test_safe_code_passes(self):
         """Test that safe code passes constraint checking."""
@@ -200,8 +205,9 @@ def use_comprehension():
         assert any("unsupported" in error.message.lower() for error in errors)
 
 
-class TestSubsetValidator(unittest.TestCase):
+class TestSubsetValidator:
     """Test the Python subset validator."""
+
 
     def test_tier1_fundamental_features(self):
         """Test validation of Tier 1 fundamental features."""
@@ -253,8 +259,9 @@ def simple(x: int) -> int:
         assert result.conversion_strategy == "direct_conversion"
 
 
-class TestStaticIR(unittest.TestCase):
+class TestStaticIR:
     """Test the Static IR generation."""
+
 
     def test_simple_function_ir(self):
         """Test IR generation for a simple function."""
@@ -318,7 +325,7 @@ def loop_function(n: int) -> int:
 
     def test_ir_type_mapping(self):
         """Test correct type mapping in IR."""
-        from cgen.frontend.static_ir import IRType, IRDataType
+        from cgen.frontend.static_ir import IRDataType, IRType
 
         int_type = IRType(IRDataType.INT)
         float_type = IRType(IRDataType.FLOAT)
@@ -337,8 +344,9 @@ def loop_function(n: int) -> int:
         assert const_int.to_c_declaration("var") == "const int var"
 
 
-class TestFrontendIntegration(unittest.TestCase):
+class TestFrontendIntegration:
     """Integration tests for frontend components."""
+
 
     def test_complete_analysis_pipeline(self):
         """Test the complete analysis pipeline."""

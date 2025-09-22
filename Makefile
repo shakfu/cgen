@@ -12,12 +12,12 @@ help:
 	@echo "  install-dev   Install with all development extras"
 	@echo ""
 	@echo "Testing:"
-	@echo "  test          Run all tests (unittest + pytest)"
+	@echo "  test          Run all tests with pytest"
 	@echo "  test-unit     Run unit tests only"
 	@echo "  test-integration  Run integration tests only"
 	@echo "  test-py2c     Run Python-to-C conversion tests"
 	@echo "  test-benchmark    Run performance benchmarks"
-	@echo "  test-legacy   Run original unittest tests"
+	@echo "  test-legacy   Display info about legacy unittest conversion"
 	@echo ""
 	@echo "Code Quality:"
 	@echo "  lint          Run ruff linting"
@@ -41,10 +41,11 @@ install-dev:
 	uv run pip install -e .[dev,intelligence,ml,verification,docs,all]
 
 # Testing
-test: test-legacy test-pytest
+test: test-pytest
 
 test-legacy:
-	uv run python -m unittest discover -v tests
+	@echo "Legacy unittest mode - all tests have been converted to pytest"
+	@echo "Use 'make test-pytest' or 'make test' instead"
 
 test-pytest:
 	uv run pytest tests/ -v

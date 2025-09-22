@@ -1,14 +1,15 @@
 """Tests for the Loop Analyzer Optimizer."""
 
 import ast
-import unittest
 from unittest.mock import Mock
+
+import pytest
 
 from src.cgen.frontend.ast_analyzer import AnalysisResult
 from src.cgen.intelligence.base import AnalysisContext, OptimizationLevel
 from src.cgen.intelligence.optimizers.loop_analyzer import (
-    LoopAnalyzer,
     LoopAnalysisReport,
+    LoopAnalyzer,
     LoopInfo,
     LoopOptimization,
     LoopPattern,
@@ -17,10 +18,10 @@ from src.cgen.intelligence.optimizers.loop_analyzer import (
 )
 
 
-class TestLoopAnalyzer(unittest.TestCase):
+class TestLoopAnalyzer:
     """Test cases for the LoopAnalyzer."""
 
-    def setUp(self):
+    def setup_method(self):
         """Set up test fixtures."""
         self.analyzer = LoopAnalyzer()
 
@@ -46,17 +47,17 @@ def process_data():
         context = self._create_analysis_context(source)
         result = self.analyzer.optimize(context)
 
-        self.assertTrue(result.success)
+        assert result.success
         report = result.metadata.get("report")
-        self.assertIsInstance(report, LoopAnalysisReport)
-        self.assertEqual(report.total_loops, 1)
+        assert isinstance(report, LoopAnalysisReport)
+        assert report.total_loops == 1
 
         loop = report.loops_found[0]
-        self.assertEqual(loop.loop_type, LoopType.FOR_RANGE)
-        self.assertTrue(loop.bounds.is_constant)
-        self.assertEqual(loop.bounds.total_iterations, 10)
-        self.assertEqual(loop.bounds.start, 0)
-        self.assertEqual(loop.bounds.end, 10)
+        assert loop.loop_type == LoopType.FOR_RANGE
+        assert loop.bounds.is_constant
+        assert loop.bounds.total_iterations == 10
+        assert loop.bounds.start == 0
+        assert loop.bounds.end == 10
 
     def test_range_loop_with_start_end_step(self):
         """Test analysis of range loops with start, end, and step."""
@@ -68,16 +69,16 @@ def process_range():
         context = self._create_analysis_context(source)
         result = self.analyzer.optimize(context)
 
-        self.assertTrue(result.success)
+        assert result.success
         report = result.metadata.get("report")
         loop = report.loops_found[0]
 
-        self.assertEqual(loop.loop_type, LoopType.FOR_RANGE)
-        self.assertTrue(loop.bounds.is_constant)
-        self.assertEqual(loop.bounds.start, 5)
-        self.assertEqual(loop.bounds.end, 15)
-        self.assertEqual(loop.bounds.step, 2)
-        self.assertEqual(loop.bounds.total_iterations, 5)  # (15-5)/2 = 5
+        assert loop.loop_type == LoopType.FOR_RANGE
+        assert loop.bounds.is_constant
+        assert loop.bounds.start == 5
+        assert loop.bounds.end == 15
+        assert loop.bounds.step == 2
+        assert loop.bounds.total_iterations == 5  # (15-5)/2 = 5
 
     def test_while_loop_analysis(self):
         """Test analysis of while loops."""
@@ -91,12 +92,12 @@ def while_loop_test():
         context = self._create_analysis_context(source)
         result = self.analyzer.optimize(context)
 
-        self.assertTrue(result.success)
+        assert result.success
         report = result.metadata.get("report")
-        self.assertEqual(report.total_loops, 1)
+        assert report.total_loops == 1
 
         loop = report.loops_found[0]
-        self.assertEqual(loop.loop_type, LoopType.WHILE_COUNTER)
+        assert loop.loop_type == LoopType.WHILE_COUNTER
 
     def test_accumulator_pattern_detection(self):
         """Test detection of accumulator patterns."""
@@ -110,14 +111,14 @@ def accumulator_sum():
         context = self._create_analysis_context(source)
         result = self.analyzer.optimize(context)
 
-        self.assertTrue(result.success)
+        assert result.success
         report = result.metadata.get("report")
         loop = report.loops_found[0]
 
-        self.assertEqual(loop.pattern, LoopPattern.ACCUMULATOR)
+        assert loop.pattern == LoopPattern.ACCUMULATOR
         # Check that 'total' is identified as an accumulator
-        self.assertIn("total", loop.variables)
-        self.assertTrue(loop.variables["total"].is_accumulator)
+        assert "total" in loop.variables
+        assert loop.variables["total"].is_accumulator
 
     def test_nested_loop_analysis(self):
         """Test analysis of nested loops."""
@@ -130,20 +131,20 @@ def nested_loops():
         context = self._create_analysis_context(source)
         result = self.analyzer.optimize(context)
 
-        self.assertTrue(result.success)
+        assert result.success
         report = result.metadata.get("report")
-        self.assertEqual(report.total_loops, 2)  # Outer + inner loop
-        self.assertEqual(report.nested_loops, 1)  # Only inner loop is nested
+        assert report.total_loops == 2  # Outer + inner loop
+        assert report.nested_loops == 1  # Only inner loop is nested
 
         # Find outer loop (nesting_level 0)
         outer_loop = next(loop for loop in report.loops_found if loop.nesting_level == 0)
-        self.assertEqual(len(outer_loop.inner_loops), 1)
-        self.assertEqual(outer_loop.nesting_level, 0)
+        assert len(outer_loop.inner_loops) == 1
+        assert outer_loop.nesting_level == 0
 
         # Find inner loop (nesting_level 1)
         inner_loop = next(loop for loop in report.loops_found if loop.nesting_level == 1)
-        self.assertEqual(inner_loop.nesting_level, 1)
-        self.assertEqual(inner_loop.pattern, LoopPattern.NESTED_ITERATION)
+        assert inner_loop.nesting_level == 1
+        assert inner_loop.pattern == LoopPattern.NESTED_ITERATION
 
     def test_loop_with_break_continue(self):
         """Test analysis of loops with break and continue statements."""
@@ -159,13 +160,13 @@ def control_flow_loop():
         context = self._create_analysis_context(source)
         result = self.analyzer.optimize(context)
 
-        self.assertTrue(result.success)
+        assert result.success
         report = result.metadata.get("report")
         loop = report.loops_found[0]
 
-        self.assertTrue(loop.has_break)
-        self.assertTrue(loop.has_continue)
-        self.assertTrue(loop.has_early_exit)
+        assert loop.has_break
+        assert loop.has_continue
+        assert loop.has_early_exit
 
     def test_enumerate_loop_analysis(self):
         """Test analysis of enumerate loops."""
@@ -178,11 +179,11 @@ def enumerate_test():
         context = self._create_analysis_context(source)
         result = self.analyzer.optimize(context)
 
-        self.assertTrue(result.success)
+        assert result.success
         report = result.metadata.get("report")
         loop = report.loops_found[0]
 
-        self.assertEqual(loop.loop_type, LoopType.FOR_ENUMERATE)
+        assert loop.loop_type == LoopType.FOR_ENUMERATE
 
     def test_vectorizable_loop_detection(self):
         """Test detection of vectorizable loops."""
@@ -194,12 +195,12 @@ def vectorizable_loop():
         context = self._create_analysis_context(source)
         result = self.analyzer.optimize(context)
 
-        self.assertTrue(result.success)
+        assert result.success
         report = result.metadata.get("report")
         loop = report.loops_found[0]
 
-        self.assertTrue(loop.is_vectorizable)
-        self.assertEqual(report.vectorizable_loops, 1)
+        assert loop.is_vectorizable
+        assert report.vectorizable_loops == 1
 
     def test_non_vectorizable_loop_with_early_exit(self):
         """Test that loops with early exit are not vectorizable."""
@@ -213,12 +214,12 @@ def non_vectorizable():
         context = self._create_analysis_context(source)
         result = self.analyzer.optimize(context)
 
-        self.assertTrue(result.success)
+        assert result.success
         report = result.metadata.get("report")
         loop = report.loops_found[0]
 
         # Loop with break should not be vectorizable
-        self.assertFalse(loop.is_vectorizable)
+        assert not loop.is_vectorizable
 
     def test_parallelizable_loop_detection(self):
         """Test detection of parallelizable loops."""
@@ -230,11 +231,11 @@ def parallelizable_loop():
         context = self._create_analysis_context(source)
         result = self.analyzer.optimize(context)
 
-        self.assertTrue(result.success)
+        assert result.success
         report = result.metadata.get("report")
         loop = report.loops_found[0]
 
-        self.assertTrue(loop.is_parallelizable)
+        assert loop.is_parallelizable
 
     def test_non_parallelizable_accumulator(self):
         """Test that accumulator loops are not parallelizable."""
@@ -247,11 +248,11 @@ def non_parallelizable():
         context = self._create_analysis_context(source)
         result = self.analyzer.optimize(context)
 
-        self.assertTrue(result.success)
+        assert result.success
         report = result.metadata.get("report")
         loop = report.loops_found[0]
 
-        self.assertFalse(loop.is_parallelizable)
+        assert not loop.is_parallelizable
 
     def test_loop_unrolling_optimization(self):
         """Test loop unrolling optimization for small loops."""
@@ -263,17 +264,17 @@ def small_loop():
         context = self._create_analysis_context(source)
         result = self.analyzer.optimize(context)
 
-        self.assertTrue(result.success)
+        assert result.success
         report = result.metadata.get("report")
 
         # Should suggest loop unrolling
         unroll_opts = [opt for opt in report.optimizations
                       if opt.optimization_type == OptimizationType.LOOP_UNROLLING]
-        self.assertGreater(len(unroll_opts), 0)
+        assert len(unroll_opts) > 0
 
         unroll_opt = unroll_opts[0]
-        self.assertGreater(unroll_opt.estimated_speedup, 1.0)
-        self.assertGreater(unroll_opt.confidence, 0.0)
+        assert unroll_opt.estimated_speedup > 1.0
+        assert unroll_opt.confidence > 0.0
 
     def test_c_style_conversion_optimization(self):
         """Test C-style loop conversion optimization."""
@@ -285,17 +286,17 @@ def c_style_candidate():
         context = self._create_analysis_context(source)
         result = self.analyzer.optimize(context)
 
-        self.assertTrue(result.success)
+        assert result.success
         report = result.metadata.get("report")
 
         # Should suggest C-style conversion
         c_style_opts = [opt for opt in report.optimizations
                        if opt.optimization_type == OptimizationType.C_STYLE_CONVERSION]
-        self.assertGreater(len(c_style_opts), 0)
+        assert len(c_style_opts) > 0
 
         c_style_opt = c_style_opts[0]
-        self.assertIsNotNone(c_style_opt.transformed_code)
-        self.assertIn("for (int", c_style_opt.transformed_code)
+        assert c_style_opt.transformed_code is not None
+        assert "for (int" in c_style_opt.transformed_code
 
     def test_vectorization_prep_optimization(self):
         """Test vectorization preparation optimization."""
@@ -307,13 +308,13 @@ def vectorization_candidate():
         context = self._create_analysis_context(source)
         result = self.analyzer.optimize(context)
 
-        self.assertTrue(result.success)
+        assert result.success
         report = result.metadata.get("report")
 
         # Should suggest vectorization preparation
         vec_opts = [opt for opt in report.optimizations
                    if opt.optimization_type == OptimizationType.VECTORIZATION_PREP]
-        self.assertGreater(len(vec_opts), 0)
+        assert len(vec_opts) > 0
 
     def test_complex_loop_pattern(self):
         """Test detection of complex loop patterns."""
@@ -336,15 +337,15 @@ def complex_loop():
         context = self._create_analysis_context(source)
         result = self.analyzer.optimize(context)
 
-        self.assertTrue(result.success)
+        assert result.success
         report = result.metadata.get("report")
 
         # Find the outer loop (nesting_level 0)
         outer_loop = next(loop for loop in report.loops_found if loop.nesting_level == 0)
 
-        self.assertEqual(outer_loop.pattern, LoopPattern.COMPLEX)
-        self.assertGreater(outer_loop.body_complexity, 5)
-        self.assertEqual(report.complex_loops, 1)
+        assert outer_loop.pattern == LoopPattern.COMPLEX
+        assert outer_loop.body_complexity > 5
+        assert report.complex_loops == 1
 
     def test_loop_complexity_estimation(self):
         """Test loop complexity estimation."""
@@ -366,15 +367,15 @@ def complexity_test():
         context = self._create_analysis_context(source)
         result = self.analyzer.optimize(context)
 
-        self.assertTrue(result.success)
+        assert result.success
         report = result.metadata.get("report")
 
-        self.assertEqual(len(report.loops_found), 4)  # All loops (2 outer + 2 inner)
+        assert len(report.loops_found) == 4  # All loops (2 outer + 2 inner)
 
         # Check complexity estimations
         complexities = [loop.estimated_complexity for loop in report.loops_found]
-        self.assertIn("O(1)", complexities)  # Small loop
-        self.assertIn("O(n²)", complexities)  # Nested loop
+        assert "O(1)" in complexities  # Small loop
+        assert "O(n²)" in complexities  # Nested loop
 
     def test_variable_usage_analysis(self):
         """Test analysis of variable usage in loops."""
@@ -389,19 +390,19 @@ def variable_usage():
         context = self._create_analysis_context(source)
         result = self.analyzer.optimize(context)
 
-        self.assertTrue(result.success)
+        assert result.success
         report = result.metadata.get("report")
         loop = report.loops_found[0]
 
         # Check variable classifications
-        self.assertIn("i", loop.variables)
-        self.assertTrue(loop.variables["i"].is_iterator)
+        assert "i" in loop.variables
+        assert loop.variables["i"].is_iterator
 
-        self.assertIn("total", loop.variables)
-        self.assertTrue(loop.variables["total"].is_accumulator)
+        assert "total" in loop.variables
+        assert loop.variables["total"].is_accumulator
 
-        self.assertIn("temp", loop.variables)
-        self.assertTrue(loop.variables["temp"].is_modified)
+        assert "temp" in loop.variables
+        assert loop.variables["temp"].is_modified
 
     def test_performance_gain_estimation(self):
         """Test performance gain estimation."""
@@ -413,9 +414,9 @@ def performance_test():
         context = self._create_analysis_context(source)
         result = self.analyzer.optimize(context)
 
-        self.assertTrue(result.success)
-        self.assertGreater(result.performance_gain_estimate, 1.0)
-        self.assertLessEqual(result.performance_gain_estimate, 5.0)  # Capped maximum
+        assert result.success
+        assert result.performance_gain_estimate > 1.0
+        assert result.performance_gain_estimate <= 5.0  # Capped maximum
 
     def test_safety_analysis(self):
         """Test safety analysis of loop optimizations."""
@@ -427,11 +428,11 @@ def safe_loop():
         context = self._create_analysis_context(source)
         result = self.analyzer.optimize(context)
 
-        self.assertTrue(result.success)
-        self.assertTrue(result.is_safe())
+        assert result.success
+        assert result.is_safe()
 
         safety = result.safety_analysis
-        self.assertTrue(safety.get("all_optimizations_safe", False))
+        assert safety.get("all_optimizations_safe", False)
 
     def test_empty_function_no_loops(self):
         """Test analysis of function with no loops."""
@@ -444,11 +445,11 @@ def no_loops():
         context = self._create_analysis_context(source)
         result = self.analyzer.optimize(context)
 
-        self.assertTrue(result.success)
+        assert result.success
         report = result.metadata.get("report")
-        self.assertEqual(report.total_loops, 0)
-        self.assertEqual(len(report.optimizations), 0)
-        self.assertEqual(result.performance_gain_estimate, 1.0)
+        assert report.total_loops == 0
+        assert len(report.optimizations) == 0
+        assert result.performance_gain_estimate == 1.0
 
     def test_while_condition_loop(self):
         """Test analysis of while loops with complex conditions."""
@@ -463,11 +464,11 @@ def complex_while():
         context = self._create_analysis_context(source)
         result = self.analyzer.optimize(context)
 
-        self.assertTrue(result.success)
+        assert result.success
         report = result.metadata.get("report")
         loop = report.loops_found[0]
 
-        self.assertEqual(loop.loop_type, LoopType.WHILE_CONDITION)
+        assert loop.loop_type == LoopType.WHILE_CONDITION
 
     def test_transformation_pattern_detection(self):
         """Test detection of transformation patterns."""
@@ -481,11 +482,11 @@ def transformation_loop():
         context = self._create_analysis_context(source)
         result = self.analyzer.optimize(context)
 
-        self.assertTrue(result.success)
+        assert result.success
         report = result.metadata.get("report")
         loop = report.loops_found[0]
 
-        self.assertEqual(loop.pattern, LoopPattern.TRANSFORMATION)
+        assert loop.pattern == LoopPattern.TRANSFORMATION
 
     def test_optimization_levels(self):
         """Test different optimization levels."""
@@ -500,13 +501,13 @@ def test_levels():
         context = self._create_analysis_context(source)
         basic_result = basic_analyzer.optimize(context)
 
-        self.assertTrue(basic_result.success)
+        assert basic_result.success
 
         # Test aggressive level
         aggressive_analyzer = LoopAnalyzer(OptimizationLevel.AGGRESSIVE)
         aggressive_result = aggressive_analyzer.optimize(context)
 
-        self.assertTrue(aggressive_result.success)
+        assert aggressive_result.success
 
     def test_loop_with_function_calls(self):
         """Test analysis of loops with function calls."""
@@ -519,12 +520,12 @@ def loop_with_calls():
         context = self._create_analysis_context(source)
         result = self.analyzer.optimize(context)
 
-        self.assertTrue(result.success)
+        assert result.success
         report = result.metadata.get("report")
         loop = report.loops_found[0]
 
         # Should detect side effects from function calls
-        self.assertGreater(len(loop.side_effects), 0)
+        assert len(loop.side_effects) > 0
 
     def test_error_handling(self):
         """Test error handling with malformed input."""
@@ -536,8 +537,8 @@ def loop_with_calls():
         result = self.analyzer.optimize(invalid_context)
 
         # Should handle gracefully
-        self.assertFalse(result.success)
-        self.assertIn("error", result.metadata)
+        assert not result.success
+        assert "error" in result.metadata
 
     def test_transformations_reporting(self):
         """Test reporting of transformations performed."""
@@ -552,12 +553,12 @@ def transformation_report():
         context = self._create_analysis_context(source)
         result = self.analyzer.optimize(context)
 
-        self.assertTrue(result.success)
-        self.assertGreater(len(result.transformations), 0)
+        assert result.success
+        assert len(result.transformations) > 0
 
         # Check transformation descriptions
         transformations_text = " ".join(result.transformations)
-        self.assertIn("loops", transformations_text)
+        assert "loops" in transformations_text
 
     def test_optimization_candidate_properties(self):
         """Test properties of optimization candidates."""
@@ -569,16 +570,16 @@ def optimization_properties():
         context = self._create_analysis_context(source)
         result = self.analyzer.optimize(context)
 
-        self.assertTrue(result.success)
+        assert result.success
         report = result.metadata.get("report")
 
         for opt in report.optimizations:
-            self.assertIsInstance(opt, LoopOptimization)
-            self.assertGreater(opt.confidence, 0.0)
-            self.assertLessEqual(opt.confidence, 1.0)
-            self.assertGreater(opt.estimated_speedup, 0.0)
-            self.assertGreater(opt.applicability_score, 0.0)
-            self.assertLessEqual(opt.applicability_score, 1.0)
+            assert isinstance(opt, LoopOptimization)
+            assert opt.confidence > 0.0
+            assert opt.confidence <= 1.0
+            assert opt.estimated_speedup > 0.0
+            assert opt.applicability_score > 0.0
+            assert opt.applicability_score <= 1.0
 
     def test_multiple_optimization_types(self):
         """Test that multiple optimization types can be suggested."""
@@ -590,12 +591,12 @@ def multiple_optimizations():
         context = self._create_analysis_context(source)
         result = self.analyzer.optimize(context)
 
-        self.assertTrue(result.success)
+        assert result.success
         report = result.metadata.get("report")
 
         # Should have multiple optimization types
         opt_types = {opt.optimization_type for opt in report.optimizations}
-        self.assertGreater(len(opt_types), 1)
+        assert len(opt_types) > 1
 
 
 if __name__ == "__main__":

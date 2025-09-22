@@ -1,16 +1,18 @@
 """Tests for the Bounds Checker in the Intelligence Layer."""
 
-import unittest
 import ast
+
+import pytest
+
+from src.cgen.frontend.ast_analyzer import AnalysisResult, FunctionInfo
 from src.cgen.intelligence.analyzers.bounds_checker import BoundsChecker, BoundsViolationType
 from src.cgen.intelligence.base import AnalysisContext, AnalysisLevel
-from src.cgen.frontend.ast_analyzer import AnalysisResult, FunctionInfo
 
 
-class TestBoundsChecker(unittest.TestCase):
+class TestBoundsChecker:
     """Test cases for the BoundsChecker."""
 
-    def setUp(self):
+    def setup_method(self):
         """Set up test fixtures."""
         self.checker = BoundsChecker(AnalysisLevel.BASIC)
 
@@ -39,9 +41,9 @@ def access_array(arr: list) -> int:
 
         report = self.checker.analyze(context)
 
-        self.assertTrue(report.success)
-        self.assertGreater(report.confidence, 0.8)
-        self.assertGreaterEqual(len(report.memory_regions), 1)  # At least the parameter
+        assert report.success
+        assert report.confidence > 0.8
+        assert len(report.memory_regions) >= 1  # At least the parameter
 
     def test_negative_index_detection(self):
         """Test detection of negative array indices."""
@@ -68,12 +70,12 @@ def bad_access(arr: list) -> int:
 
         report = self.checker.analyze(context)
 
-        self.assertTrue(report.success)
+        assert report.success
 
         # Should detect negative index
         negative_index_violations = [v for v in report.violations
                                    if v.violation_type == BoundsViolationType.NEGATIVE_INDEX]
-        self.assertGreater(len(negative_index_violations), 0)
+        assert len(negative_index_violations) > 0
 
     def test_list_bounds_checking(self):
         """Test bounds checking for list literals."""
@@ -102,16 +104,16 @@ def test_list_bounds() -> int:
 
         report = self.checker.analyze(context)
 
-        self.assertTrue(report.success)
+        assert report.success
 
         # Should detect out-of-bounds access
         oob_violations = [v for v in report.violations
                          if v.violation_type == BoundsViolationType.ARRAY_INDEX_OUT_OF_BOUNDS]
-        self.assertGreater(len(oob_violations), 0)
+        assert len(oob_violations) > 0
 
         # Should have memory region for the list
-        self.assertIn('arr', report.memory_regions)
-        self.assertEqual(report.memory_regions['arr'].size, 5)
+        assert 'arr' in report.memory_regions
+        assert report.memory_regions['arr'].size == 5
 
     def test_variable_index_warning(self):
         """Test warning for variable indices."""
@@ -137,14 +139,14 @@ def variable_index(arr: list, idx: int) -> int:
 
         report = self.checker.analyze(context)
 
-        self.assertTrue(report.success)
+        assert report.success
 
         # Should have warnings about variable index
-        self.assertGreater(len(report.warnings), 0)
+        assert len(report.warnings) > 0
 
         # Should have memory regions for parameters
-        self.assertIn('arr', report.memory_regions)
-        self.assertIn('idx', report.memory_regions)
+        assert 'arr' in report.memory_regions
+        assert 'idx' in report.memory_regions
 
     def test_uninitialized_variable_detection(self):
         """Test detection of uninitialized variable access."""
@@ -171,12 +173,12 @@ def uninitialized_access() -> int:
 
         report = self.checker.analyze(context)
 
-        self.assertTrue(report.success)
+        assert report.success
 
         # Should detect uninitialized access
         uninit_violations = [v for v in report.violations
                            if v.violation_type == BoundsViolationType.UNINITIALIZED_ACCESS]
-        self.assertGreater(len(uninit_violations), 0)
+        assert len(uninit_violations) > 0
 
     def test_loop_variable_tracking(self):
         """Test tracking of variables in loops."""
@@ -205,11 +207,11 @@ def loop_access(arr: list) -> int:
 
         report = self.checker.analyze(context)
 
-        self.assertTrue(report.success)
+        assert report.success
 
         # Should track loop variables
-        self.assertIn('i', report.memory_regions)
-        self.assertIn('total', report.memory_regions)
+        assert 'i' in report.memory_regions
+        assert 'total' in report.memory_regions
 
     def test_assignment_tracking(self):
         """Test tracking of variable assignments."""
@@ -238,15 +240,15 @@ def assignment_test() -> int:
 
         report = self.checker.analyze(context)
 
-        self.assertTrue(report.success)
+        assert report.success
 
         # Should track all assigned variables
-        self.assertIn('a', report.memory_regions)
-        self.assertIn('b', report.memory_regions)
-        self.assertIn('c', report.memory_regions)
+        assert 'a' in report.memory_regions
+        assert 'b' in report.memory_regions
+        assert 'c' in report.memory_regions
 
         # Variable 'b' should have correct size
-        self.assertEqual(report.memory_regions['b'].size, 3)
+        assert report.memory_regions['b'].size == 3
 
     def test_function_call_analysis(self):
         """Test analysis of function calls for potential memory issues."""
@@ -275,12 +277,12 @@ def function_calls() -> None:
 
         report = self.checker.analyze(context)
 
-        self.assertTrue(report.success)
+        assert report.success
 
         # Should have warnings about memory allocation/deallocation
         memory_warnings = [v for v in report.violations
                           if v.violation_type in [BoundsViolationType.MEMORY_LEAK, BoundsViolationType.DOUBLE_FREE]]
-        self.assertGreater(len(memory_warnings), 0)
+        assert len(memory_warnings) > 0
 
     def test_complex_expression_handling(self):
         """Test handling of complex expressions."""
@@ -308,10 +310,10 @@ def complex_expressions(matrix: list) -> int:
 
         report = self.checker.analyze(context)
 
-        self.assertTrue(report.success)
+        assert report.success
 
         # Should have warnings about complex indices
-        self.assertGreater(len(report.warnings), 0)
+        assert len(report.warnings) > 0
 
     def test_memory_usage_estimation(self):
         """Test memory usage estimation."""
@@ -339,13 +341,13 @@ def memory_usage() -> None:
 
         report = self.checker.analyze(context)
 
-        self.assertTrue(report.success)
+        assert report.success
 
         # Should estimate some memory usage
-        self.assertGreaterEqual(report.memory_usage_estimate, 0)
+        assert report.memory_usage_estimate >= 0
 
         # Should track the arrays
-        self.assertIn('small_array', report.memory_regions)
+        assert 'small_array' in report.memory_regions
 
     def test_error_handling(self):
         """Test bounds checker error handling."""
@@ -373,8 +375,8 @@ def simple() -> None:
         report = self.checker.analyze(context)
 
         # Should handle gracefully
-        self.assertTrue(report.success)
-        self.assertIsNotNone(report)
+        assert report.success
+        assert report is not None
 
     def test_statistics_calculation(self):
         """Test calculation of safety statistics."""
@@ -405,15 +407,14 @@ def mixed_access() -> int:
 
         report = self.checker.analyze(context)
 
-        self.assertTrue(report.success)
+        assert report.success
 
         # Should have some violations
-        self.assertGreater(len(report.violations), 0)
+        assert len(report.violations) > 0
 
         # Should have calculated statistics
         total_accesses = report.safe_accesses + report.unsafe_accesses + report.unknown_accesses
-        self.assertGreaterEqual(total_accesses, 0)
+        assert total_accesses >= 0
 
 
-if __name__ == '__main__':
-    unittest.main()
+# This file has been converted to pytest style

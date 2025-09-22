@@ -1,16 +1,19 @@
 """Tests for the Static Analyzer in the Intelligence Layer."""
 
-import unittest
 import ast
-from src.cgen.intelligence.analyzers.static_analyzer import StaticAnalyzer, NodeType
-from src.cgen.intelligence.base import AnalysisContext, AnalysisLevel
+
+import pytest
+
 from src.cgen.frontend.ast_analyzer import AnalysisResult, FunctionInfo
+from src.cgen.intelligence.analyzers.static_analyzer import NodeType, StaticAnalyzer
+from src.cgen.intelligence.base import AnalysisContext, AnalysisLevel
 
 
-class TestStaticAnalyzer(unittest.TestCase):
+class TestStaticAnalyzer:
     """Test cases for the StaticAnalyzer."""
 
-    def setUp(self):
+
+    def setup_method(self):
         """Set up test fixtures."""
         self.analyzer = StaticAnalyzer(AnalysisLevel.BASIC)
 
@@ -40,12 +43,12 @@ def add(x: int, y: int) -> int:
 
         report = self.analyzer.analyze(context)
 
-        self.assertTrue(report.success)
-        self.assertGreater(report.confidence, 0.8)
-        self.assertGreaterEqual(len(report.cfg.nodes), 3)  # Entry, statements, return
-        self.assertIn('x', report.variables)
-        self.assertIn('y', report.variables)
-        self.assertIn('result', report.variables)
+        assert report.success
+        assert report.confidence > 0.8
+        assert len(report.cfg.nodes) >= 3  # Entry, statements, return
+        assert 'x' in report.variables
+        assert 'y' in report.variables
+        assert 'result' in report.variables
 
     def test_control_flow_with_if_statement(self):
         """Test static analysis with if statement."""
@@ -75,16 +78,16 @@ def abs_value(x: int) -> int:
 
         report = self.analyzer.analyze(context)
 
-        self.assertTrue(report.success)
+        assert report.success
 
         # Check that we have a condition node
         condition_nodes = [node for node in report.cfg.nodes.values()
                           if node.node_type == NodeType.CONDITION]
-        self.assertGreater(len(condition_nodes), 0)
+        assert len(condition_nodes) > 0
 
         # Check complexity metrics
-        self.assertGreaterEqual(report.complexity_metrics['conditionals'], 1)
-        self.assertGreaterEqual(report.complexity_metrics['cyclomatic_complexity'], 2)
+        assert report.complexity_metrics['conditionals'] >= 1
+        assert report.complexity_metrics['cyclomatic_complexity'] >= 2
 
     def test_loop_analysis(self):
         """Test static analysis with loops."""
@@ -115,19 +118,19 @@ def factorial(n: int) -> int:
 
         report = self.analyzer.analyze(context)
 
-        self.assertTrue(report.success)
+        assert report.success
 
         # Check that we have loop nodes
         loop_nodes = [node for node in report.cfg.nodes.values()
                      if node.node_type == NodeType.LOOP_HEADER]
-        self.assertGreater(len(loop_nodes), 0)
+        assert len(loop_nodes) > 0
 
         # Check variables
-        self.assertIn('result', report.variables)
-        self.assertIn('i', report.variables)
+        assert 'result' in report.variables
+        assert 'i' in report.variables
 
         # Check complexity metrics
-        self.assertGreaterEqual(report.complexity_metrics['loops'], 1)
+        assert report.complexity_metrics['loops'] >= 1
 
     def test_dead_code_detection(self):
         """Test detection of unreachable code."""
@@ -159,11 +162,11 @@ def test_dead_code(x: int) -> int:
 
         report = self.analyzer.analyze(context)
 
-        self.assertTrue(report.success)
+        assert report.success
 
         # Note: Dead code detection is complex and this simple implementation
         # may not catch all cases. This test verifies the analysis completes.
-        self.assertIsNotNone(report.dead_code_nodes)
+        assert report.dead_code_nodes is not None
 
     def test_variable_usage_analysis(self):
         """Test variable usage and definition tracking."""
@@ -192,21 +195,21 @@ def test_variables(x: int, y: int) -> int:
 
         report = self.analyzer.analyze(context)
 
-        self.assertTrue(report.success)
+        assert report.success
 
         # Check parameter tracking
-        self.assertTrue(report.variables['x'].is_parameter)
-        self.assertTrue(report.variables['y'].is_parameter)
+        assert report.variables['x'].is_parameter
+        assert report.variables['y'].is_parameter
 
         # Check that variables are tracked
-        self.assertIn('a', report.variables)
-        self.assertIn('b', report.variables)
-        self.assertIn('c', report.variables)
+        assert 'a' in report.variables
+        assert 'b' in report.variables
+        assert 'c' in report.variables
 
         # Check usage patterns (b should be flagged as unused)
         unused_warnings = [issue for issue in report.potential_issues
                           if 'never used' in issue and 'b' in issue]
-        self.assertGreater(len(unused_warnings), 0)
+        assert len(unused_warnings) > 0
 
     def test_complex_control_flow(self):
         """Test analysis of complex control flow with nested structures."""
@@ -241,14 +244,14 @@ def complex_function(items: list, threshold: int) -> int:
 
         report = self.analyzer.analyze(context)
 
-        self.assertTrue(report.success)
-        self.assertGreater(len(report.cfg.nodes), 8)  # Complex control flow
-        self.assertGreaterEqual(report.complexity_metrics['cyclomatic_complexity'], 4)
+        assert report.success
+        assert len(report.cfg.nodes) > 8  # Complex control flow
+        assert report.complexity_metrics['cyclomatic_complexity'] >= 4
 
         # Check that continue statement is handled
         continue_nodes = [node for node in report.cfg.nodes.values()
                          if node.node_type == NodeType.CONTINUE]
-        self.assertGreater(len(continue_nodes), 0)
+        assert len(continue_nodes) > 0
 
     def test_error_handling(self):
         """Test analyzer error handling with invalid input."""
@@ -276,8 +279,7 @@ def complex_function(items: list, threshold: int) -> int:
 
         # The analyzer should handle errors gracefully
         report = self.analyzer.analyze(context)
-        self.assertIsNotNone(report)  # Should return a report even on errors
+        assert report is not None  # Should return a report even on errors
 
 
-if __name__ == '__main__':
-    unittest.main()
+# This file has been converted to pytest style

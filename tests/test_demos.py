@@ -1,15 +1,14 @@
-"""
-Pytest-style tests to verify all demo scripts work correctly.
+"""Pytest-style tests to verify all demo scripts work correctly.
 
 This module discovers and tests all demo scripts in the tests/demos folder,
 ensuring they run successfully without errors.
 """
 
-import subprocess
 import os
-import glob
-import pytest
+import subprocess
 from pathlib import Path
+
+import pytest
 
 
 class TestDemos:
@@ -44,11 +43,11 @@ class TestDemos:
             # Change to project root directory for proper imports
             # Add project root to Python path so demo scripts can import src modules
             env = os.environ.copy()
-            current_path = env.get('PYTHONPATH', '')
+            current_path = env.get("PYTHONPATH", "")
             if current_path:
-                env['PYTHONPATH'] = f"{self.project_root}:{current_path}"
+                env["PYTHONPATH"] = f"{self.project_root}:{current_path}"
             else:
-                env['PYTHONPATH'] = str(self.project_root)
+                env["PYTHONPATH"] = str(self.project_root)
 
             result = subprocess.run(
                 ["python", str(script_path)],
@@ -249,7 +248,7 @@ class TestDemos:
 
         for script in self.demo_scripts:
             try:
-                with open(script, 'r', encoding='utf-8') as f:
+                with open(script, encoding="utf-8") as f:
                     source = f.read()
 
                 # Parse the AST to check for syntax errors

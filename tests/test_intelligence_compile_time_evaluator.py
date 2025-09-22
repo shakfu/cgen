@@ -1,8 +1,10 @@
 """Tests for the Compile-time Evaluator Optimizer."""
 
 import ast
-import unittest
 from unittest.mock import Mock
+
+import pytest
+
 
 from src.cgen.frontend.ast_analyzer import AnalysisResult
 from src.cgen.intelligence.base import AnalysisContext, OptimizationLevel
@@ -14,10 +16,11 @@ from src.cgen.intelligence.optimizers.compile_time_evaluator import (
 )
 
 
-class TestCompileTimeEvaluator(unittest.TestCase):
+class TestCompileTimeEvaluator:
     """Test cases for the CompileTimeEvaluator."""
 
-    def setUp(self):
+
+    def setup_method(self):
         """Set up test fixtures."""
         self.evaluator = CompileTimeEvaluator()
 
@@ -42,14 +45,14 @@ def calculate():
         context = self._create_analysis_context(source)
         result = self.evaluator.optimize(context)
 
-        self.assertTrue(result.success)
-        self.assertIsNotNone(result.optimized_ast)
-        self.assertGreater(result.performance_gain_estimate, 1.0)
+        assert result.success
+        assert result.optimized_ast is not None
+        assert result.performance_gain_estimate > 1.0
 
         # Check that optimizations were found
         report = result.metadata.get("report")
-        self.assertIsInstance(report, CompileTimeReport)
-        self.assertGreater(report.expressions_optimized, 0)
+        assert isinstance(report, CompileTimeReport)
+        assert report.expressions_optimized > 0
 
     def test_constant_propagation(self):
         """Test constant propagation through variables."""
@@ -63,11 +66,11 @@ def process():
         context = self._create_analysis_context(source)
         result = self.evaluator.optimize(context)
 
-        self.assertTrue(result.success)
+        assert result.success
         report = result.metadata.get("report")
-        self.assertGreater(len(report.constants_found), 0)
-        self.assertIn("x", report.constants_found)
-        self.assertIn("y", report.constants_found)
+        assert len(report.constants_found) > 0
+        assert "x" in report.constants_found
+        assert "y" in report.constants_found
 
     def test_algebraic_simplifications(self):
         """Test algebraic simplifications like x + 0, x * 1."""
@@ -83,9 +86,9 @@ def simplify(x: int):
         context = self._create_analysis_context(source)
         result = self.evaluator.optimize(context)
 
-        self.assertTrue(result.success)
+        assert result.success
         report = result.metadata.get("report")
-        self.assertGreater(report.expressions_optimized, 0)
+        assert report.expressions_optimized > 0
 
         # Check for algebraic simplification optimizations
         algebraic_opts = [opt for opt in report.optimizations
@@ -105,9 +108,9 @@ def boolean_test():
         context = self._create_analysis_context(source)
         result = self.evaluator.optimize(context)
 
-        self.assertTrue(result.success)
+        assert result.success
         report = result.metadata.get("report")
-        self.assertGreater(report.expressions_optimized, 0)
+        assert report.expressions_optimized > 0
 
     def test_comparison_optimization(self):
         """Test optimization of comparison operations."""
@@ -122,14 +125,14 @@ def compare():
         context = self._create_analysis_context(source)
         result = self.evaluator.optimize(context)
 
-        self.assertTrue(result.success)
+        assert result.success
         report = result.metadata.get("report")
-        self.assertGreater(report.expressions_optimized, 0)
+        assert report.expressions_optimized > 0
 
         # All comparisons should be optimizable to constants
         comparison_opts = [opt for opt in report.optimizations
                           if opt.optimization_type == "constant_folding"]
-        self.assertGreater(len(comparison_opts), 0)
+        assert len(comparison_opts) > 0
 
     def test_function_call_evaluation(self):
         """Test evaluation of safe function calls with constant arguments."""
@@ -145,14 +148,14 @@ def math_functions():
         context = self._create_analysis_context(source)
         result = self.evaluator.optimize(context)
 
-        self.assertTrue(result.success)
+        assert result.success
         report = result.metadata.get("report")
-        self.assertGreater(report.expressions_optimized, 0)
+        assert report.expressions_optimized > 0
 
         # Check for function evaluation optimizations
         function_opts = [opt for opt in report.optimizations
                         if opt.optimization_type == "function_evaluation"]
-        self.assertGreater(len(function_opts), 0)
+        assert len(function_opts) > 0
 
     def test_conditional_optimization(self):
         """Test optimization of conditionals with constant conditions."""
@@ -173,13 +176,13 @@ def conditional_test():
         context = self._create_analysis_context(source)
         result = self.evaluator.optimize(context)
 
-        self.assertTrue(result.success)
+        assert result.success
         report = result.metadata.get("report")
 
         # Check for dead branch elimination
         branch_opts = [opt for opt in report.optimizations
                       if opt.optimization_type == "dead_branch_elimination"]
-        self.assertGreater(len(branch_opts), 0)
+        assert len(branch_opts) > 0
 
     def test_unary_operation_optimization(self):
         """Test optimization of unary operations."""
@@ -194,9 +197,9 @@ def unary_ops():
         context = self._create_analysis_context(source)
         result = self.evaluator.optimize(context)
 
-        self.assertTrue(result.success)
+        assert result.success
         report = result.metadata.get("report")
-        self.assertGreater(report.expressions_optimized, 0)
+        assert report.expressions_optimized > 0
 
     def test_nested_expressions(self):
         """Test optimization of nested expressions."""
@@ -208,9 +211,9 @@ def nested():
         context = self._create_analysis_context(source)
         result = self.evaluator.optimize(context)
 
-        self.assertTrue(result.success)
+        assert result.success
         report = result.metadata.get("report")
-        self.assertGreater(report.expressions_optimized, 0)
+        assert report.expressions_optimized > 0
 
     def test_mixed_constant_variable_expressions(self):
         """Test expressions mixing constants and variables."""
@@ -226,15 +229,15 @@ def mixed(x: int):
         context = self._create_analysis_context(source)
         result = self.evaluator.optimize(context)
 
-        self.assertTrue(result.success)
+        assert result.success
         report = result.metadata.get("report")
 
         # Should find constants
-        self.assertIn("const1", report.constants_found)
-        self.assertIn("const2", report.constants_found)
+        assert "const1" in report.constants_found
+        assert "const2" in report.constants_found
 
         # Should optimize some expressions
-        self.assertGreater(report.expressions_optimized, 0)
+        assert report.expressions_optimized > 0
 
     def test_division_by_zero_safety(self):
         """Test that division by zero is handled safely."""
@@ -246,14 +249,14 @@ def unsafe_division():
         context = self._create_analysis_context(source)
         result = self.evaluator.optimize(context)
 
-        self.assertTrue(result.success)
+        assert result.success
         # Division by zero should not be optimized
         report = result.metadata.get("report")
 
         # Check that no unsafe optimizations were performed
         division_opts = [opt for opt in report.optimizations
                         if "5 / 0" in opt.original_code]
-        self.assertEqual(len(division_opts), 0)
+        assert len(division_opts) == 0
 
     def test_type_conversion_functions(self):
         """Test optimization of type conversion functions."""
@@ -269,9 +272,9 @@ def type_conversions():
         context = self._create_analysis_context(source)
         result = self.evaluator.optimize(context)
 
-        self.assertTrue(result.success)
+        assert result.success
         report = result.metadata.get("report")
-        self.assertGreater(report.expressions_optimized, 0)
+        assert report.expressions_optimized > 0
 
     def test_complex_boolean_expressions(self):
         """Test optimization of complex boolean expressions."""
@@ -286,9 +289,9 @@ def complex_boolean():
         context = self._create_analysis_context(source)
         result = self.evaluator.optimize(context)
 
-        self.assertTrue(result.success)
+        assert result.success
         report = result.metadata.get("report")
-        self.assertGreater(report.expressions_optimized, 0)
+        assert report.expressions_optimized > 0
 
     def test_performance_estimation(self):
         """Test performance gain estimation."""
@@ -300,9 +303,9 @@ def performance_test():
         context = self._create_analysis_context(source)
         result = self.evaluator.optimize(context)
 
-        self.assertTrue(result.success)
-        self.assertGreater(result.performance_gain_estimate, 1.0)
-        self.assertLessEqual(result.performance_gain_estimate, 10.0)  # Capped maximum
+        assert result.success
+        assert result.performance_gain_estimate > 1.0
+        assert result.performance_gain_estimate <= 10.0  # Capped maximum
 
     def test_safety_analysis(self):
         """Test safety analysis of optimizations."""
@@ -314,12 +317,12 @@ def safe_operations():
         context = self._create_analysis_context(source)
         result = self.evaluator.optimize(context)
 
-        self.assertTrue(result.success)
-        self.assertTrue(result.is_safe())
+        assert result.success
+        assert result.is_safe()
 
         safety = result.safety_analysis
-        self.assertTrue(safety.get("all_optimizations_safe", False))
-        self.assertTrue(safety.get("constant_folding", False))
+        assert safety.get("all_optimizations_safe", False)
+        assert safety.get("constant_folding", False)
 
     def test_optimization_candidates(self):
         """Test generation of optimization candidates."""
@@ -332,27 +335,27 @@ def candidates():
         context = self._create_analysis_context(source)
         result = self.evaluator.optimize(context)
 
-        self.assertTrue(result.success)
+        assert result.success
         report = result.metadata.get("report")
 
         # Check optimization candidates
-        self.assertGreater(len(report.optimizations), 0)
+        assert len(report.optimizations) > 0
 
         for opt in report.optimizations:
-            self.assertIsInstance(opt, OptimizationCandidate)
-            self.assertTrue(opt.confidence > 0.0)
-            self.assertTrue(opt.confidence <= 1.0)
-            self.assertGreater(opt.estimated_speedup, 0.0)
-            self.assertTrue(opt.safety_verified)
+            assert isinstance(opt, OptimizationCandidate)
+            assert opt.confidence > 0.0
+            assert opt.confidence <= 1.0
+            assert opt.estimated_speedup > 0.0
+            assert opt.safety_verified
 
     def test_constant_value_creation(self):
         """Test creation and properties of constant values."""
         const_val = ConstantValue(value=42, type_name="int")
 
-        self.assertEqual(const_val.value, 42)
-        self.assertEqual(const_val.type_name, "int")
-        self.assertTrue(const_val.is_safe)
-        self.assertEqual(const_val.confidence, 1.0)
+        assert const_val.value == 42
+        assert const_val.type_name == "int"
+        assert const_val.is_safe
+        assert const_val.confidence == 1.0
 
     def test_empty_function_optimization(self):
         """Test optimization of empty function."""
@@ -363,8 +366,8 @@ def empty():
         context = self._create_analysis_context(source)
         result = self.evaluator.optimize(context)
 
-        self.assertTrue(result.success)
-        self.assertEqual(result.performance_gain_estimate, 1.0)
+        assert result.success
+        assert result.performance_gain_estimate == 1.0
 
     def test_variable_without_type_annotation(self):
         """Test handling of variables without type annotations."""
@@ -377,9 +380,9 @@ def no_annotation():
         context = self._create_analysis_context(source)
         result = self.evaluator.optimize(context)
 
-        self.assertTrue(result.success)
+        assert result.success
         # Should still work, but might not optimize as much
-        self.assertIsNotNone(result.optimized_ast)
+        assert result.optimized_ast is not None
 
     def test_optimization_levels(self):
         """Test different optimization levels."""
@@ -389,18 +392,19 @@ def test_levels():
     return result
 """
 
+
         # Test basic level
         basic_evaluator = CompileTimeEvaluator(OptimizationLevel.BASIC)
         context = self._create_analysis_context(source)
         basic_result = basic_evaluator.optimize(context)
 
-        self.assertTrue(basic_result.success)
+        assert basic_result.success
 
         # Test aggressive level
         aggressive_evaluator = CompileTimeEvaluator(OptimizationLevel.AGGRESSIVE)
         aggressive_result = aggressive_evaluator.optimize(context)
 
-        self.assertTrue(aggressive_result.success)
+        assert aggressive_result.success
 
     def test_error_handling(self):
         """Test error handling with malformed input."""
@@ -412,8 +416,8 @@ def test_levels():
         result = self.evaluator.optimize(invalid_context)
 
         # Should handle gracefully
-        self.assertFalse(result.success)
-        self.assertIn("error", result.metadata)
+        assert not result.success
+        assert "error" in result.metadata
 
     def test_transformations_reporting(self):
         """Test reporting of transformations performed."""
@@ -428,13 +432,13 @@ def transformations():
         context = self._create_analysis_context(source)
         result = self.evaluator.optimize(context)
 
-        self.assertTrue(result.success)
-        self.assertGreater(len(result.transformations), 0)
+        assert result.success
+        assert len(result.transformations) > 0
 
         # Check transformation descriptions
         transformations_text = " ".join(result.transformations)
-        self.assertIn("constants", transformations_text)
-        self.assertIn("expressions", transformations_text)
+        assert "constants" in transformations_text
+        assert "expressions" in transformations_text
 
     def test_confidence_scoring(self):
         """Test confidence scoring for different optimization types."""
@@ -447,13 +451,13 @@ def confidence_test():
         context = self._create_analysis_context(source)
         result = self.evaluator.optimize(context)
 
-        self.assertTrue(result.success)
+        assert result.success
         report = result.metadata.get("report")
 
         # Check confidence scores
         for opt in report.optimizations:
-            self.assertGreater(opt.confidence, 0.0)
-            self.assertLessEqual(opt.confidence, 1.0)
+            assert opt.confidence > 0.0
+            assert opt.confidence <= 1.0
 
     def test_memory_impact_estimation(self):
         """Test estimation of memory impact from optimizations."""
@@ -465,12 +469,12 @@ def memory_test():
         context = self._create_analysis_context(source)
         result = self.evaluator.optimize(context)
 
-        self.assertTrue(result.success)
+        assert result.success
         report = result.metadata.get("report")
 
         # Memory impact should be calculated (can be positive or negative)
         for opt in report.optimizations:
-            self.assertIsInstance(opt.memory_impact, int)
+            assert isinstance(opt.memory_impact, int)
 
 
 if __name__ == "__main__":
