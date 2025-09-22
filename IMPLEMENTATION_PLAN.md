@@ -1072,6 +1072,274 @@ This integration represents a significant opportunity to elevate CGen's code gen
 - Exception-safe wrapper generation
 - Type-safe container operations
 
+## C11 Syntactical Element Coverage Analysis
+
+### IMPLEMENTED C11 Elements ✅
+
+#### Data Types
+- **Basic Types**: `char`, `short`, `int`, `long`, `float`, `double` (via `BuiltInTypes` in factory.py)
+- **Type System**: Type class with base_type, const, volatile, pointer, array support
+- **Structs**: Full struct support with members, declarations, usage
+- **Pointers**: Single-level pointer support with alignment options (left/right/middle)
+- **Arrays**: Fixed-size arrays with `[size]` notation
+- **Typedefs**: Complete typedef support with pointer/array qualifiers
+
+#### Control Flow
+- **If/else statements**: Full support via `IfStatement` class
+- **While loops**: Complete implementation via `WhileLoop` class
+- **For loops**: Full support via `ForLoop` class with init/condition/increment
+- **Function calls**: `FunctionCall` with arguments
+- **Return statements**: `FunctionReturn` with expressions
+
+#### Functions
+- **Function declarations**: Complete with return types, parameters, storage classes
+- **Function definitions**: Via Declaration wrapper with function blocks
+- **Parameters**: Variable parameters with types and qualifiers
+- **Static/extern functions**: Storage class support
+
+#### Variables
+- **Variable declarations**: Full support with initialization
+- **Storage classes**: `static`, `extern` support
+- **Type qualifiers**: `const`, `volatile` with configurable order
+- **Initialization**: Simple and aggregate initialization
+
+#### Operators
+- **Arithmetic**: `+`, `-`, `*`, `/`, `%` (in py2c.py)
+- **Comparison**: `==`, `!=`, `<`, `<=`, `>`, `>=` (in py2c.py)
+- **Assignment**: Basic assignment operator
+
+#### Preprocessor
+- **Include directives**: `#include` with system/user includes
+- **Define directives**: `#define` with optional values
+- **Conditional compilation**: `#ifdef`, `#ifndef`, `#endif`
+- **Extern blocks**: `extern "C"` support
+
+#### Formatting & Style
+- **Brace styles**: ALLMAN, ATTACH, LINUX, CUSTOM
+- **Pointer alignment**: LEFT, RIGHT, MIDDLE
+- **Indentation**: Configurable width and character
+- **Type qualifier ordering**: Configurable order
+
+### PARTIALLY IMPLEMENTED C11 Elements ⚠️
+
+#### Type System
+- **Function pointers**: Core mentions but no complete implementation
+- **Complex pointer types**: Only single-level pointers, no pointer-to-pointer
+- **Variadic functions**: No `...` parameter support visible
+
+#### Storage Classes
+- **Auto**: Not implemented (C11 auto keyword)
+- **Register**: Not implemented
+- **Thread-local**: Not implemented
+
+#### Type Qualifiers
+- **Restrict**: Not implemented (C99/C11 restrict keyword)
+
+### UNIMPLEMENTED C11 Elements ❌
+
+#### Data Types
+- **Unions**: Not implemented (style.py has `after_union` but no Union class)
+- **Enums**: Not implemented (no Enum class found)
+- **Complex types**: No `_Complex` support
+- **Fixed-width integer types**: No `int32_t`, `uint64_t`, etc.
+
+#### Control Flow
+- **Switch statements**: Not implemented
+- **Do-while loops**: Not implemented
+- **Goto statements**: Not implemented
+- **Break/continue**: Not implemented
+- **Labels**: Not implemented
+
+#### C11 Advanced Features
+- **Generic selections**: `_Generic` not implemented
+- **Static assertions**: `_Static_assert` not implemented
+- **Atomic operations**: `_Atomic` types not implemented
+- **Alignment specifiers**: `_Alignas`/`_Alignof` not implemented
+- **Thread support**: `_Thread_local` not implemented
+
+#### Operators
+- **Bitwise operators**: `&`, `|`, `^`, `~`, `<<`, `>>` not implemented
+- **Logical operators**: `&&`, `||`, `!` not implemented
+- **Increment/decrement**: `++`, `--` not implemented
+- **Compound assignment**: `+=`, `-=`, `*=`, etc. not implemented
+- **Ternary operator**: `condition ? true : false` not implemented
+- **Sizeof operator**: Not implemented
+- **Address-of/dereference**: `&`, `*` operators not implemented
+
+#### Advanced Constructs
+- **Inline functions**: `inline` keyword not implemented
+- **Function-like macros**: Only simple `#define` supported
+- **Variadic macros**: Not implemented
+- **Pragma directives**: Not implemented
+- **String literal concatenation**: Not implemented
+- **Multi-dimensional arrays**: Not implemented
+- **Flexible array members**: Not implemented
+- **Designated initializers**: Not implemented
+
+#### Error Handling
+- **No exception handling**: C doesn't have exceptions, but error patterns not supported
+
+#### Memory Management
+- **Dynamic allocation**: No `malloc`/`free` constructs
+- **Stack allocation**: No `alloca` support
+
+## Implementation Priority Analysis
+
+### TIER 1: Critical for Basic Program Translation (HIGH PRIORITY) 🔴
+
+**Essential for translating basic Python programs to C:**
+
+1. **Switch Statements** - Essential for efficient conditional logic
+   - Impact: High - many Python programs use complex conditionals
+   - Implementation: Medium complexity - needs case handling and fall-through
+
+2. **Bitwise Operators** (`&`, `|`, `^`, `~`, `<<`, `>>`) - Common in algorithmic code
+   - Impact: High - required for low-level operations, bit manipulation
+   - Implementation: Low complexity - straightforward operator mapping
+
+3. **Logical Operators** (`&&`, `||`, `!`) - Fundamental for conditional logic
+   - Impact: Critical - needed for compound conditions in if/while statements
+   - Implementation: Low complexity - direct operator translation
+
+4. **Increment/Decrement** (`++`, `--`) - Common loop patterns
+   - Impact: High - very common in C-style loops and counters
+   - Implementation: Low complexity - pre/post increment distinction needed
+
+5. **Compound Assignment** (`+=`, `-=`, `*=`, etc.) - Concise code patterns
+   - Impact: High - extremely common in Python code
+   - Implementation: Low complexity - expand to assignment + operation
+
+### TIER 2: Important for Practical Programs (MEDIUM PRIORITY) 🟡
+
+**Significantly improves generated code quality and Python compatibility:**
+
+6. **Break/Continue Statements** - Essential for loop control
+   - Impact: High - fundamental for loop control flow
+   - Implementation: Medium complexity - needs proper scope handling
+
+7. **Do-while Loops** - Specific loop patterns
+   - Impact: Medium - less common but important for certain algorithms
+   - Implementation: Low complexity - similar to while loop
+
+8. **Ternary Operator** (`condition ? true : false`) - Concise conditionals
+   - Impact: Medium - improves code readability and Python compatibility
+   - Implementation: Low complexity - conditional expression mapping
+
+9. **Sizeof Operator** - Memory operations and array bounds
+   - Impact: Medium - important for memory management and array operations
+   - Implementation: Low complexity - direct operator support
+
+10. **Address-of/Dereference** (`&`, `*`) - Pointer operations
+    - Impact: High - essential for advanced pointer usage
+    - Implementation: Medium complexity - careful type checking needed
+
+### TIER 3: Enhanced Language Support (MEDIUM PRIORITY) 🟡
+
+**Provides more complete C language coverage:**
+
+11. **Enums** - Type-safe constants
+    - Impact: Medium - improves type safety and code organization
+    - Implementation: Medium complexity - needs type system integration
+
+12. **Unions** - Memory-efficient data structures
+    - Impact: Medium - useful for systems programming patterns
+    - Implementation: Medium complexity - similar to struct implementation
+
+13. **Multi-level Pointers** (pointer-to-pointer)
+    - Impact: Medium - needed for complex data structures
+    - Implementation: Medium complexity - extend existing pointer support
+
+14. **Multi-dimensional Arrays**
+    - Impact: Medium - important for scientific computing
+    - Implementation: Medium complexity - array indexing calculations
+
+### TIER 4: Advanced C11 Features (LOWER PRIORITY) 🟢
+
+**Modern C capabilities but not essential for basic Python translation:**
+
+15. **Function Pointers** - Advanced programming patterns
+    - Impact: Low - specialized use cases
+    - Implementation: High complexity - complex type system changes
+
+16. **Variadic Functions** (`...`) - Variable argument functions
+    - Impact: Low - limited Python equivalent (`*args`)
+    - Implementation: High complexity - type checking challenges
+
+17. **Static Assertions** (`_Static_assert`) - Compile-time checks
+    - Impact: Low - debugging and validation
+    - Implementation: Low complexity - preprocessing feature
+
+18. **Generic Selections** (`_Generic`) - Type-generic programming
+    - Impact: Low - advanced metaprogramming
+    - Implementation: High complexity - significant type system work
+
+### TIER 5: Specialized/Future Features (LOWEST PRIORITY) ⚪
+
+**Advanced features for specialized use cases:**
+
+19. **Atomic Operations** (`_Atomic`) - Thread-safe operations
+    - Impact: Very Low - concurrent programming
+    - Implementation: Very High complexity - threading model integration
+
+20. **Thread-local Storage** (`_Thread_local`) - Thread-specific data
+    - Impact: Very Low - advanced concurrent programming
+    - Implementation: Very High complexity - thread model integration
+
+21. **Alignment Specifiers** (`_Alignas`/`_Alignof`) - Memory layout control
+    - Impact: Very Low - performance optimization
+    - Implementation: Medium complexity - memory layout considerations
+
+## Recommended Implementation Order
+
+### Phase 7.1: Essential Operators (Week 1-2) 🔴
+**Target: Enable basic algorithmic Python programs**
+- Logical operators (`&&`, `||`, `!`) - **CRITICAL**
+- Bitwise operators (`&`, `|`, `^`, `~`, `<<`, `>>`)
+- Increment/decrement (`++`, `--`)
+- Compound assignment (`+=`, `-=`, `*=`, `/=`, `%=`)
+
+### Phase 7.2: Control Flow Completion (Week 3-4) 🔴
+**Target: Complete control flow coverage**
+- Switch statements with case/default
+- Break/continue statements
+- Do-while loops
+- Ternary operator (`?:`)
+
+### Phase 7.3: Memory and Pointer Operations (Week 5-6) 🟡
+**Target: Enable systems programming patterns**
+- Address-of/dereference operators (`&`, `*`)
+- Sizeof operator
+- Multi-level pointers (pointer-to-pointer)
+- Enhanced pointer arithmetic
+
+### Phase 7.4: Data Type Expansion (Week 7-8) 🟡
+**Target: Complete basic data type coverage**
+- Enums with proper type checking
+- Unions for memory-efficient structures
+- Multi-dimensional arrays
+- Fixed-width integer types (`int32_t`, `uint64_t`, etc.)
+
+### Phase 7.5: Advanced Features (Future) 🟢
+**Target: Modern C11 capabilities**
+- Function pointers
+- Variadic functions
+- Static assertions
+- Generic selections
+
+**Success Metrics:**
+- **Phase 7.1**: All basic Python arithmetic/logical programs translate successfully
+- **Phase 7.2**: Complete Python control flow programs (loops, switches) translate
+- **Phase 7.3**: Pointer-based algorithms and data structures translate correctly
+- **Phase 7.4**: Complex data structure programs translate with proper type safety
+
+**Testing Strategy:**
+- Each phase adds 20-30 new tests covering the implemented features
+- Comprehensive Python programs testing combinations of new features
+- Performance validation ensuring new features don't degrade existing code
+- Backward compatibility testing to ensure no regressions
+
+This prioritization ensures that the most impactful C11 features are implemented first, enabling translation of increasingly complex Python programs while maintaining a manageable development timeline.
+
 ### Recommended Next Steps (Priority Order)
 
 #### Phase 6.1: Complete STC Container Support ⭐ **HIGH PRIORITY**

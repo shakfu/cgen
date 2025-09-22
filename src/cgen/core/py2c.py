@@ -235,6 +235,8 @@ class PythonToCConverter:
             return self._convert_binary_operation(node)
         elif isinstance(node, ast.Call):
             return self._convert_function_call(node)
+        elif isinstance(node, ast.Compare):
+            return self._convert_comparison(node)
         else:
             raise UnsupportedFeatureError(f"Unsupported expression: {type(node).__name__}")
 
@@ -268,6 +270,30 @@ class PythonToCConverter:
         else:
             raise UnsupportedFeatureError(f"Unsupported binary operator: {type(node.op).__name__}")
 
+    def _convert_comparison(self, node: ast.Compare) -> str:
+        """Convert comparison to C syntax."""
+        # Simple implementation: handle single comparison operations
+        if len(node.ops) != 1 or len(node.comparators) != 1:
+            raise UnsupportedFeatureError("Complex comparisons with multiple operators not supported")
+
+        left = self._convert_expression(node.left)
+        right = self._convert_expression(node.comparators[0])
+
+        op_map = {
+            ast.Eq: "==",
+            ast.NotEq: "!=",
+            ast.Lt: "<",
+            ast.LtE: "<=",
+            ast.Gt: ">",
+            ast.GtE: ">=",
+        }
+
+        if type(node.ops[0]) in op_map:
+            op_str = op_map[type(node.ops[0])]
+            return f"{left} {op_str} {right}"
+        else:
+            raise UnsupportedFeatureError(f"Unsupported comparison operator: {type(node.ops[0]).__name__}")
+
     def _convert_function_call(self, node: ast.Call) -> core.Element:
         """Convert function call to C function call."""
         if isinstance(node.func, ast.Name):
@@ -277,23 +303,103 @@ class PythonToCConverter:
         else:
             raise UnsupportedFeatureError("Only simple function calls supported")
 
-    def _convert_if(self, node: ast.If) -> List[core.Element]:
+    def _convert_if(self, node: ast.If) -> core.Element:
         """Convert if statement to C if statement."""
-        # This is a placeholder - full implementation would require
-        # extending cfile to support if statements
-        raise UnsupportedFeatureError("If statements not yet implemented")
+        # Convert condition
+        condition = self._convert_expression(node.test)
 
-    def _convert_while(self, node: ast.While) -> List[core.Element]:
+        # Convert then block (if body)
+        then_statements = []
+        for stmt in node.body:
+            then_statements.append(self._convert_statement(stmt))
+
+        then_block = self.c_factory.block()
+        for stmt in then_statements:
+            then_block.append(stmt)
+
+        # Convert else block if present
+        else_block = None
+        if node.orelse:
+            else_statements = []
+            for stmt in node.orelse:
+                else_statements.append(self._convert_statement(stmt))
+
+            else_block = self.c_factory.block()
+            for stmt in else_statements:
+                else_block.append(stmt)
+
+        return self.c_factory.if_statement(condition, then_block, else_block)
+
+    def _convert_while(self, node: ast.While) -> core.Element:
         """Convert while loop to C while loop."""
-        # This is a placeholder - full implementation would require
-        # extending cfile to support while loops
-        raise UnsupportedFeatureError("While loops not yet implemented")
+        # Convert condition
+        condition = self._convert_expression(node.test)
 
-    def _convert_for(self, node: ast.For) -> List[core.Element]:
+        # Convert body
+        body_statements = []
+        for stmt in node.body:
+            body_statements.append(self._convert_statement(stmt))
+
+        body_block = self.c_factory.block()
+        for stmt in body_statements:
+            body_block.append(stmt)
+
+        return self.c_factory.while_loop(condition, body_block)
+
+    def _convert_for(self, node: ast.For) -> core.Element:
         """Convert for loop to C for loop."""
-        # This is a placeholder - full implementation would require
-        # extending cfile to support for loops
-        raise UnsupportedFeatureError("For loops not yet implemented")
+        # Handle range-based for loops: for i in range(start, end, step)
+        if (isinstance(node.iter, ast.Call) and
+            isinstance(node.iter.func, ast.Name) and
+            node.iter.func.id == "range"):
+
+            # Extract loop variable
+            if isinstance(node.target, ast.Name):
+                loop_var = node.target.id
+            else:
+                raise UnsupportedFeatureError("Only simple loop variables supported in for loops")
+
+            # Parse range arguments
+            range_args = node.iter.args
+            if len(range_args) == 1:
+                # range(n) -> for(i=0; i<n; i++)
+                start = "0"
+                end = self._convert_expression(range_args[0])
+                step = "1"
+            elif len(range_args) == 2:
+                # range(start, end) -> for(i=start; i<end; i++)
+                start = self._convert_expression(range_args[0])
+                end = self._convert_expression(range_args[1])
+                step = "1"
+            elif len(range_args) == 3:
+                # range(start, end, step) -> for(i=start; i<end; i+=step)
+                start = self._convert_expression(range_args[0])
+                end = self._convert_expression(range_args[1])
+                step = self._convert_expression(range_args[2])
+            else:
+                raise UnsupportedFeatureError("Invalid range() arguments in for loop")
+
+            # Build for loop components
+            init = f"int {loop_var} = {start}"
+            condition = f"{loop_var} < {end}"
+            if str(step) == "1":
+                increment = f"{loop_var}++"
+            else:
+                increment = f"{loop_var} += {step}"
+
+            # Convert body
+            body_statements = []
+            for stmt in node.body:
+                body_statements.append(self._convert_statement(stmt))
+
+            body_block = self.c_factory.block()
+            for stmt in body_statements:
+                body_block.append(stmt)
+
+            return self.c_factory.for_loop(init, condition, increment, body_block)
+
+        else:
+            raise UnsupportedFeatureError("Only range-based for loops are currently supported")
 
     def _convert_expression_statement(self, node: ast.Expr) -> core.Statement:
         """Convert expression statement (like standalone function call)."""

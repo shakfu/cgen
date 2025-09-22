@@ -7,6 +7,7 @@ from typing import Any, TextIO
 
 import cfile.style as c_style
 from cfile import core
+from cfile.style import BreakBeforeBraces
 
 
 class ElementType(Enum):
@@ -117,6 +118,9 @@ class Writer(Formatter):
             "IfndefDirective": self._write_ifndef_directive,
             "EndifDirective": self._write_endif_directive,
             "Extern": self._write_extern,
+            "IfStatement": self._write_if_statement,
+            "WhileLoop": self._write_while_loop,
+            "ForLoop": self._write_for_loop,
         }
         self.last_element = ElementType.NONE
 
@@ -605,3 +609,128 @@ class Writer(Formatter):
     def _write_extern(self, elem: core.Extern) -> None:
         self._write(f'extern "{elem.language}"')
         self.last_element = ElementType.DIRECTIVE
+
+    def _write_if_statement(self, elem: core.IfStatement) -> None:
+        """Write if statement with optional else clause."""
+        # Write if condition
+        self._write("if (")
+        if isinstance(elem.condition, str):
+            self._write(elem.condition)
+        else:
+            self._write_element(elem.condition)
+        self._write(")")
+
+        # Handle brace style
+        if self.style.break_before_braces == BreakBeforeBraces.ATTACH:
+            self._write(" ")
+        else:
+            self._eol()
+
+        # Write then block
+        if isinstance(elem.then_block, core.Block):
+            self._write_block(elem.then_block)
+        else:
+            self._write("{")
+            self._eol()
+            self._indent()
+            self._write_element(elem.then_block)
+            self._dedent()
+            self._write_line("}")
+
+        # Write else block if present
+        if elem.else_block is not None:
+            self._write(" else")
+            if self.style.break_before_braces == BreakBeforeBraces.ATTACH:
+                self._write(" ")
+            else:
+                self._eol()
+
+            if isinstance(elem.else_block, core.Block):
+                self._write_block(elem.else_block)
+            else:
+                self._write("{")
+                self._eol()
+                self._indent()
+                self._write_element(elem.else_block)
+                self._dedent()
+                self._write_line("}")
+
+        self.last_element = ElementType.STATEMENT
+
+    def _write_while_loop(self, elem: core.WhileLoop) -> None:
+        """Write while loop."""
+        # Write while condition
+        self._write("while (")
+        if isinstance(elem.condition, str):
+            self._write(elem.condition)
+        else:
+            self._write_element(elem.condition)
+        self._write(")")
+
+        # Handle brace style
+        if self.style.break_before_braces == BreakBeforeBraces.ATTACH:
+            self._write(" ")
+        else:
+            self._eol()
+
+        # Write body
+        if isinstance(elem.body, core.Block):
+            self._write_block(elem.body)
+        else:
+            self._write("{")
+            self._eol()
+            self._indent()
+            self._write_element(elem.body)
+            self._dedent()
+            self._write_line("}")
+
+        self.last_element = ElementType.STATEMENT
+
+    def _write_for_loop(self, elem: core.ForLoop) -> None:
+        """Write for loop."""
+        # Write for header
+        self._write("for (")
+
+        # Write initialization
+        if elem.init is not None:
+            if isinstance(elem.init, str):
+                self._write(elem.init)
+            else:
+                self._write_element(elem.init)
+        self._write("; ")
+
+        # Write condition
+        if elem.condition is not None:
+            if isinstance(elem.condition, str):
+                self._write(elem.condition)
+            else:
+                self._write_element(elem.condition)
+        self._write("; ")
+
+        # Write increment
+        if elem.increment is not None:
+            if isinstance(elem.increment, str):
+                self._write(elem.increment)
+            else:
+                self._write_element(elem.increment)
+
+        self._write(")")
+
+        # Handle brace style
+        if self.style.break_before_braces == BreakBeforeBraces.ATTACH:
+            self._write(" ")
+        else:
+            self._eol()
+
+        # Write body
+        if isinstance(elem.body, core.Block):
+            self._write_block(elem.body)
+        else:
+            self._write("{")
+            self._eol()
+            self._indent()
+            self._write_element(elem.body)
+            self._dedent()
+            self._write_line("}")
+
+        self.last_element = ElementType.STATEMENT
