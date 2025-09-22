@@ -14,55 +14,44 @@ Key components:
 
 # AST Analysis Framework
 from .ast_analyzer import (
-    ASTAnalyzer,
     AnalysisResult,
+    ASTAnalyzer,
     FunctionInfo,
-    VariableInfo,
-    TypeInfo,
-    StaticComplexity,
     NodeType,
+    StaticComplexity,
+    TypeInfo,
+    VariableInfo,
     analyze_python_code,
-    analyze_python_file
-)
-
-# Type Inference System
-from .type_inference import (
-    TypeInferenceEngine,
-    InferenceResult,
-    InferenceMethod,
-    TypeConstraint
+    analyze_python_file,
 )
 
 # Static Constraint Checking
 from .constraint_checker import (
-    StaticConstraintChecker,
+    ConstraintCategory,
     ConstraintReport,
-    ConstraintViolation,
     ConstraintSeverity,
-    ConstraintCategory
-)
-
-# Python Subset Validation
-from .subset_validator import (
-    StaticPythonSubsetValidator,
-    ValidationResult,
-    FeatureRule,
-    SubsetTier,
-    FeatureStatus
+    ConstraintViolation,
+    StaticConstraintChecker,
 )
 
 # Static IR
 from .static_ir import (
-    IRModule,
-    IRFunction,
-    IRVariable,
-    IRStatement,
-    IRExpression,
-    IRType,
-    IRDataType,
     IRBuilder,
-    build_ir_from_code
+    IRDataType,
+    IRExpression,
+    IRFunction,
+    IRModule,
+    IRStatement,
+    IRType,
+    IRVariable,
+    build_ir_from_code,
 )
+
+# Python Subset Validation
+from .subset_validator import FeatureRule, FeatureStatus, StaticPythonSubsetValidator, SubsetTier, ValidationResult
+
+# Type Inference System
+from .type_inference import InferenceMethod, InferenceResult, TypeConstraint, TypeInferenceEngine
 
 __all__ = [
     # AST Analysis

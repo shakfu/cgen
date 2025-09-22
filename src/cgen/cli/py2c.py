@@ -1,7 +1,7 @@
 """Dedicated py2c CLI command."""
 
-import sys
 import argparse
+import sys
 from typing import List, Optional
 
 

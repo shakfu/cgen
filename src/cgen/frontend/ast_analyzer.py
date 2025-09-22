@@ -5,10 +5,10 @@ focusing on static analysis of Python code that can be converted to C.
 """
 
 import ast
-from typing import Dict, List, Set, Optional, Any, Union, Tuple
+import inspect
 from dataclasses import dataclass, field
 from enum import Enum
-import inspect
+from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
 
 class NodeType(Enum):

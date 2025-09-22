@@ -13,6 +13,9 @@ usage_tests/
 # editors
 .vscode
 
+# detritus
+*.egg-info
+
 # claude
 .claude
 CLAUDE.md

@@ -1,7 +1,7 @@
 """Main CGen CLI entry point."""
 
-import sys
 import argparse
+import sys
 from typing import List, Optional
 
 

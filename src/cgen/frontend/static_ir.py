@@ -6,12 +6,12 @@ for the three-layer architecture.
 """
 
 import ast
-from typing import Dict, List, Set, Optional, Any, Union, Tuple
+from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
-from abc import ABC, abstractmethod
+from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
-from .ast_analyzer import TypeInfo, StaticComplexity
+from .ast_analyzer import StaticComplexity, TypeInfo
 from .type_inference import InferenceResult
 
 

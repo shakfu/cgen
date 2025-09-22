@@ -6,10 +6,10 @@ performance and correctness guarantees.
 """
 
 import ast
-from typing import Dict, List, Set, Optional, Any, Union, Tuple, Callable
+import re
 from dataclasses import dataclass, field
 from enum import Enum
-import re
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
 
 
 class SubsetTier(Enum):

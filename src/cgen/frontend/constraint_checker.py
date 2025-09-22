@@ -5,11 +5,11 @@ that Python code can be safely and correctly converted to C code.
 """
 
 import ast
-from typing import Dict, List, Set, Optional, Any, Union, Tuple
 from dataclasses import dataclass, field
 from enum import Enum
+from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
-from .ast_analyzer import TypeInfo, VariableInfo, FunctionInfo, StaticComplexity
+from .ast_analyzer import FunctionInfo, StaticComplexity, TypeInfo, VariableInfo
 from .type_inference import InferenceResult, TypeInferenceEngine
 
 

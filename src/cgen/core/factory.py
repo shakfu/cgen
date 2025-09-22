@@ -1,7 +1,8 @@
 """Factory classes."""
 
 from collections import namedtuple
-from typing import Union, Any
+from typing import Any, Union
+
 from . import core
 
 BuiltInTypes = namedtuple(

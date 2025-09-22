@@ -1,7 +1,7 @@
 """Cfile core."""
 
 import re
-from typing import Union, Any
+from typing import Any, Union
 
 
 def _validate_c_identifier(name: str, context: str = "identifier") -> None:

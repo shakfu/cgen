@@ -6,12 +6,12 @@ and static analysis.
 """
 
 import ast
-from typing import Dict, List, Set, Optional, Any, Union, Tuple, Type
+import operator
 from dataclasses import dataclass, field
 from enum import Enum
-import operator
+from typing import Any, Dict, List, Optional, Set, Tuple, Type, Union
 
-from .ast_analyzer import TypeInfo, VariableInfo, StaticComplexity
+from .ast_analyzer import StaticComplexity, TypeInfo, VariableInfo
 
 
 class InferenceMethod(Enum):

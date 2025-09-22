@@ -1,9 +1,10 @@
 """Cfile writer."""
 
 # pylint: disable=consider-using-with
-from io import StringIO
 from enum import Enum
-from typing import TextIO, Any
+from io import StringIO
+from typing import Any, TextIO
+
 from . import core
 from . import style as c_style
 

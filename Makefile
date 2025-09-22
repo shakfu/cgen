@@ -34,47 +34,47 @@ help:
 
 # Installation
 install:
-	pip install -e .
+	uv run pip install -e .
 
 install-dev:
-	pip install -e .[dev,intelligence,ml,verification,docs,all]
+	uv run pip install -e .[dev,intelligence,ml,verification,docs,all]
 
 # Testing
 test: test-legacy test-pytest
 
 test-legacy:
-	python -m unittest discover -v tests
+	uv run python -m unittest discover -v tests
 
 test-pytest:
-	pytest tests/ -v
+	uv run pytest tests/ -v
 
 test-unit:
-	pytest -m "unit" tests/ -v
+	uv run pytest -m "unit" tests/ -v
 
 test-integration:
-	pytest -m "integration" tests/ -v
+	uv run pytest -m "integration" tests/ -v
 
 test-py2c:
-	pytest -m "py2c" tests/ -v
+	uv run pytest -m "py2c" tests/ -v
 
 test-benchmark:
-	pytest -m "benchmark" tests/ -v
-	python tests/benchmarks.py
+	uv run pytest -m "benchmark" tests/ -v
+	uv run python tests/benchmarks.py
 
 test-coverage:
-	pytest --cov=src/cgen --cov-report=html --cov-report=term-missing tests/
+	uv run pytest --cov=src/cgen --cov-report=html --cov-report=term-missing tests/
 
 # Code quality
 lint:
-	flake8 --max-line-length=120 --ignore=D107,D200,D205,D400,D401 src
-	flake8 --max-line-length=120 --ignore=D101,D102,D107,D200,D205,D400,D401,E402 tests
+	uv run flake8 --max-line-length=120 --ignore=D107,D200,D205,D400,D401 src
+	uv run flake8 --max-line-length=120 --ignore=D101,D102,D107,D200,D205,D400,D401,E402 tests
 
 format:
-	black --line-length=120 src tests
-	isort --profile=black --line-length=120 src tests
+	uv run ruff --line-length=120 src tests
+	uv run isort --profile=black --line-length=120 src tests
 
 type-check:
-	mypy src/cgen
+	uv run mypy src/cgen
 
 pre-commit:
 	pre-commit install
@@ -82,7 +82,7 @@ pre-commit:
 
 # Build and distribution
 build: clean
-	python -m build
+	uv build
 
 clean:
 	rm -rf build/
@@ -102,21 +102,21 @@ docs:
 # Development utilities
 run-examples:
 	@echo "Running example scripts..."
-	python examples/hello_world.py
-	python examples/variables.py
+	uv run python examples/hello_world.py
+	uv run python examples/variables.py
 
 # CI simulation
 ci-test: install-dev lint type-check test
 
 # Performance monitoring
 perf-monitor:
-	python scripts/run_tests.py --category benchmark --verbose
+	uv run python scripts/run_tests.py --category benchmark --verbose
 
 # Package verification
 verify-package: build
-	python -m twine check dist/*
-	pip install dist/*.whl
-	python -c "import cgen; print(f'CGen version: {cgen.__version__}')"
+	uv run python -m twine check dist/*
+	uv run pip install dist/*.whl
+	uv run python -c "import cgen; print(f'CGen version: {cgen.__version__}')"
 
 # Development server (for future web interface)
 dev-server:

@@ -21,7 +21,8 @@ Limitations:
 """
 
 import ast
-from typing import Dict, List, Optional, Union, Any
+from typing import Any, Dict, List, Optional, Union
+
 from . import core
 from .factory import CFactory
 
@@ -299,8 +300,8 @@ def convert_python_to_c(python_code: str) -> str:
     converter = PythonToCConverter()
     c_sequence = converter.convert_code(python_code)
 
-    from .writer import Writer
     from .style import StyleOptions
+    from .writer import Writer
 
     writer = Writer(StyleOptions())
     return writer.write_str(c_sequence)
@@ -311,8 +312,8 @@ def convert_python_file_to_c(input_file: str, output_file: str) -> None:
     converter = PythonToCConverter()
     c_sequence = converter.convert_file(input_file)
 
-    from .writer import Writer
     from .style import StyleOptions
+    from .writer import Writer
 
     writer = Writer(StyleOptions())
     writer.write_file(c_sequence, output_file)

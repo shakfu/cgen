@@ -14,14 +14,14 @@ This package provides:
 
 # Core C code generation capabilities (Layer 3)
 from .core import (
-    CFactory,
-    Writer,
-    StyleOptions,
-    BreakBeforeBraces,
     Alignment,
+    BreakBeforeBraces,
+    CFactory,
     PythonToCConverter,
-    convert_python_to_c,
+    StyleOptions,
+    Writer,
     convert_python_file_to_c,
+    convert_python_to_c,
 )
 
 # Version information
