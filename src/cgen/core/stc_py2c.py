@@ -317,8 +317,14 @@ class STCEnhancedPythonToCConverter(PythonToCConverter):
 
     def _get_stc_container_for_type(self, python_type: str) -> Optional[STCContainer]:
         """Get STC container for Python type."""
-        if any(python_type.startswith(prefix) for prefix in ['List[', 'Dict[', 'Set[']):
-            return STC_CONTAINERS.get('list')  # Placeholder
+        # Handle both List[T] and list[T] formats
+        if any(python_type.startswith(prefix) for prefix in ['List[', 'list[', 'Dict[', 'dict[', 'Set[', 'set[']):
+            if python_type.startswith(('List[', 'list[')):
+                return STC_CONTAINERS.get('list')
+            elif python_type.startswith(('Dict[', 'dict[')):
+                return STC_CONTAINERS.get('dict')
+            elif python_type.startswith(('Set[', 'set[')):
+                return STC_CONTAINERS.get('set')
         elif python_type in ['list', 'dict', 'set', 'str']:
             return STC_CONTAINERS.get(python_type)
         return None
@@ -335,15 +341,23 @@ class STCEnhancedPythonToCConverter(PythonToCConverter):
             # Handle List[T], Dict[K,V], Set[T] with STC containers
             full_type = ast.unparse(annotation)
 
-            if full_type.startswith('List['):
-                element_type = self._extract_type_annotation(annotation.slice)
-                return f"{element_type}*"  # Will be replaced with STC vec
+            if full_type.startswith(('List[', 'list[')):
+                # For return types, we'll return the container pointer
+                return "void*"  # STC container returned by pointer
 
-            elif full_type.startswith('Dict['):
-                return "void*"  # Will be replaced with STC map
+            elif full_type.startswith(('Dict[', 'dict[')):
+                return "void*"  # STC map returned by pointer
 
-            elif full_type.startswith('Set['):
-                return "void*"  # Will be replaced with STC set
+            elif full_type.startswith(('Set[', 'set[')):
+                return "void*"  # STC set returned by pointer
+
+            else:
+                # Try parent implementation for other generic types
+                try:
+                    return super()._extract_type_annotation(annotation)
+                except:
+                    # If parent fails, return generic pointer for container types
+                    return "void*"
 
         return super()._extract_type_annotation(annotation)
 
@@ -514,9 +528,162 @@ class STCEnhancedPythonToCConverter(PythonToCConverter):
             elements = [self._convert_expression(elem) for elem in node.elts]
             return "{" + ", ".join(str(e) for e in elements) + "}"
 
+        elif isinstance(node, ast.Subscript):
+            # Handle container subscript access
+            if isinstance(node.value, ast.Name):
+                container_name = node.value.id
+
+                # Check if this is an STC container
+                if (hasattr(self, 'stc_translator') and
+                    self.stc_translator and
+                    container_name in self.stc_translator.container_variables):
+
+                    container_type = self.stc_translator.container_variables[container_name]
+                    key = self._convert_expression(node.slice)
+
+                    # Generate appropriate STC operation
+                    if container_type.endswith('Vec'):
+                        # List indexing: list[i] -> *vec_at(&list, i)
+                        return f"*{container_type}_at(&{container_name}, {key})"
+                    elif container_type.endswith('Map'):
+                        # Dict lookup: dict[key] -> *hmap_get(&dict, key)
+                        return f"*{container_type}_get(&{container_name}, {key})"
+                    elif container_type.endswith('Set'):
+                        # Set membership check: set[key] -> hset_contains(&set, key)
+                        return f"{container_type}_contains(&{container_name}, {key})"
+                    elif container_type == 'cstr':
+                        # String indexing: str[i] -> cstr_at(&str, i)
+                        return f"cstr_at(&{container_name}, {key})"
+
+            # Fall back to parent implementation
+            return super()._convert_expression(node)
+
         else:
             # Fall back to parent implementation
             return super()._convert_expression(node)
+
+    def _convert_for(self, node: ast.For) -> Union[core.Element, List[core.Element]]:
+        """Enhanced for loop conversion with STC container iteration support."""
+        # Check if this is iteration over an STC container
+        if isinstance(node.iter, ast.Name):
+            container_name = node.iter.id
+
+            # Check if this is a known STC container
+            if (hasattr(self, 'stc_translator') and
+                self.stc_translator and
+                container_name in self.stc_translator.container_variables):
+
+                container_type = self.stc_translator.container_variables[container_name]
+
+                if isinstance(node.target, ast.Name):
+                    loop_var = node.target.id
+                    iterator_var = "it"
+
+                    # Generate STC iteration
+                    iteration_code = f"for (c_each({iterator_var}, {container_type}, {container_name}))"
+
+                    # Create the for loop structure
+                    statements = []
+
+                    # Add the for loop start as raw code
+                    statements.append(create_raw_code(f"{iteration_code} {{"))
+
+                    # Generate code to access iterator value
+                    if container_type.endswith('Vec') or container_type.endswith('Set'):
+                        value_access = f"*{iterator_var}.ref"
+                    elif container_type.endswith('Map'):
+                        value_access = f"{iterator_var}.ref->first"  # For key iteration
+                    else:
+                        value_access = f"*{iterator_var}.ref"
+
+                    # Add variable assignment
+                    statements.append(create_raw_code(f"    int {loop_var} = {value_access};"))
+
+                    # Convert loop body
+                    for stmt in node.body:
+                        body_stmt = self._convert_statement(stmt)
+                        if isinstance(body_stmt, list):
+                            for s in body_stmt:
+                                statements.append(s)
+                        else:
+                            statements.append(body_stmt)
+
+                    # Close the loop
+                    statements.append(create_raw_code("}"))
+
+                    return statements
+
+        # Fall back to parent implementation for range-based loops
+        return super()._convert_for(node)
+
+    def _convert_assignment(self, node: ast.Assign) -> Union[core.Statement, List[core.Statement]]:
+        """Enhanced assignment conversion with STC container subscript support."""
+        if len(node.targets) != 1:
+            return super()._convert_assignment(node)
+
+        target = node.targets[0]
+
+        # Check if this is a subscript assignment (container[key] = value)
+        if isinstance(target, ast.Subscript):
+            if isinstance(target.value, ast.Name):
+                container_name = target.value.id
+
+                # Check if this is an STC container
+                if (hasattr(self, 'stc_translator') and
+                    self.stc_translator and
+                    container_name in self.stc_translator.container_variables):
+
+                    container_type = self.stc_translator.container_variables[container_name]
+                    key = self._convert_expression(target.slice)
+                    value = self._convert_expression(node.value)
+
+                    # Generate appropriate STC operation
+                    if container_type.endswith('Vec'):
+                        # List assignment: list[i] = value -> *vec_at_mut(&list, i) = value
+                        operation = f"*{container_type}_at_mut(&{container_name}, {key}) = {value}"
+                    elif container_type.endswith('Map'):
+                        # Dict assignment: dict[key] = value -> hmap_insert(&dict, key, value)
+                        operation = f"{container_type}_insert(&{container_name}, {key}, {value})"
+                    elif container_type == 'cstr':
+                        # String character assignment: str[i] = char -> cstr_set_at(&str, i, char)
+                        operation = f"cstr_set_at(&{container_name}, {key}, {value})"
+                    else:
+                        return super()._convert_assignment(node)
+
+                    return create_raw_code(operation)
+
+        # Fall back to parent implementation
+        return super()._convert_assignment(node)
+
+    def _convert_comparison(self, node: ast.Compare) -> str:
+        """Enhanced comparison conversion with STC container membership support."""
+        # Check for membership tests (x in container)
+        if (len(node.ops) == 1 and
+            isinstance(node.ops[0], ast.In) and
+            len(node.comparators) == 1):
+
+            left_expr = self._convert_expression(node.left)
+            right = node.comparators[0]
+
+            # Check if right side is an STC container
+            if (isinstance(right, ast.Name) and
+                hasattr(self, 'stc_translator') and
+                self.stc_translator and
+                right.id in self.stc_translator.container_variables):
+
+                container_type = self.stc_translator.container_variables[right.id]
+                container_name = right.id
+
+                if container_type.endswith(('Set', 'Map')):
+                    return f"{container_type}_contains(&{container_name}, {left_expr})"
+                elif container_type.endswith('Vec'):
+                    # For vectors, we need to search
+                    return f"({container_type}_find(&{container_name}, {left_expr}).ref != {container_type}_end(&{container_name}).ref)"
+                elif container_type == 'cstr':
+                    return f"(cstr_find(&{container_name}, {left_expr}) != cstr_npos)"
+
+        # Fall back to parent implementation
+        return super()._convert_comparison(node)
 
     def _convert_function_call(self, node: ast.Call) -> core.Element:
         """Enhanced function call conversion with STC container support."""
@@ -529,7 +696,7 @@ class STCEnhancedPythonToCConverter(PythonToCConverter):
                 # Check if this is an STC container operation
                 stc_operation = self.stc_translator.translate_container_operation(node)
                 if stc_operation:
-                    return stc_operation
+                    return create_raw_code(stc_operation)
 
                 # Fall back to treating as regular function call
                 func_name = f"{obj_name}_{method_name}"
@@ -543,7 +710,14 @@ class STCEnhancedPythonToCConverter(PythonToCConverter):
             # Check for STC builtin translations
             stc_builtin = self.stc_translator.translate_builtin_functions(node)
             if stc_builtin:
-                return stc_builtin
+                return create_raw_code(stc_builtin)
+
+            # Special handling for len() function
+            if func_name == 'len' and len(node.args) == 1:
+                arg = node.args[0]
+                if isinstance(arg, ast.Name) and arg.id in self.stc_translator.container_variables:
+                    container_type = self.stc_translator.container_variables[arg.id]
+                    return create_raw_code(f"{container_type}_size(&{arg.id})")
 
         # Fall back to parent implementation
         return super()._convert_function_call(node)
