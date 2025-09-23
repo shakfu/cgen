@@ -20,6 +20,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 ### Added
 
 #### Runtime Library Support
+
 - **CGen Runtime Library**: Comprehensive C runtime support for generated Python-to-C code
 - **STC Integration Design**: Runtime complements STC containers rather than replacing them
 - **Error Handling System**: Python-like exception handling with detailed error context and stack traces
@@ -30,6 +31,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 - **Python Semantic Layer**: Maintains Python behavior while leveraging C performance
 
 #### Runtime Library Components
+
 - **`cgen_error_handling`**: Python exception system with IndexError, KeyError, ValueError support
 - **`cgen_python_ops`**: Core Python functions (bool, abs, min, max, sum, range, slice operations)
 - **`cgen_stc_bridge`**: Python semantics on STC containers (split, join, bounds checking, iteration)
@@ -37,17 +39,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 - **`cgen_memory_ops`**: Memory pools, scope allocators, reference counting, and safety utilities
 
 #### Translation Quality Improvements
+
 - **STC Template Fixes**: Resolved multiple `#define T` macro redefinitions in STC generation
 - **Python Construct Support**: Enhanced support for dictionary literals, attribute access, method calls
 - **Expression Translation**: Improved handling of `sys.argv`, `os.path.exists`, string methods
 - **Error Messages**: Better error reporting for unsupported constructs with specific guidance
-
 
 ## [0.1.0]
 
 ### Added
 
 #### Testing Infrastructure
+
 - **Framework Modernization**: Complete migration from unittest to pytest (500+ tests)
 - **Zero Test Failures**: 100% test pass rate with comprehensive coverage
 - **Enhanced Capabilities**: Pytest fixtures, parametrized tests, better error reporting
@@ -55,6 +58,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 - **Multi-layer Coverage**: Frontend, Intelligence, Generator, and Integration testing
 
 #### Advanced C11 Features
+
 - **Function Pointers**: Type-safe function pointer declarations with parameter lists
 - **Variadic Functions**: Variable argument function declarations with storage classes
 - **Static Assertions**: Compile-time assertion statements with condition validation
@@ -62,12 +66,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 - **Function Pointer Variables**: Function pointer declarations with qualifiers
 
 #### STC Integration
+
 - **Container Type Mappings**: Python list → STC vec with full operation support
 - **Memory Safety**: Automatic cleanup and exception-safe wrapper generation
 - **Type Safety**: Type-safe container operations with compile-time validation
 - **Performance Optimization**: High-performance container operations exceeding STL
 
 #### Generator Layer
+
 - **Python-to-C AST Translator**: Complete expression and statement translation
 - **STC Container Integration**: Python list/dict/set → STC vec/hmap/hset translation
 - **Memory Management**: Automatic cleanup and exception-safe wrappers
@@ -99,12 +105,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 - **Three-Layer Architecture**: Frontend analysis, Intelligence layer, and C code generation
 
 ### Changed
+
 - **Package Structure**: Migrated from cfile to comprehensive cgen package
 - **Testing Framework**: Upgraded from unittest to pytest for enhanced capabilities
 - **CLI Interface**: Enhanced from basic commands to 8 comprehensive intelligence commands
 - **Code Generation**: Upgraded from manual C patterns to intelligent STC-based generation
 
 ### Fixed
+
 - **STC Template Issues**: Multiple #define T macro redefinitions in template generation
 - **Python Construct Support**: Dictionary literals, attribute access, complex for loops
 - **Translation Quality**: Enhanced method call handling and string operations
