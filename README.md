@@ -178,6 +178,49 @@ if result.success:
     print(f"Optimizations applied: {len(result.phase_results)}")
 ```
 
+### Command Line Interface
+
+CGen provides a simple CLI with three commands:
+
+```bash
+# Convert Python to C code only
+python -m cgen convert my_module.py
+
+# Convert and compile executable directly
+python -m cgen build my_module.py
+
+# Convert and generate Makefile (use -m flag)
+python -m cgen build -m my_module.py
+
+# Clean build directory
+python -m cgen clean
+```
+
+**Build Options:**
+```bash
+# Specify optimization level
+python -m cgen build my_module.py -O aggressive
+
+# Use different compiler
+python -m cgen build my_module.py --compiler clang
+
+# Custom build directory
+python -m cgen build my_module.py -d custom_build
+
+# Verbose output
+python -m cgen build my_module.py --verbose
+```
+
+**Generated Structure:**
+```
+build/
+├── src/                    # Generated C source files
+│   ├── my_module.c
+│   └── stc/               # STC library components
+├── Makefile               # Generated build system (if -m used)
+└── my_module              # Compiled executable (if -m not used)
+```
+
 ## Pipeline Phases Explained
 
 ### Phase 1: Validation

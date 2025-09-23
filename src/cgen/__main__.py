@@ -6,8 +6,7 @@ This allows running cgen as a module with:
 
 Commands:
     convert   - Convert Python to C code
-    build     - Convert and generate Makefile
-    compile   - Convert and compile executable
+    build     - Convert and build (compile directly or generate Makefile with -m)
     clean     - Clean build directory
 """
 
