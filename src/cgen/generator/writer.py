@@ -678,8 +678,22 @@ class Writer(Formatter):
         self._eol()
         self._indent()
 
-        # Write the body block
-        self._write_element(elem.body_block)
+        # Write the body statements directly without block braces
+        # since we're already providing the braces for the foreach loop
+        if hasattr(elem.body_block, 'elements'):
+            for statement in elem.body_block.elements:
+                # Add proper indentation for each statement
+                self._write(self.indentation_str)
+                self._write_element(statement)
+                # Don't add semicolon for Statement elements since they already handle it internally
+                # Only add semicolon for raw expressions that aren't already statements
+                if hasattr(statement, '__class__') and statement.__class__.__name__ not in ['Block', 'IfStatement', 'WhileStatement', 'ForStatement', 'Statement']:
+                    self._write(";")
+                self._eol()
+        else:
+            # Fallback if it's not a sequence
+            self._write(self.indentation_str)
+            self._write_element(elem.body_block)
 
         self._dedent()
         self._write("}")
