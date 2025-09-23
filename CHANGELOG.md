@@ -15,6 +15,77 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 
 ---
 
+## [0.3.0] - 2024-09-23
+
+### Added
+
+#### Complete Container Operations Implementation
+
+- **Dictionary Element Access**: Full implementation of `dict[key]` access and `dict[key] = value` assignment
+- **Dictionary Operations**: Native STC hmap operations with `dict_insert()` and `dict_at()` mapping
+- **Set Operations Suite**: Complete set functionality including `set.add()`, `set.remove()`, `set.discard()`
+- **Set Membership Testing**: Support for `element in set` and `element not in set` with STC `contains()` operations
+- **List Element Access**: Implementation of `list[index]` access and `list[index] = value` assignment
+- **Cross-Container Operations**: Complex operations between different container types in single functions
+- **Comprehensive Container System**: All three container types (list, dict, set) fully operational with real-world usage patterns
+
+#### Advanced Expression Processing
+
+- **Subscript Operations**: Complete `ast.Subscript` handling for all container types
+- **Membership Operators**: Support for `ast.In` and `ast.NotIn` comparison operations
+- **Container Constructor Handling**: Special processing for `set()` empty constructor calls
+- **Complex Expression Chains**: Support for nested container operations like `dict[key] = list[index] * 2`
+
+#### Implementation Details
+
+- **Enhanced STC Operation Mapper**: Extended with `map_set_operation()` method for comprehensive set operations
+- **Assignment Target Expansion**: Updated `_convert_assignment()` to handle `ast.Subscript` targets for container element assignment
+- **Membership Test Processing**: New `_convert_membership_test()` method for `in`/`not in` operations with proper negation handling
+- **Container Method Call Resolution**: Extended method call handling to support set operations alongside existing list operations
+- **Built-in Function Enhancement**: Enhanced `len()` function support to work with all container types
+
+#### Generated C Code Examples
+
+**Dictionary Operations:**
+```python
+scores: dict[str, int] = {}
+scores["Alice"] = 95
+alice_score: int = scores["Alice"]
+```
+Generated C:
+```c
+hmap_cstr_int32 scores = {0};
+scores_insert(&scores, "Alice", 95);
+int alice_score = *scores_at(&scores, "Alice");
+```
+
+**Set Operations:**
+```python
+unique_nums: set[int] = set()
+unique_nums.add(42)
+has_42: bool = 42 in unique_nums
+```
+Generated C:
+```c
+hset_int32 unique_nums = {0};
+unique_nums_insert(&unique_nums, 42);
+bool has_42 = unique_nums_contains(&unique_nums, 42);
+```
+
+**List Element Access:**
+```python
+numbers: list[int] = [10, 20, 30]
+first: int = numbers[0]
+numbers[1] = 25
+```
+Generated C:
+```c
+vec_int32 numbers = {0};
+numbers_push(&numbers, 10); numbers_push(&numbers, 20); numbers_push(&numbers, 30);
+int first = *numbers_at(&numbers, 0);
+*numbers_at(&numbers, 1) = 25;
+```
+
 ## [0.2.0]
 
 ### Added
