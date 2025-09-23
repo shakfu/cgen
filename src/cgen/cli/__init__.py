@@ -1,13 +1,12 @@
-"""CGen CLI - Command Line Interface.
+"""CGen CLI - Simple Command Line Interface for Python-to-C Pipeline.
 
-Provides command-line tools for:
+Provides streamlined command-line tools for:
 - Python-to-C conversion
-- Code optimization and analysis
-- Performance profiling
-- Extension management
+- Build system generation
+- Direct compilation
+- Clean build management
 """
 
-# Import stubs for future implementation
-__all__ = [
-    # Will be implemented in Phase 1-2
-]
+from .simple_cli import main
+
+__all__ = ["main"]
