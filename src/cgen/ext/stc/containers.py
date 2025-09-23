@@ -122,6 +122,8 @@ class STCCodeGenerator:
 
     def __init__(self):
         self.generated_types = set()
+        from .template_manager import get_template_manager
+        self.template_manager = get_template_manager()
 
     def get_c_type(self, python_type: str) -> str:
         """Convert Python type to C type suitable for STC containers."""
@@ -129,65 +131,86 @@ class STCCodeGenerator:
 
     def generate_container_type_def(self, container_name: str, python_type_hint: str) -> Tuple[str, str]:
         """
-        Generate STC container type definition.
+        Generate STC container type definition using template manager.
 
         Args:
             container_name: Variable name for the container
             python_type_hint: Python type hint (e.g., 'List[int]', 'Dict[str, int]')
 
         Returns:
-            Tuple of (type_definition, include_statement)
+            Tuple of (container_type_name, include_statement)
         """
-        # Parse Python type hint
-        if python_type_hint.startswith('List['):
+        # Parse Python type hint and register with template manager
+        if python_type_hint.startswith(('List[', 'list[')):
             # List[int] -> vec
-            inner_type = python_type_hint[5:-1]  # Extract 'int' from 'List[int]'
+            start_pos = 5 if python_type_hint.startswith('List[') else 5
+            inner_type = python_type_hint[start_pos:-1]
             c_type = self.get_c_type(inner_type)
             container = STC_CONTAINERS['list']
 
-            type_name = f"{container_name.capitalize()}Vec"
-            type_def = f"#define T {type_name}, {c_type}"
-            include = f"#include <{container.header_file}>"
+            # Register with template manager
+            instance_name = self.template_manager.register_container_usage(
+                container_name, 'vec', [c_type], container.header_file
+            )
 
-            return type_def, include
+            return instance_name, ""  # Include handled by template manager
 
-        elif python_type_hint.startswith('Dict['):
+        elif python_type_hint.startswith(('Dict[', 'dict[')):
             # Dict[str, int] -> hmap
-            # Extract key and value types
-            inner = python_type_hint[5:-1]  # Extract 'str, int' from 'Dict[str, int]'
+            start_pos = 5 if python_type_hint.startswith('Dict[') else 5
+            inner = python_type_hint[start_pos:-1]
             key_type, value_type = [t.strip() for t in inner.split(',')]
 
             key_c_type = self.get_c_type(key_type)
             value_c_type = self.get_c_type(value_type)
             container = STC_CONTAINERS['dict']
 
-            type_name = f"{container_name.capitalize()}Map"
-            type_def = f"#define T {type_name}, {key_c_type}, {value_c_type}"
-            include = f"#include <{container.header_file}>"
+            # Register with template manager
+            instance_name = self.template_manager.register_container_usage(
+                container_name, 'hmap', [key_c_type, value_c_type], container.header_file
+            )
 
-            return type_def, include
+            return instance_name, ""
 
-        elif python_type_hint.startswith('Set['):
+        elif python_type_hint.startswith(('Set[', 'set[')):
             # Set[int] -> hset
-            inner_type = python_type_hint[4:-1]  # Extract 'int' from 'Set[int]'
+            start_pos = 4 if python_type_hint.startswith('Set[') else 4
+            inner_type = python_type_hint[start_pos:-1]
             c_type = self.get_c_type(inner_type)
             container = STC_CONTAINERS['set']
 
-            type_name = f"{container_name.capitalize()}Set"
-            type_def = f"#define T {type_name}, {c_type}"
-            include = f"#include <{container.header_file}>"
+            # Register with template manager
+            instance_name = self.template_manager.register_container_usage(
+                container_name, 'hset', [c_type], container.header_file
+            )
 
-            return type_def, include
+            return instance_name, ""
 
         elif python_type_hint == 'str':
-            # String type
+            # String type - special case, doesn't use template system
             container = STC_CONTAINERS['str']
-            include = f"#include <{container.header_file}>"
-            return "", include  # cstr doesn't need type definition
+            return "cstr", f"#include <{container.header_file}>"
+
+        elif python_type_hint in ['list', 'dict', 'set']:
+            # Generic containers without type parameters - use default types
+            if python_type_hint == 'list':
+                instance_name = self.template_manager.register_container_usage(
+                    container_name, 'vec', ['int'], STC_CONTAINERS['list'].header_file
+                )
+            elif python_type_hint == 'dict':
+                instance_name = self.template_manager.register_container_usage(
+                    container_name, 'hmap', ['cstr', 'int'], STC_CONTAINERS['dict'].header_file
+                )
+            elif python_type_hint == 'set':
+                instance_name = self.template_manager.register_container_usage(
+                    container_name, 'hset', ['int'], STC_CONTAINERS['set'].header_file
+                )
+
+            return instance_name, ""
 
         else:
             # Fallback for unsupported types
-            return f"// Unsupported type: {python_type_hint}", ""
+            return f"void /* Unsupported type: {python_type_hint} */", ""
 
     def generate_operation_translation(self, operation: str, container_type: str, args: List[str]) -> str:
         """

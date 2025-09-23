@@ -16,6 +16,8 @@ usage_tests/
 # detritus
 *.egg-info
 
+*.o
+
 # claude
 .claude
 CLAUDE.md

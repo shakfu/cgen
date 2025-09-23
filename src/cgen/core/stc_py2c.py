@@ -21,6 +21,7 @@ from .py2c import PythonToCConverter, UnsupportedFeatureError, TypeMappingError
 from ..ext.stc.containers import STCContainer, STC_CONTAINERS, STCCodeGenerator
 from ..ext.stc.translator import STCPythonToCTranslator
 from ..ext.stc.memory_manager import STCMemoryManager, MemoryScope
+from ..ext.stc.template_manager import get_template_manager, reset_template_manager
 from ..runtime import RuntimeConfig, get_runtime_headers, get_runtime_sources
 
 
@@ -132,6 +133,10 @@ class STCEnhancedPythonToCConverter(PythonToCConverter):
         # Runtime library configuration
         self.runtime_config = runtime_config or RuntimeConfig()
 
+        # Reset template manager for clean state
+        reset_template_manager()
+        self.template_manager = get_template_manager()
+
         # STC integration components
         self.stc_translator = STCPythonToCTranslator()
         self.stc_generator = STCCodeGenerator()
@@ -160,6 +165,9 @@ class STCEnhancedPythonToCConverter(PythonToCConverter):
         self.generated_stc_types: Set[str] = set()
         self.stc_includes: Set[str] = set()
 
+        # Track function-level container variables for cleanup
+        self.function_containers: Dict[str, List[str]] = {}
+
     def convert_code(self, python_code: str) -> core.Sequence:
         """Convert Python code with STC container support."""
         tree = ast.parse(python_code)
@@ -173,7 +181,7 @@ class STCEnhancedPythonToCConverter(PythonToCConverter):
         return self._convert_module_with_stc(tree, type_info)
 
     def _convert_module_with_stc(self, module: ast.Module, type_info: Dict[str, str]) -> core.Sequence:
-        """Convert module with STC container support."""
+        """Convert module with STC container support using template manager."""
         sequence = core.Sequence()
 
         # Add standard includes
@@ -186,19 +194,16 @@ class STCEnhancedPythonToCConverter(PythonToCConverter):
         for header in runtime_headers:
             sequence.append(self.c_factory.include(header))
 
-        # Generate and add STC includes
-        stc_includes, stc_type_defs = self._generate_stc_setup(type_info)
-        for include in stc_includes:
-            sequence.append(create_raw_code(include))
+        # Register all container types with template manager first
+        self._register_container_types(type_info)
+
+        # Generate STC template definitions
+        template_definitions = self.template_manager.generate_template_definitions()
+        for definition in template_definitions:
+            if definition.strip():  # Skip empty lines
+                sequence.append(create_raw_code(definition))
 
         sequence.append(self.c_factory.blank())
-
-        # Add STC type definitions
-        for type_def in stc_type_defs:
-            sequence.append(create_raw_code(type_def))
-
-        if stc_type_defs:
-            sequence.append(self.c_factory.blank())
 
         # Convert module body
         for node in module.body:
@@ -211,6 +216,25 @@ class STCEnhancedPythonToCConverter(PythonToCConverter):
                     sequence.append(c_element)
 
         return sequence
+
+    def _register_container_types(self, type_info: Dict[str, str]):
+        """Register all container types with the template manager."""
+        for var_name, python_type in type_info.items():
+            container = self._get_stc_container_for_type(python_type)
+            if container:
+                # Use the improved container type registration
+                container_type_name, _ = self.stc_generator.generate_container_type_def(
+                    var_name, python_type
+                )
+
+                # Update translator mapping
+                if container_type_name and container_type_name != "cstr":
+                    self.stc_translator.container_variables[var_name] = container_type_name
+
+                # Register with memory manager and STC translator
+                self.memory_manager.register_container(
+                    var_name, container_type_name, MemoryScope.BLOCK
+                )
 
     def _generate_stc_setup(self, type_info: Dict[str, str]) -> Tuple[List[str], List[str]]:
         """Generate STC includes and type definitions."""
@@ -391,29 +415,35 @@ class STCEnhancedPythonToCConverter(PythonToCConverter):
 
     def _convert_stc_container_assignment(self, node: ast.AnnAssign, var_name: str,
                                         python_type: str) -> List[core.Statement]:
-        """Convert STC container assignment with memory management."""
+        """Convert STC container assignment with improved template management."""
         statements = []
 
-        # Generate container type name
-        container_type = self._get_container_type_name(var_name, python_type)
+        # Generate container type name using template manager
+        container_type_name, _ = self.stc_generator.generate_container_type_def(
+            var_name, python_type
+        )
 
         # Register with memory manager and STC translator
-        self.memory_manager.register_container(
-            var_name, container_type, MemoryScope.BLOCK, getattr(node, 'lineno', 0)
-        )
-        self.stc_translator.container_variables[var_name] = container_type
+        if container_type_name and container_type_name != "cstr":
+            self.memory_manager.register_container(
+                var_name, container_type_name, MemoryScope.BLOCK, getattr(node, 'lineno', 0)
+            )
+            self.stc_translator.container_variables[var_name] = container_type_name
 
-        # Generate memory-safe initialization
-        init_code = self.memory_manager.generate_memory_safe_initialization(
-            var_name, container_type
-        )
-        for line in init_code:
-            statements.append(create_raw_code(line))
+            # Track container in current function for cleanup
+            current_function = getattr(self, '_current_function_name', 'global')
+            if current_function in self.function_containers:
+                self.function_containers[current_function].append(var_name)
+
+            # Generate initialization using template manager
+            init_statement = self.template_manager.generate_initialization_statement(var_name)
+            if init_statement:
+                statements.append(create_raw_code(init_statement))
 
         # Handle initialization value if present
         if node.value:
             init_statements = self._convert_stc_container_initialization(
-                var_name, container_type, node.value
+                var_name, container_type_name, node.value
             )
             statements.extend(init_statements)
 
@@ -449,7 +479,12 @@ class STCEnhancedPythonToCConverter(PythonToCConverter):
         return statements
 
     def _convert_function_def(self, node: ast.FunctionDef) -> List[core.Element]:
-        """Enhanced function definition with comprehensive STC memory management."""
+        """Enhanced function definition with comprehensive STC memory management and cleanup."""
+        # Initialize function container tracking
+        function_containers = []
+        self.function_containers[node.name] = function_containers
+        self._current_function_name = node.name
+
         # Enter function scope for memory management
         self.memory_manager.enter_function(node.name)
 
@@ -461,27 +496,40 @@ class STCEnhancedPythonToCConverter(PythonToCConverter):
             if arg.annotation:
                 param_type = ast.unparse(arg.annotation) if arg.annotation else 'int'
                 if self._is_stc_container_type(param_type):
-                    container_type = self._get_container_type_name(arg.arg, param_type)
-                    self.memory_manager.register_parameter(arg.arg, container_type)
-                    self.stc_translator.container_variables[arg.arg] = container_type
+                    container_type_name, _ = self.stc_generator.generate_container_type_def(
+                        arg.arg, param_type
+                    )
+                    if container_type_name and container_type_name != "cstr":
+                        self.memory_manager.register_parameter(arg.arg, container_type_name)
+                        self.stc_translator.container_variables[arg.arg] = container_type_name
+                        function_containers.append(arg.arg)
 
         # Convert function normally
         result = super()._convert_function_def(node)
 
-        # Generate comprehensive cleanup and error handling
-        cleanup_code, error_handling = self.memory_manager.exit_function()
-
+        # Generate comprehensive cleanup using template manager
         if result and len(result) >= 2 and hasattr(result[1], 'append'):
+            # Generate cleanup statements for this function's containers
+            cleanup_statements = self.template_manager.generate_cleanup_statements(function_containers)
+
+            if cleanup_statements:
+                result[1].append(create_raw_code(""))
+                result[1].append(create_raw_code("    // Automatic STC container cleanup"))
+                for cleanup in cleanup_statements:
+                    result[1].append(create_raw_code(f"    {cleanup}"))
+
+            # Generate comprehensive cleanup and error handling from memory manager
+            cleanup_code, error_handling = self.memory_manager.exit_function()
+
             # Add error handling label
             if error_handling:
                 for error_line in error_handling:
-                    result[1].append(create_raw_code(error_line))
+                    result[1].append(create_raw_code(f"    {error_line}"))
 
-            # Add cleanup before function end
+            # Add additional cleanup from memory manager
             if cleanup_code:
-                result[1].append(create_raw_code("// Automatic STC container cleanup"))
                 for cleanup in cleanup_code:
-                    result[1].append(create_raw_code(cleanup))
+                    result[1].append(create_raw_code(f"    {cleanup}"))
 
         return result
 

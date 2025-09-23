@@ -9,6 +9,7 @@ container operations in generated C code.
 import ast
 from typing import Dict, List, Set, Optional, Tuple
 from .containers import STCCodeGenerator, get_stc_container_for_python_type
+from .enhanced_type_inference import EnhancedTypeInferenceEngine, InferredType
 
 class STCPythonToCTranslator:
     """Enhanced Python-to-C translator with STC container support."""
@@ -18,14 +19,31 @@ class STCPythonToCTranslator:
         self.container_variables: Dict[str, str] = {}  # var_name -> container_type
         self.required_includes: Set[str] = set()
         self.type_definitions: List[str] = []
+        self.type_inference_engine = EnhancedTypeInferenceEngine()
 
     def analyze_variable_types(self, node: ast.AST) -> Dict[str, str]:
         """
-        Analyze AST to identify variable types and their STC container mappings.
+        Enhanced variable type analysis using advanced type inference.
 
         Returns:
             Dictionary mapping variable names to their Python types
         """
+        # Use enhanced type inference engine
+        inferred_types = self.type_inference_engine.analyze_module(node)
+
+        # Convert InferredType objects to simple string mapping
+        type_info = {}
+        for var_name, inferred_type in inferred_types.items():
+            type_info[var_name] = inferred_type.python_type
+
+        # Fallback to basic analysis if inference found nothing
+        if not type_info:
+            type_info = self._basic_type_analysis(node)
+
+        return type_info
+
+    def _basic_type_analysis(self, node: ast.AST) -> Dict[str, str]:
+        """Fallback basic type analysis for compatibility."""
         type_info = {}
 
         class TypeAnalyzer(ast.NodeVisitor):
@@ -68,6 +86,10 @@ class STCPythonToCTranslator:
         analyzer = TypeAnalyzer()
         analyzer.visit(node)
         return type_info
+
+    def get_type_inference_statistics(self) -> Dict[str, any]:
+        """Get statistics about type inference accuracy."""
+        return self.type_inference_engine.get_inference_statistics()
 
     def generate_stc_includes_and_types(self, type_info: Dict[str, str]) -> Tuple[List[str], List[str]]:
         """
