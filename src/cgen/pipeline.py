@@ -254,7 +254,7 @@ class CGenPipeline:
 
             if not validation_result.is_valid:
                 result.success = False
-                result.errors.extend([str(issue) for issue in validation_result.issues])
+                result.errors.extend([str(violation) for violation in validation_result.violations])
                 return False
 
             # Check static constraints

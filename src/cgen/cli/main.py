@@ -386,7 +386,7 @@ Build Directory Structure:
                     })
 
                     if not summary_only:
-                        self.log.info(f"    -> {output_filename} ({lines_generated} lines)")
+                        self.log.info(f"{output_filename} ({lines_generated} lines)")
                 else:
                     failed_translations += 1
                     error_msg = "; ".join(result.errors) if result.errors else "Unknown error"
