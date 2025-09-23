@@ -102,9 +102,9 @@ class PythonToCConverter:
         # Add STC container declarations
         stc_declarations = stc_declaration_generator.generate_declarations()
         if stc_declarations:
-            # Join all declarations with newlines for proper formatting
-            declarations_block = '\n'.join(stc_declarations)
-            sequence.append(core.RawCode(declarations_block))
+            # Add each declaration as a separate element, similar to includes
+            for decl in stc_declarations:
+                sequence.append(core.RawCode(decl))
             sequence.append(self.c_factory.blank())
 
         # Second pass - convert all statements

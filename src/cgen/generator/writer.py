@@ -696,6 +696,7 @@ class Writer(Formatter):
             self._write_element(elem.body_block)
 
         self._dedent()
+        self._write(self.indentation_str)
         self._write("}")
         self._eol()
         self.last_element = ElementType.STATEMENT
