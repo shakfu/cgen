@@ -13,8 +13,8 @@ This package provides:
 - Build system generation and direct compilation
 """
 
-# Core C code generation capabilities (Layer 3)
-from .core import (
+# C code generation capabilities (Layer 3)
+from .generator import (
     Alignment,
     BreakBeforeBraces,
     CFactory,

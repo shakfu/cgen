@@ -1,8 +1,8 @@
 """Pytest-style tests for TIER 3 syntactical elements."""
 
 import pytest
-import cgen.core as cfile
-from cgen.core.core import (
+import cgen.generator as cfile
+from cgen.generator.core import (
     Enum,
     EnumMember,
     Union,

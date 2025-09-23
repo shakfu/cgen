@@ -1,7 +1,7 @@
 """Tests for TIER 4 Language Elements (Advanced C11 Features)."""
 
 import pytest
-from cgen.core import CFactory, Writer, StyleOptions
+from cgen.generator import CFactory, Writer, StyleOptions
 
 
 class TestFunctionPointers:

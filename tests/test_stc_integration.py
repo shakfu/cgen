@@ -13,7 +13,7 @@ import ast
 import pytest
 from unittest.mock import Mock, patch
 
-from src.cgen.core.stc_py2c import (
+from src.cgen.generator.stc_py2c import (
     STCEnhancedPythonToCConverter,
     STCOptimizer,
     ContainerUsagePattern,

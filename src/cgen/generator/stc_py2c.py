@@ -810,7 +810,7 @@ def convert_python_to_c_with_stc(python_code: str, runtime_config: Optional[Runt
     c_sequence = converter.convert_code(python_code)
 
     from .style import StyleOptions
-    from ..core.writer import Writer
+    from .writer import Writer
 
     writer = Writer(StyleOptions())
     return writer.write_str(c_sequence)
@@ -822,7 +822,7 @@ def convert_python_file_to_c_with_stc(input_file: str, output_file: str, runtime
     c_sequence = converter.convert_file(input_file)
 
     from .style import StyleOptions
-    from ..core.writer import Writer
+    from .writer import Writer
 
     writer = Writer(StyleOptions())
     writer.write_file(c_sequence, output_file)

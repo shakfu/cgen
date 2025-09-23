@@ -801,7 +801,7 @@ Examples:
             use_stc = getattr(args, "use_stc", True)  # Default to enabled
 
             try:
-                from ..core.stc_py2c import STCEnhancedPythonToCConverter
+                from ..generator.stc_py2c import STCEnhancedPythonToCConverter
                 from ..runtime import RuntimeConfig
 
                 # Configure runtime library
@@ -813,8 +813,8 @@ Examples:
                 c_code = converter.convert_code(context.source_code)
 
                 # Convert sequence to string
-                from ..core.style import StyleOptions
-                from ..core.writer import Writer
+                from ..generator.style import StyleOptions
+                from ..generator.writer import Writer
 
                 writer = Writer(StyleOptions())
                 c_code_str = writer.write_str(c_code)

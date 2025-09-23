@@ -1,7 +1,7 @@
 """Tests for Additional Control Flow Elements (Switch, Goto, Labels)."""
 
 import pytest
-from cgen.core import CFactory, Writer, StyleOptions
+from cgen.generator import CFactory, Writer, StyleOptions
 
 
 class TestSwitchStatements:

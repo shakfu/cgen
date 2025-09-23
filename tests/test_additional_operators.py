@@ -1,7 +1,7 @@
 """Tests for Additional Operators (Bitwise, Logical, Increment, Decrement, Compound Assignment)."""
 
 import pytest
-from cgen.core import CFactory, Writer, StyleOptions
+from cgen.generator import CFactory, Writer, StyleOptions
 
 
 class TestBitwiseOperators:
@@ -100,17 +100,17 @@ class TestBitwiseOperators:
 
         # Invalid operator should raise ValueError
         with pytest.raises(ValueError):
-            from cgen.core.core import BitwiseOperator
+            from cgen.generator.core import BitwiseOperator
             BitwiseOperator("a", "invalid", "b")
 
         # Unary operator with right operand should raise ValueError
         with pytest.raises(ValueError):
-            from cgen.core.core import BitwiseOperator
+            from cgen.generator.core import BitwiseOperator
             BitwiseOperator("a", "~", "b")
 
         # Binary operator without right operand should raise ValueError
         with pytest.raises(ValueError):
-            from cgen.core.core import BitwiseOperator
+            from cgen.generator.core import BitwiseOperator
             BitwiseOperator("a", "&")
 
 
@@ -171,17 +171,17 @@ class TestLogicalOperators:
 
         # Invalid operator should raise ValueError
         with pytest.raises(ValueError):
-            from cgen.core.core import LogicalOperator
+            from cgen.generator.core import LogicalOperator
             LogicalOperator("a", "invalid", "b")
 
         # Unary operator with right operand should raise ValueError
         with pytest.raises(ValueError):
-            from cgen.core.core import LogicalOperator
+            from cgen.generator.core import LogicalOperator
             LogicalOperator("a", "!", "b")
 
         # Binary operator without right operand should raise ValueError
         with pytest.raises(ValueError):
-            from cgen.core.core import LogicalOperator
+            from cgen.generator.core import LogicalOperator
             LogicalOperator("a", "&&")
 
 
@@ -227,7 +227,7 @@ class TestIncrementOperators:
 
         # Empty operand should raise ValueError
         with pytest.raises(ValueError):
-            from cgen.core.core import IncrementOperator
+            from cgen.generator.core import IncrementOperator
             IncrementOperator("")
 
 
@@ -273,7 +273,7 @@ class TestDecrementOperators:
 
         # Empty operand should raise ValueError
         with pytest.raises(ValueError):
-            from cgen.core.core import DecrementOperator
+            from cgen.generator.core import DecrementOperator
             DecrementOperator("")
 
 
@@ -383,16 +383,16 @@ class TestCompoundAssignmentOperators:
 
         # Invalid operator should raise ValueError
         with pytest.raises(ValueError):
-            from cgen.core.core import CompoundAssignmentOperator
+            from cgen.generator.core import CompoundAssignmentOperator
             CompoundAssignmentOperator("x", "invalid", "5")
 
         # Empty operands should raise ValueError
         with pytest.raises(ValueError):
-            from cgen.core.core import CompoundAssignmentOperator
+            from cgen.generator.core import CompoundAssignmentOperator
             CompoundAssignmentOperator("", "+=", "5")
 
         with pytest.raises(ValueError):
-            from cgen.core.core import CompoundAssignmentOperator
+            from cgen.generator.core import CompoundAssignmentOperator
             CompoundAssignmentOperator("x", "+=", "")
 
 

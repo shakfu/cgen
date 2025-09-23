@@ -8,8 +8,8 @@ from typing import Any, Callable, Dict, List
 
 import pytest
 
-from cgen.core import CFactory, StyleOptions, Writer
-from cgen.core.py2c import PythonToCConverter, convert_python_to_c
+from cgen.generator import CFactory, StyleOptions, Writer
+from cgen.generator.py2c import PythonToCConverter, convert_python_to_c
 
 
 class BenchmarkResult:

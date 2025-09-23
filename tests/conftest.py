@@ -11,9 +11,9 @@ src_path = project_root / "src"
 sys.path.insert(0, str(src_path))
 
 # Import common modules for test fixtures
-import cgen.core as cgen_core
-from cgen.core.py2c import PythonToCConverter
-from cgen.core.style import StyleOptions
+import cgen.generator as cgen_core
+from cgen.generator.py2c import PythonToCConverter
+from cgen.generator.style import StyleOptions
 
 
 @pytest.fixture

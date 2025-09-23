@@ -2,7 +2,7 @@
 
 import pytest
 
-from cgen.core.py2c import TypeMappingError, convert_python_to_c
+from cgen.generator.py2c import TypeMappingError, convert_python_to_c
 
 
 @pytest.mark.py2c
@@ -163,7 +163,7 @@ class TestFileOperations:
 
     def test_convert_python_file_to_c(self, temp_python_file, temp_c_file, sample_python_code):
         """Test file-to-file conversion."""
-        from cgen.core.py2c import convert_python_file_to_c
+        from cgen.generator.py2c import convert_python_file_to_c
 
         # Create temporary files
         python_file = temp_python_file(sample_python_code["simple_function"])

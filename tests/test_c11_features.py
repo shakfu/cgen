@@ -1,7 +1,7 @@
 """Test C11 Advanced Features Implementation"""
 
 import unittest
-from cgen.core import CFactory, Writer, StyleOptions
+from cgen.generator import CFactory, Writer, StyleOptions
 
 
 class TestC11AtomicFeatures(unittest.TestCase):
