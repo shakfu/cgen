@@ -138,6 +138,23 @@ class STCOperationMapper:
         else:
             raise ValueError(f"Unsupported dict operation: {operation}")
 
+    def map_set_operation(self, container_name: str, operation: str, *args) -> str:
+        """Map Python set operation to STC hset operation."""
+        if operation == "add":  # set.add(element)
+            return f"{container_name}_insert(&{container_name}, {args[0]})"
+        elif operation == "len":
+            return f"{container_name}_size(&{container_name})"
+        elif operation == "contains":  # element in set
+            return f"{container_name}_contains(&{container_name}, {args[0]})"
+        elif operation == "remove":  # set.remove(element)
+            return f"{container_name}_erase(&{container_name}, {args[0]})"
+        elif operation == "discard":  # set.discard(element) - no error if not found
+            return f"{container_name}_erase(&{container_name}, {args[0]})"  # STC erase is safe
+        elif operation == "init_empty":
+            return f"{container_name} = {{0}}"
+        else:
+            raise ValueError(f"Unsupported set operation: {operation}")
+
 
 class STCContainerElement(core.Element):
     """Represents an STC container in the generated C code."""

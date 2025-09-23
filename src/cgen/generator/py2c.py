@@ -31,6 +31,7 @@ from .stc_integration import (
     stc_operation_mapper, STCContainerElement, STCOperationElement
 )
 from .writer import Writer
+from .style import StyleOptions
 
 
 class UnsupportedFeatureError(Exception):
@@ -296,9 +297,14 @@ class PythonToCConverter:
                    (isinstance(node.value, ast.Dict) and len(node.value.keys) == 0) or \
                    (isinstance(node.value, ast.Set) and len(node.value.elts) == 0):
                     # Empty container initialization using STC
-                    init_code = stc_operation_mapper.map_list_operation(var_name, "init_empty") if container_type == "list" else \
-                               stc_operation_mapper.map_dict_operation(var_name, "init_empty") if container_type == "dict" else \
-                               f"{var_name} = {{0}}"  # Generic empty initialization for sets
+                    if container_type == "list":
+                        init_code = stc_operation_mapper.map_list_operation(var_name, "init_empty")
+                    elif container_type == "dict":
+                        init_code = stc_operation_mapper.map_dict_operation(var_name, "init_empty")
+                    elif container_type == "set":
+                        init_code = stc_operation_mapper.map_set_operation(var_name, "init_empty")
+                    else:
+                        init_code = f"{var_name} = {{0}}"
 
                     decl_stmt = self.c_factory.statement(self.c_factory.declaration(variable))
                     init_stmt = self.c_factory.statement(STCOperationElement(init_code))
@@ -312,9 +318,14 @@ class PythonToCConverter:
             else:
                 # Declaration without initialization - still need to initialize containers
                 decl_stmt = self.c_factory.statement(self.c_factory.declaration(variable))
-                init_code = stc_operation_mapper.map_list_operation(var_name, "init_empty") if container_type == "list" else \
-                           stc_operation_mapper.map_dict_operation(var_name, "init_empty") if container_type == "dict" else \
-                           f"{var_name} = {{0}}"
+                if container_type == "list":
+                    init_code = stc_operation_mapper.map_list_operation(var_name, "init_empty")
+                elif container_type == "dict":
+                    init_code = stc_operation_mapper.map_dict_operation(var_name, "init_empty")
+                elif container_type == "set":
+                    init_code = stc_operation_mapper.map_set_operation(var_name, "init_empty")
+                else:
+                    init_code = f"{var_name} = {{0}}"
                 init_stmt = self.c_factory.statement(STCOperationElement(init_code))
                 return [decl_stmt, init_stmt]
         else:
@@ -338,18 +349,63 @@ class PythonToCConverter:
             raise UnsupportedFeatureError("Multiple assignment targets not supported")
 
         target = node.targets[0]
-        if not isinstance(target, ast.Name):
-            raise UnsupportedFeatureError("Only simple variable assignments supported")
 
-        var_name = target.id
-        if var_name not in self.variable_context:
-            raise TypeMappingError(f"Variable '{var_name}' must be declared with type annotation first")
+        if isinstance(target, ast.Name):
+            # Regular variable assignment
+            var_name = target.id
+            if var_name not in self.variable_context:
+                raise TypeMappingError(f"Variable '{var_name}' must be declared with type annotation first")
 
-        variable = self.variable_context[var_name]
-        value_expr = self._convert_expression(node.value)
-        assignment = self.c_factory.assignment(variable, value_expr)
+            variable = self.variable_context[var_name]
+            value_expr = self._convert_expression(node.value)
+            assignment = self.c_factory.assignment(variable, value_expr)
 
-        return self.c_factory.statement(assignment)
+            return self.c_factory.statement(assignment)
+
+        elif isinstance(target, ast.Subscript):
+            # Container element assignment: container[key] = value
+            if isinstance(target.value, ast.Name):
+                container_name = target.value.id
+
+                # Check if this is a known container variable
+                if container_name in self.container_variables:
+                    container_info = self.container_variables[container_name]
+                    container_type = container_info['container_type']
+
+                    # Convert key and value expressions
+                    key_expr = self._convert_expression(target.slice)
+                    value_expr = self._convert_expression(node.value)
+
+                    # Convert to strings for STC operations
+                    if isinstance(key_expr, core.Element):
+                        temp_writer = Writer(StyleOptions())
+                        key_str = temp_writer.write_str_elem(key_expr)
+                    else:
+                        key_str = str(key_expr)
+
+                    if isinstance(value_expr, core.Element):
+                        temp_writer = Writer(StyleOptions())
+                        value_str = temp_writer.write_str_elem(value_expr)
+                    else:
+                        value_str = str(value_expr)
+
+                    if container_type == "list":
+                        # List element assignment: lst[i] = x
+                        operation_code = stc_operation_mapper.map_list_operation(container_name, "set", key_str, value_str)
+                        return self.c_factory.statement(STCOperationElement(operation_code))
+                    elif container_type == "dict":
+                        # Dict element assignment: dict[key] = value
+                        operation_code = stc_operation_mapper.map_dict_operation(container_name, "set", key_str, value_str)
+                        return self.c_factory.statement(STCOperationElement(operation_code))
+                    else:
+                        raise UnsupportedFeatureError(f"Subscript assignment not supported for {container_type}")
+                else:
+                    raise UnsupportedFeatureError(f"Subscript assignment on non-container variable: {container_name}")
+            else:
+                raise UnsupportedFeatureError("Complex subscript assignment not supported")
+
+        else:
+            raise UnsupportedFeatureError("Only simple variable and container element assignments supported")
 
     def _convert_return(self, node: ast.Return) -> core.Statement:
         """Convert return statement."""
@@ -375,6 +431,8 @@ class PythonToCConverter:
             return self._convert_boolean_operation(node)
         elif isinstance(node, ast.UnaryOp):
             return self._convert_unary_operation(node)
+        elif isinstance(node, ast.Subscript):
+            return self._convert_subscript(node)
         else:
             raise UnsupportedFeatureError(f"Unsupported expression: {type(node).__name__}")
 
@@ -438,8 +496,52 @@ class PythonToCConverter:
         if type(node.ops[0]) in op_map:
             op_str = op_map[type(node.ops[0])]
             return BinaryExpression(left, op_str, right)
+        elif isinstance(node.ops[0], ast.In):
+            # Handle membership testing: element in container
+            return self._convert_membership_test(node.left, node.comparators[0], False)
+        elif isinstance(node.ops[0], ast.NotIn):
+            # Handle negative membership testing: element not in container
+            return self._convert_membership_test(node.left, node.comparators[0], True)
         else:
             raise UnsupportedFeatureError(f"Unsupported comparison operator: {type(node.ops[0]).__name__}")
+
+    def _convert_membership_test(self, element_node: ast.expr, container_node: ast.expr, negate: bool) -> core.Element:
+        """Convert membership test (element in container) to C syntax."""
+        if isinstance(container_node, ast.Name):
+            container_name = container_node.id
+
+            # Check if this is a known container variable
+            if container_name in self.container_variables:
+                container_info = self.container_variables[container_name]
+                container_type = container_info['container_type']
+
+                # Convert the element expression
+                element_expr = self._convert_expression(element_node)
+
+                # Convert to string for STC operation
+                if isinstance(element_expr, core.Element):
+                    temp_writer = Writer(StyleOptions())
+                    element_str = temp_writer.write_str_elem(element_expr)
+                else:
+                    element_str = str(element_expr)
+
+                if container_type == "set":
+                    # Set membership: element in set -> set_contains(&set, element)
+                    operation_code = stc_operation_mapper.map_set_operation(container_name, "contains", element_str)
+                    contains_expr = STCOperationElement(operation_code)
+
+                    if negate:
+                        # not in: !set_contains(&set, element)
+                        return UnaryExpression("!", contains_expr)
+                    else:
+                        # in: set_contains(&set, element)
+                        return contains_expr
+                else:
+                    raise UnsupportedFeatureError(f"Membership testing not supported for {container_type} (only sets)")
+            else:
+                raise UnsupportedFeatureError(f"Membership test on non-container variable: {container_name}")
+        else:
+            raise UnsupportedFeatureError("Complex membership test expressions not supported")
 
     def _convert_boolean_operation(self, node: ast.BoolOp) -> core.Element:
         """Convert boolean operation (and, or) to C syntax."""
@@ -485,13 +587,56 @@ class PythonToCConverter:
         else:
             raise UnsupportedFeatureError(f"Unsupported unary operator: {type(node.op).__name__}")
 
+    def _convert_subscript(self, node: ast.Subscript) -> core.Element:
+        """Convert subscript operation (container[key]) to C syntax."""
+        # Check if this is a container subscript operation
+        if isinstance(node.value, ast.Name):
+            container_name = node.value.id
+
+            # Check if this is a known container variable
+            if container_name in self.container_variables:
+                container_info = self.container_variables[container_name]
+                container_type = container_info['container_type']
+
+                # Convert the key/index expression
+                key_expr = self._convert_expression(node.slice)
+
+                # Convert to string for STC operation
+                if isinstance(key_expr, core.Element):
+                    temp_writer = Writer(StyleOptions())
+                    key_str = temp_writer.write_str_elem(key_expr)
+                else:
+                    key_str = str(key_expr)
+
+                if container_type == "list":
+                    # List indexing: lst[i] -> *lst_at(&lst, i)
+                    operation_code = stc_operation_mapper.map_list_operation(container_name, "get", key_str)
+                    return STCOperationElement(operation_code)
+                elif container_type == "dict":
+                    # Dict access: dict[key] -> *dict_at(&dict, key)
+                    operation_code = stc_operation_mapper.map_dict_operation(container_name, "get", key_str)
+                    return STCOperationElement(operation_code)
+                else:
+                    raise UnsupportedFeatureError(f"Subscript operation not supported for {container_type}")
+            else:
+                raise UnsupportedFeatureError(f"Subscript on non-container variable: {container_name}")
+        else:
+            raise UnsupportedFeatureError("Complex subscript expressions not supported")
+
     def _convert_function_call(self, node: ast.Call) -> core.Element:
         """Convert function call to C function call."""
         if isinstance(node.func, ast.Name):
             func_name = node.func.id
 
             # Handle built-in functions that work on containers
-            if func_name == "len":
+            if func_name == "set":
+                # Handle set() constructor for empty sets
+                if len(node.args) == 0:
+                    # Return a placeholder that will be handled by assignment
+                    return core.RawCode("{0}")
+                else:
+                    raise UnsupportedFeatureError("set() with arguments not supported yet")
+            elif func_name == "len":
                 if len(node.args) != 1:
                     raise UnsupportedFeatureError("len() requires exactly one argument")
 
@@ -506,6 +651,9 @@ class PythonToCConverter:
                         return STCOperationElement(operation_code)
                     elif container_type == "dict":
                         operation_code = stc_operation_mapper.map_dict_operation(container_name, "len")
+                        return STCOperationElement(operation_code)
+                    elif container_type == "set":
+                        operation_code = stc_operation_mapper.map_set_operation(container_name, "len")
                         return STCOperationElement(operation_code)
                     else:
                         raise UnsupportedFeatureError(f"len() not supported for {container_type}")
@@ -547,6 +695,44 @@ class PythonToCConverter:
                     elif container_type == "dict":
                         # Handle dict methods like get, set, etc.
                         raise UnsupportedFeatureError(f"Dict method {method_name} not implemented yet")
+
+                    elif container_type == "set":
+                        if method_name == "add":
+                            if len(node.args) != 1:
+                                raise UnsupportedFeatureError("set.add() requires exactly one argument")
+                            arg = self._convert_expression(node.args[0])
+                            # Convert to string for STC operation
+                            if isinstance(arg, core.Element):
+                                temp_writer = Writer(StyleOptions())
+                                arg_str = temp_writer.write_str_elem(arg)
+                            else:
+                                arg_str = str(arg)
+                            operation_code = stc_operation_mapper.map_set_operation(obj_name, "add", arg_str)
+                            return STCOperationElement(operation_code)
+                        elif method_name == "remove":
+                            if len(node.args) != 1:
+                                raise UnsupportedFeatureError("set.remove() requires exactly one argument")
+                            arg = self._convert_expression(node.args[0])
+                            if isinstance(arg, core.Element):
+                                temp_writer = Writer(StyleOptions())
+                                arg_str = temp_writer.write_str_elem(arg)
+                            else:
+                                arg_str = str(arg)
+                            operation_code = stc_operation_mapper.map_set_operation(obj_name, "remove", arg_str)
+                            return STCOperationElement(operation_code)
+                        elif method_name == "discard":
+                            if len(node.args) != 1:
+                                raise UnsupportedFeatureError("set.discard() requires exactly one argument")
+                            arg = self._convert_expression(node.args[0])
+                            if isinstance(arg, core.Element):
+                                temp_writer = Writer(StyleOptions())
+                                arg_str = temp_writer.write_str_elem(arg)
+                            else:
+                                arg_str = str(arg)
+                            operation_code = stc_operation_mapper.map_set_operation(obj_name, "discard", arg_str)
+                            return STCOperationElement(operation_code)
+                        else:
+                            raise UnsupportedFeatureError(f"Unsupported set method: {method_name}")
 
                     else:
                         raise UnsupportedFeatureError(f"Unsupported container method: {container_type}.{method_name}")
