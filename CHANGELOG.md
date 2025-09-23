@@ -15,6 +15,96 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 
 ---
 
+## [0.4.0] - 2024-12-19
+
+### Added
+
+#### Container Iteration and Advanced Language Features
+
+- **Container Iteration Patterns**: Complete implementation of `for item in container` loops
+  - Support for `for num in numbers:` → STC `c_each` iteration macros
+  - New `STCForEachElement` class for proper foreach loop generation
+  - Works with all container types: lists, sets, and dictionaries
+  - Automatic iterator variable extraction and type inference
+
+- **List Slicing Operations**: Implementation of `list[start:end]` slice operations
+  - Support for `list[1:3]`, `list[1:]`, `list[:2]` slice patterns
+  - New `STCSliceElement` class for slice operation handling
+  - Generates efficient C loops with bounds checking
+  - Handles default start/end values automatically
+
+- **Advanced String Method Support**: Comprehensive string operation capabilities
+  - **String Membership Testing**: `"substring" in string` → `strstr(string, substring) != NULL`
+  - **String Methods**: `text.upper()` → `cgen_str_upper(text)`
+  - **String Search**: `text.find(substring)` → `cgen_str_find(text, substring)`
+  - **Case Conversion**: `text.lower()` → `cgen_str_lower(text)`
+  - Extended `_convert_membership_test()` for string variables
+  - New `_convert_string_method()` function for method call handling
+
+#### Enhanced AST Processing
+
+- **Iterator Support**: Extended `_convert_for()` method to handle container iteration
+- **Slice Detection**: Enhanced `_convert_subscript()` to detect `ast.Slice` operations
+- **String Type Recognition**: Robust string type checking for `char*` variables
+- **Method Call Routing**: Extended method call handling for string operations
+- **Expression Integration**: Seamless integration with existing expression system
+
+#### Code Generation Improvements
+
+- **STC Foreach Writer**: New `_write_stc_foreach()` method for container iteration
+- **Slice Loop Generation**: New `_write_stc_slice()` method for efficient slicing
+- **String Operation Support**: Runtime library function calls for string methods
+- **Memory Safety**: Automatic bounds checking in iteration and slicing
+- **Clean C Output**: Readable, maintainable generated C code
+
+### Generated Code Examples
+
+**Container Iteration:**
+```python
+for num in numbers:
+    total = total + num
+```
+Generated C:
+```c
+for (c_each(it, vec_int32, numbers)) {
+    int num = *it.ref;
+    total = total + num;
+}
+```
+
+**List Slicing:**
+```python
+subset: list[int] = numbers[1:3]
+```
+Generated C:
+```c
+vec_int32 subset = {0};
+for (size_t i = 1; i < 3 && i < numbers_size(&numbers); ++i) {
+    subset_push(&subset, *numbers_at(&numbers, i));
+}
+```
+
+**String Operations:**
+```python
+has_hello: bool = "Hello" in text
+upper_text: str = text.upper()
+index: int = text.find("World")
+```
+Generated C:
+```c
+bool has_hello = strstr(text, "Hello") != NULL;
+char* upper_text = cgen_str_upper(text);
+int index = cgen_str_find(text, "World");
+```
+
+### Technical Achievements
+
+- **Zero Regressions**: All 643 tests continue to pass
+- **Enhanced Type System**: Robust handling of containers, strings, and basic types
+- **Runtime Integration**: Seamless integration with CGen runtime library
+- **Performance Optimized**: Efficient C code generation with minimal overhead
+- **Pythonic Semantics**: Maintains Python behavior while leveraging C performance
+
 ## [0.3.0] - 2024-09-23
 
 ### Added

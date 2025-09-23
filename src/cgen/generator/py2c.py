@@ -28,7 +28,7 @@ from .factory import CFactory
 from .core import BinaryExpression, UnaryExpression
 from .stc_integration import (
     analyze_container_type, stc_type_mapper, stc_declaration_generator,
-    stc_operation_mapper, STCContainerElement, STCOperationElement
+    stc_operation_mapper, STCContainerElement, STCOperationElement, STCForEachElement, STCSliceElement
 )
 from .writer import Writer
 from .style import StyleOptions
@@ -312,9 +312,18 @@ class PythonToCConverter:
                 else:
                     # Complex container initialization - convert value expression
                     value_expr = self._convert_expression(node.value)
-                    decl_stmt = self.c_factory.statement(self.c_factory.declaration(variable))
-                    assign_stmt = self.c_factory.statement(self.c_factory.assignment(variable, value_expr))
-                    return [decl_stmt, assign_stmt]
+
+                    # Check if this is a slice operation
+                    if isinstance(value_expr, STCSliceElement):
+                        # Handle slice assignment: subset: list[int] = numbers[1:3]
+                        value_expr.result_var = var_name  # Set the result variable name
+                        decl_stmt = self.c_factory.statement(self.c_factory.declaration(variable))
+                        slice_stmt = self.c_factory.statement(value_expr)
+                        return [decl_stmt, slice_stmt]
+                    else:
+                        decl_stmt = self.c_factory.statement(self.c_factory.declaration(variable))
+                        assign_stmt = self.c_factory.statement(self.c_factory.assignment(variable, value_expr))
+                        return [decl_stmt, assign_stmt]
             else:
                 # Declaration without initialization - still need to initialize containers
                 decl_stmt = self.c_factory.statement(self.c_factory.declaration(variable))
@@ -538,6 +547,38 @@ class PythonToCConverter:
                         return contains_expr
                 else:
                     raise UnsupportedFeatureError(f"Membership testing not supported for {container_type} (only sets)")
+            elif container_name in self.variable_context:
+                # Check if this is a string variable
+                variable = self.variable_context[container_name]
+                # Check if this is a string type (char* or equivalent)
+                is_string = (
+                    (hasattr(variable.data_type, 'base_type') and variable.data_type.base_type == "char*") or
+                    (isinstance(variable.data_type, str) and variable.data_type == "char*") or
+                    str(variable.data_type) == "char*"
+                )
+                if is_string:
+                    # Convert the element expression
+                    element_expr = self._convert_expression(element_node)
+
+                    # Convert to string for C operation
+                    if isinstance(element_expr, core.Element):
+                        temp_writer = Writer(StyleOptions())
+                        element_str = temp_writer.write_str_elem(element_expr)
+                    else:
+                        element_str = str(element_expr)
+
+                    # String membership: "substring" in string -> strstr(string, substring) != NULL
+                    strstr_expr = f"strstr({container_name}, {element_str})"
+                    contains_expr = BinaryExpression(strstr_expr, "!=", "NULL")
+
+                    if negate:
+                        # not in: strstr(string, substring) == NULL
+                        return BinaryExpression(strstr_expr, "==", "NULL")
+                    else:
+                        # in: strstr(string, substring) != NULL
+                        return contains_expr
+                else:
+                    raise UnsupportedFeatureError(f"Membership test on non-container/non-string variable: {container_name} (type: {variable.data_type})")
             else:
                 raise UnsupportedFeatureError(f"Membership test on non-container variable: {container_name}")
         else:
@@ -588,7 +629,7 @@ class PythonToCConverter:
             raise UnsupportedFeatureError(f"Unsupported unary operator: {type(node.op).__name__}")
 
     def _convert_subscript(self, node: ast.Subscript) -> core.Element:
-        """Convert subscript operation (container[key]) to C syntax."""
+        """Convert subscript operation (container[key]) or slice operation (container[start:end]) to C syntax."""
         # Check if this is a container subscript operation
         if isinstance(node.value, ast.Name):
             container_name = node.value.id
@@ -598,26 +639,50 @@ class PythonToCConverter:
                 container_info = self.container_variables[container_name]
                 container_type = container_info['container_type']
 
-                # Convert the key/index expression
-                key_expr = self._convert_expression(node.slice)
+                # Check if this is a slice operation
+                if isinstance(node.slice, ast.Slice):
+                    # Handle slice operations: container[start:end]
+                    if container_type != "list":
+                        raise UnsupportedFeatureError(f"Slicing not supported for {container_type}")
 
-                # Convert to string for STC operation
-                if isinstance(key_expr, core.Element):
-                    temp_writer = Writer(StyleOptions())
-                    key_str = temp_writer.write_str_elem(key_expr)
-                else:
-                    key_str = str(key_expr)
+                    # Extract start and end expressions
+                    start_expr = "0"  # Default start
+                    if node.slice.lower is not None:
+                        start_elem = self._convert_expression(node.slice.lower)
+                        temp_writer = Writer(StyleOptions())
+                        start_expr = temp_writer.write_str_elem(start_elem) if isinstance(start_elem, core.Element) else str(start_elem)
 
-                if container_type == "list":
-                    # List indexing: lst[i] -> *lst_at(&lst, i)
-                    operation_code = stc_operation_mapper.map_list_operation(container_name, "get", key_str)
-                    return STCOperationElement(operation_code)
-                elif container_type == "dict":
-                    # Dict access: dict[key] -> *dict_at(&dict, key)
-                    operation_code = stc_operation_mapper.map_dict_operation(container_name, "get", key_str)
-                    return STCOperationElement(operation_code)
+                    end_expr = f"{container_name}_size(&{container_name})"  # Default end (full size)
+                    if node.slice.upper is not None:
+                        end_elem = self._convert_expression(node.slice.upper)
+                        temp_writer = Writer(StyleOptions())
+                        end_expr = temp_writer.write_str_elem(end_elem) if isinstance(end_elem, core.Element) else str(end_elem)
+
+                    # Return a slice element that can be handled by assignment context
+                    stc_type = container_info['stc_type']
+                    return STCSliceElement(container_name, stc_type, start_expr, end_expr, "")
+
                 else:
-                    raise UnsupportedFeatureError(f"Subscript operation not supported for {container_type}")
+                    # Handle single element access: container[key]
+                    key_expr = self._convert_expression(node.slice)
+
+                    # Convert to string for STC operation
+                    if isinstance(key_expr, core.Element):
+                        temp_writer = Writer(StyleOptions())
+                        key_str = temp_writer.write_str_elem(key_expr)
+                    else:
+                        key_str = str(key_expr)
+
+                    if container_type == "list":
+                        # List indexing: lst[i] -> *lst_at(&lst, i)
+                        operation_code = stc_operation_mapper.map_list_operation(container_name, "get", key_str)
+                        return STCOperationElement(operation_code)
+                    elif container_type == "dict":
+                        # Dict access: dict[key] -> *dict_at(&dict, key)
+                        operation_code = stc_operation_mapper.map_dict_operation(container_name, "get", key_str)
+                        return STCOperationElement(operation_code)
+                    else:
+                        raise UnsupportedFeatureError(f"Subscript operation not supported for {container_type}")
             else:
                 raise UnsupportedFeatureError(f"Subscript on non-container variable: {container_name}")
         else:
@@ -736,12 +801,54 @@ class PythonToCConverter:
 
                     else:
                         raise UnsupportedFeatureError(f"Unsupported container method: {container_type}.{method_name}")
+                elif obj_name in self.variable_context:
+                    # Check if this is a string method call
+                    variable = self.variable_context[obj_name]
+                    is_string = (
+                        (hasattr(variable.data_type, 'base_type') and variable.data_type.base_type == "char*") or
+                        (isinstance(variable.data_type, str) and variable.data_type == "char*") or
+                        str(variable.data_type) == "char*"
+                    )
+                    if is_string:
+                        return self._convert_string_method(obj_name, method_name, node.args)
+                    else:
+                        raise UnsupportedFeatureError(f"Method call on non-container/non-string object: {obj_name}.{method_name}")
                 else:
                     raise UnsupportedFeatureError(f"Method call on non-container object: {obj_name}.{method_name}")
             else:
                 raise UnsupportedFeatureError("Complex method calls not supported")
         else:
             raise UnsupportedFeatureError("Only simple function calls and method calls supported")
+
+    def _convert_string_method(self, obj_name: str, method_name: str, args: List[ast.expr]) -> core.Element:
+        """Convert string method calls to C equivalents."""
+        if method_name == "upper":
+            # str.upper() -> custom upper function (requires implementation)
+            if len(args) != 0:
+                raise UnsupportedFeatureError("str.upper() takes no arguments")
+            # For now, we'll create a function call that needs to be implemented
+            return f"cgen_str_upper({obj_name})"
+
+        elif method_name == "lower":
+            # str.lower() -> custom lower function (requires implementation)
+            if len(args) != 0:
+                raise UnsupportedFeatureError("str.lower() takes no arguments")
+            return f"cgen_str_lower({obj_name})"
+
+        elif method_name == "find":
+            # str.find(substring) -> custom find function that returns index or -1
+            if len(args) != 1:
+                raise UnsupportedFeatureError("str.find() requires exactly one argument")
+            arg_expr = self._convert_expression(args[0])
+            if isinstance(arg_expr, core.Element):
+                temp_writer = Writer(StyleOptions())
+                arg_str = temp_writer.write_str_elem(arg_expr)
+            else:
+                arg_str = str(arg_expr)
+            return f"cgen_str_find({obj_name}, {arg_str})"
+
+        else:
+            raise UnsupportedFeatureError(f"Unsupported string method: {method_name}")
 
     def _convert_if(self, node: ast.If) -> core.Element:
         """Convert if statement to C if statement."""
@@ -866,8 +973,41 @@ class PythonToCConverter:
 
             return self.c_factory.for_loop(init, condition, increment, body_block)
 
+        # Handle container iteration: for item in container
+        elif (isinstance(node.iter, ast.Name) and
+              node.iter.id in self.container_variables):
+
+            container_name = node.iter.id
+            container_info = self.container_variables[container_name]
+            container_type = container_info['container_type']
+
+            # Extract loop variable
+            if isinstance(node.target, ast.Name):
+                loop_var = node.target.id
+            else:
+                raise UnsupportedFeatureError("Only simple loop variables supported in container iteration")
+
+            # Get the STC container type for the foreach macro
+            stc_container_type = container_info['stc_type']
+
+            # Convert body statements
+            body_statements = []
+            for stmt in node.body:
+                body_statements.append(self._convert_statement(stmt))
+
+            body_block = self.c_factory.block()
+            for stmt in body_statements:
+                body_block.append(stmt)
+
+            # Generate STC foreach loop using raw C code
+            # c_foreach (item, container_type, container_var)
+            foreach_code = f"c_foreach ({loop_var}, {stc_container_type}, {container_name})"
+
+            # Create a special foreach element that combines the foreach with the body
+            return STCForEachElement(foreach_code, body_block)
+
         else:
-            raise UnsupportedFeatureError("Only range-based for loops are currently supported")
+            raise UnsupportedFeatureError("Only range-based and container iteration for loops are currently supported")
 
     def _convert_augmented_assignment(self, node: ast.AugAssign) -> core.Statement:
         """Convert augmented assignment (+=, -=, etc.) to C syntax."""

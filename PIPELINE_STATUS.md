@@ -31,7 +31,10 @@ This document provides a comprehensive assessment of the CGen pipeline's current
 - **Python Sets**: Full set operations with `set[int]` → `hset_int32`
 - **Container Operations**: Native support for all container methods (`append()`, `add()`, `remove()`, element access)
 - **Element Access**: Complete subscript operations (`dict[key]`, `list[index]`) with assignment support
-- **Membership Testing**: Full support for `in` and `not in` operators on sets
+- **Membership Testing**: Full support for `in` and `not in` operators on sets and strings
+- **Container Iteration**: Complete support for `for item in container` loops with STC `c_each` macros
+- **List Slicing**: Full implementation of `list[start:end]` slice operations with bounds checking
+- **String Operations**: Comprehensive string methods (`upper()`, `lower()`, `find()`) and membership testing
 - **Memory Management**: Automatic STC container initialization and cleanup for all container types
 - **Type Safety**: Compile-time type validation for all container operations
 - **Cross-Container Operations**: Complex operations between different container types
@@ -64,13 +67,11 @@ This document provides a comprehensive assessment of the CGen pipeline's current
 
 ### Not Yet Supported
 - **Complex Data Structures**: No structs, classes, or custom types
-- **Advanced String Operations**: String method support (`.upper()`, `.split()`, etc.)
-- **Container Iteration**: `for item in container` loops not implemented
 - **Module Imports**: No import/module system
 - **Exception Handling**: No try/except blocks
 - **Lambda Functions**: Anonymous functions not supported
 - **Comprehensions**: List/dict comprehensions not supported
-- **Range Operations**: Slicing (`list[1:3]`) not implemented
+- **Advanced String Operations**: Some string methods (`.split()`, `.replace()`, etc.) not yet implemented
 
 ## 🧪 **TEST RESULTS SUMMARY**
 
@@ -170,20 +171,13 @@ def modify_param(n: int) -> int:
     n = n + 1  # ❌ Error
     return n
 
-def container_iteration(items: list[int]) -> int:
-    """Avoid: Container iteration not yet implemented"""
-    total: int = 0
-    for item in items:  # ❌ Not supported yet
-        total += item
-    return total
+def advanced_string_methods(text: str) -> str:
+    """Avoid: Some advanced string methods not yet supported"""
+    return text.split(",")  # ❌ Not supported yet
 
-def string_methods(text: str) -> str:
-    """Avoid: Advanced string methods not supported"""
-    return text.upper()  # ❌ Not supported yet
-
-def list_slicing(data: list[int]) -> list[int]:
-    """Avoid: List slicing not implemented"""
-    return data[1:3]  # ❌ Not supported yet
+def comprehensions(data: list[int]) -> list[int]:
+    """Avoid: List comprehensions not supported"""
+    return [x * 2 for x in data]  # ❌ Not supported yet
 ```
 
 ## 📊 **PIPELINE ARCHITECTURE STATUS**
@@ -195,7 +189,13 @@ def list_slicing(data: list[int]) -> list[int]:
 4. **Generation Phase**: C code generation with full STC integration
 5. **Build Phase**: Makefile generation and direct compilation
 
-### ✅ **Recently Completed Improvements (v0.3.0)**
+### ✅ **Recently Completed Improvements (v0.4.0)**
+1. **Container Iteration Patterns**: ✅ Complete implementation of `for item in container` loops with STC `c_each` macros
+2. **List Slicing Operations**: ✅ Full support for `list[start:end]` slice operations with bounds checking
+3. **Advanced String Method Support**: ✅ String membership testing, case conversion, and search operations
+4. **Enhanced AST Processing**: ✅ Extended method call handling and type recognition for strings
+
+### ✅ **Previously Completed (v0.3.0)**
 1. **Complete Container Operations**: ✅ All dictionary, set, and list operations fully implemented
 2. **Element Access Systems**: ✅ Subscript operations for all container types (`dict[key]`, `list[index]`)
 3. **Set Membership Testing**: ✅ Full `in`/`not in` operator support with STC contains operations
@@ -208,10 +208,10 @@ def list_slicing(data: list[int]) -> list[int]:
 4. **Memory Management**: ✅ Automatic STC container initialization and cleanup
 
 ### 🔧 **Areas for Future Enhancement**
-1. **Container Iteration**: Implement `for item in container` loop patterns
-2. **Range Operations**: Add list slicing (`list[1:3]`) support
-3. **Advanced String Operations**: Expand string method support (`.upper()`, `.split()`, etc.)
-4. **Module System**: Import/export functionality
+1. **Module System**: Import/export functionality for larger applications
+2. **Additional String Operations**: Expand string method support (`.split()`, `.replace()`, `.strip()`, etc.)
+3. **List Comprehensions**: Support for `[x for x in items]` syntax
+4. **Exception Handling**: Basic try/except support for error handling
 
 ## 🚀 **OVERALL ASSESSMENT**
 
@@ -226,16 +226,18 @@ def list_slicing(data: list[int]) -> list[int]:
 - **Zero-Regression Development**: 643/643 tests pass consistently across all versions
 
 **Recent Achievements:**
-1. ✅ Complete container operations implementation (v0.3.0)
-2. ✅ Dictionary element access and assignment (v0.3.0)
-3. ✅ Set operations and membership testing (v0.3.0)
-4. ✅ List element access and complex expressions (v0.3.0)
-5. ✅ Cross-container operation support (v0.3.0)
+1. ✅ Container iteration patterns implementation (v0.4.0)
+2. ✅ List slicing and range operations (v0.4.0)
+3. ✅ Advanced string method support (v0.4.0)
+4. ✅ Enhanced AST processing and type recognition (v0.4.0)
+5. ✅ Complete container operations implementation (v0.3.0)
+6. ✅ Dictionary element access and assignment (v0.3.0)
+7. ✅ Set operations and membership testing (v0.3.0)
 
-**Current State: Production-ready for complex algorithmic code with comprehensive data structures. Suitable for real-world applications requiring efficient C performance with Python syntax.**
+**Current State: Production-ready for advanced algorithmic code with comprehensive Python language features. Supports complex container operations, iteration patterns, string processing, and slicing operations with C performance.**
 
 **Next Development Priorities:**
-1. Container iteration patterns (`for item in container`)
-2. List slicing and range operations (`list[1:3]`)
-3. Advanced string method support
-4. Module import system for larger applications
+1. Module import system for larger applications
+2. Additional string operations (`.split()`, `.replace()`, etc.)
+3. List comprehensions and advanced syntax
+4. Exception handling and error management

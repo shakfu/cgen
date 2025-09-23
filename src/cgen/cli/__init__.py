@@ -7,6 +7,6 @@ Provides streamlined command-line tools for:
 - Clean build management
 """
 
-from .simple_cli import main
+from .main import main
 
 __all__ = ["main"]

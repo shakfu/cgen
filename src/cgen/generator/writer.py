@@ -109,6 +109,8 @@ class Writer(Formatter):
             "UnaryExpression": self._write_unary_expression,
             "STCContainerElement": self._write_stc_container,
             "STCOperationElement": self._write_stc_operation,
+            "STCForEachElement": self._write_stc_foreach,
+            "STCSliceElement": self._write_stc_slice,
             "Blank": self._write_blank,
             "Whitespace": self._write_whitespace,
             "LineComment": self._write_line_comment,
@@ -183,6 +185,8 @@ class Writer(Formatter):
             "RawCode": self._write_raw_code,
             "STCContainerElement": self._write_stc_container,
             "STCOperationElement": self._write_stc_operation,
+            "STCForEachElement": self._write_stc_foreach,
+            "STCSliceElement": self._write_stc_slice,
         }
         self.last_element = ElementType.NONE
 
@@ -662,6 +666,51 @@ class Writer(Formatter):
         """Write STC operation call."""
         # elem should be STCOperationElement
         self._write(elem.operation_code)
+
+    def _write_stc_foreach(self, elem) -> None:
+        """Write STC foreach loop."""
+        # elem should be STCForEachElement
+        self._write(elem.foreach_code)
+        self._write(" {")
+        self._eol()
+        self._indent()
+
+        # Write the body block
+        self._write_element(elem.body_block)
+
+        self._dedent()
+        self._write("}")
+        self._eol()
+        self.last_element = ElementType.STATEMENT
+
+    def _write_stc_slice(self, elem) -> None:
+        """Write STC slice operation."""
+        # elem should be STCSliceElement
+        # Generate code to slice a container into a new container
+        #
+        # Example generated C code:
+        # result = {0};  // Initialize empty container
+        # for (size_t i = start; i < end && i < container_size(&container); ++i) {
+        #     result_push(&result, *container_at(&container, i));
+        # }
+
+        # Initialize the result container
+        self._write(f"{elem.result_var} = {{0}}")
+        self._eol()
+
+        # Generate the slicing loop
+        self._write(f"for (size_t i = {elem.start_expr}; i < {elem.end_expr} && i < {elem.container_name}_size(&{elem.container_name}); ++i) {{")
+        self._eol()
+        self._indent()
+
+        # Push each element from source to result
+        self._write(f"{elem.result_var}_push(&{elem.result_var}, *{elem.container_name}_at(&{elem.container_name}, i))")
+        self._eol()
+
+        self._dedent()
+        self._write("}")
+        self._eol()
+        self.last_element = ElementType.STATEMENT
 
     def _write_struct_usage(self, elem: core.Struct) -> None:
         """Writes struct usage."""

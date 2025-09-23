@@ -122,6 +122,10 @@ class STCOperationMapper:
             return f"*{container_name}_at(&{container_name}, {args[0]}) = {args[1]}"
         elif operation == "init_empty":
             return f"{container_name} = {{0}}"
+        elif operation == "slice":  # lst[start:end]
+            # For slicing, we need special handling - this should be handled differently
+            # as it returns a new container rather than a single operation
+            raise ValueError("Slice operation should be handled by STCSliceElement, not as a simple operation")
         else:
             raise ValueError(f"Unsupported list operation: {operation}")
 
@@ -170,6 +174,25 @@ class STCOperationElement(core.Element):
 
     def __init__(self, operation_code: str):
         self.operation_code = operation_code
+
+
+class STCForEachElement(core.Element):
+    """Represents an STC foreach loop in the generated C code."""
+
+    def __init__(self, foreach_code: str, body_block):
+        self.foreach_code = foreach_code  # e.g., "c_foreach (item, vec_int32, numbers)"
+        self.body_block = body_block
+
+
+class STCSliceElement(core.Element):
+    """Represents an STC container slice operation in the generated C code."""
+
+    def __init__(self, container_name: str, container_type: str, start_expr: str, end_expr: str, result_var: str):
+        self.container_name = container_name
+        self.container_type = container_type  # e.g., 'vec_int32'
+        self.start_expr = start_expr  # start index expression
+        self.end_expr = end_expr      # end index expression
+        self.result_var = result_var  # variable name for the result
 
 
 def analyze_container_type(type_annotation) -> Optional[Tuple[str, List[str]]]:

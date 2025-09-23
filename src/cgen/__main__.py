@@ -11,7 +11,7 @@ Commands:
 """
 
 import sys
-from .cli.simple_cli import main
+from .cli.main import main
 
 if __name__ == "__main__":
     sys.exit(main())
