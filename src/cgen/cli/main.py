@@ -813,7 +813,7 @@ Examples:
                 c_code = converter.convert_code(context.source_code)
 
                 # Convert sequence to string
-                from ..generator.style import StyleOptions
+                from ..core.style import StyleOptions
                 from ..core.writer import Writer
 
                 writer = Writer(StyleOptions())
