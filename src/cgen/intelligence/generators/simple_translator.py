@@ -37,6 +37,7 @@ class SimplePythonToCTranslator:
         self.stc_includes = set()
         self.stc_type_definitions = []
         self.stc_container_vars = {}  # var_name -> STC container type
+        self.stc_type_include_pairs = []  # (type_def, include) pairs to maintain proper order
 
         self.builtin_functions = {
             'print': self._translate_print_call,
@@ -79,18 +80,14 @@ class SimplePythonToCTranslator:
         lines.append("#include <stdlib.h>")
         lines.append("#include <math.h>")
 
-        # Add STC includes
-        if self.use_stc_containers:
-            for include in sorted(self.stc_includes):
-                lines.append(include)
-
         lines.append("")
 
-        # Add STC type definitions
-        if self.use_stc_containers and self.stc_type_definitions:
-            for type_def in self.stc_type_definitions:
+        # Add STC type definitions with proper include pairing
+        if self.use_stc_containers and self.stc_type_include_pairs:
+            for type_def, include_stmt in self.stc_type_include_pairs:
                 lines.append(type_def)
-            lines.append("")
+                lines.append(include_stmt)
+                lines.append("")
 
         # Add global constants and variables first
         for node in module_node.body:
@@ -114,35 +111,7 @@ class SimplePythonToCTranslator:
                     lines.extend(func_code)
                     lines.append("")
 
-        # Add any additional STC type definitions that were generated during function processing
-        if self.use_stc_containers and self.stc_type_definitions:
-            # Insert type definitions after includes but before function definitions
-            insert_pos = -1
-            for i, line in enumerate(lines):
-                if line.startswith("#include") or line.startswith("//"):
-                    continue
-                elif line.strip() == "":
-                    insert_pos = i + 1
-                    break
-
-            if insert_pos > 0:
-                # Insert type definitions
-                for type_def in self.stc_type_definitions:
-                    lines.insert(insert_pos, type_def)
-                    insert_pos += 1
-                lines.insert(insert_pos, "")
-
-                # Insert includes at the beginning after standard includes
-                include_pos = -1
-                for i, line in enumerate(lines):
-                    if line.startswith("#include <math.h>"):
-                        include_pos = i + 1
-                        break
-
-                if include_pos > 0:
-                    for include in sorted(self.stc_includes):
-                        lines.insert(include_pos, include)
-                        include_pos += 1
+        # STC type definitions are now handled at the beginning with proper pairing
 
         return "\n".join(lines)
 
@@ -244,14 +213,14 @@ class SimplePythonToCTranslator:
                     self.stc_container_vars[var_name] = container_type
                     self.variables[var_name] = container_type
 
-                    # Add type definition if not already added
+                    # Add type definition with include pairing if not already added
                     type_def = f"#define T {container_type}, int"
                     include_stmt = "#include <stc/vec.h>"
 
-                    if type_def not in self.stc_type_definitions:
-                        self.stc_type_definitions.append(type_def)
-                    if include_stmt not in self.stc_includes:
-                        self.stc_includes.add(include_stmt)
+                    # Check if this type definition already exists
+                    type_pair = (type_def, include_stmt)
+                    if type_pair not in self.stc_type_include_pairs:
+                        self.stc_type_include_pairs.append(type_pair)
 
                     # Initialize container
                     lines.append(self._indent(f"{container_type} {var_name} = {{0}};"))
@@ -462,6 +431,62 @@ class SimplePythonToCTranslator:
 
             lines.append(self._indent("}"))
 
+        # Handle simple iteration patterns
+        elif isinstance(for_node.iter, ast.Call):
+            # Handle method calls like words.items(), content.split(), etc.
+            if (isinstance(for_node.iter.func, ast.Attribute) and
+                for_node.iter.func.attr in ['items', 'keys', 'values']):
+
+                target = for_node.target
+                obj_name = self._translate_expression(for_node.iter.func.value)
+                method = for_node.iter.func.attr
+
+                if method == 'items' and isinstance(target, ast.Tuple) and len(target.elts) == 2:
+                    # for key, value in dict.items()
+                    key_var = target.elts[0].id
+                    value_var = target.elts[1].id
+                    lines.append(self._indent(f"/* {obj_name}.items() iteration */"))
+                    lines.append(self._indent(f"/* for ({key_var}, {value_var}) in {obj_name} - not implemented */"))
+                else:
+                    lines.append(self._indent(f"/* {obj_name}.{method}() iteration not supported */"))
+
+            elif (isinstance(for_node.iter.func, ast.Attribute) and
+                  for_node.iter.func.attr == 'split'):
+                # Handle content.split()
+                obj_name = self._translate_expression(for_node.iter.func.value)
+                target_var = for_node.target.id
+                lines.append(self._indent(f"/* for {target_var} in {obj_name}.split() - simplified */"))
+                lines.append(self._indent(f"char* {target_var};"))
+                lines.append(self._indent(f"/* split iteration not implemented */"))
+            else:
+                lines.append(self._indent("/* Complex for loop not supported */"))
+
+        # Handle simple name iteration (e.g., for item in list_var)
+        elif isinstance(for_node.iter, ast.Name):
+            iterable_name = for_node.iter.id
+            target_var = for_node.target.id
+
+            # Generate C-style array iteration
+            lines.append(self._indent(f"int {target_var}_index = 0;"))
+            lines.append(self._indent(f"while ({target_var}_index < {iterable_name}_size) {{"))
+
+            self.indent_level += 1
+            lines.append(self._indent(f"/* Get element at index */"))
+            lines.append(self._indent(f"/* {target_var} = {iterable_name}[{target_var}_index]; */"))
+
+            # Translate loop body
+            for stmt in for_node.body:
+                stmt_lines = self._translate_statement(stmt)
+                if stmt_lines:
+                    if isinstance(stmt_lines, list):
+                        lines.extend(stmt_lines)
+                    else:
+                        lines.append(stmt_lines)
+
+            lines.append(self._indent(f"{target_var}_index++;"))
+            self.indent_level -= 1
+            lines.append(self._indent("}"))
+
         else:
             lines.append(self._indent("/* Complex for loop not supported */"))
 
@@ -506,6 +531,10 @@ class SimplePythonToCTranslator:
             return self._translate_f_string(expr)
         elif isinstance(expr, ast.BoolOp):
             return self._translate_bool_op(expr)
+        elif isinstance(expr, ast.Dict):
+            return self._translate_dict(expr)
+        elif isinstance(expr, ast.Attribute):
+            return self._translate_attribute(expr)
         else:
             return f"/* Unsupported expr: {type(expr).__name__} */"
 
@@ -626,6 +655,21 @@ class SimplePythonToCTranslator:
 
     def _translate_call(self, call: ast.Call) -> str:
         """Translate function calls."""
+        # Handle nested attribute calls first (e.g., os.path.exists)
+        if isinstance(call.func, ast.Attribute):
+            # Handle os.path.exists() and similar nested attribute calls
+            if (isinstance(call.func.value, ast.Attribute) and
+                isinstance(call.func.value.value, ast.Name) and
+                call.func.value.value.id == 'os' and
+                call.func.value.attr == 'path' and
+                call.func.attr == 'exists'):
+
+                # Handle os.path.exists(filename)
+                if call.args:
+                    arg = self._translate_expression(call.args[0])
+                    return f"exists({arg})"
+                return "exists()"
+
         if isinstance(call.func, ast.Name):
             func_name = call.func.id
 
@@ -656,7 +700,7 @@ class SimplePythonToCTranslator:
             method = call.func.attr
             args = [self._translate_expression(arg) for arg in call.args]
 
-            # Handle specific list methods
+            # Handle specific string and list methods
             if method == "append":
                 # Check for STC container append first
                 if (self.use_stc_containers and obj in self.stc_container_vars and call.args):
@@ -669,6 +713,27 @@ class SimplePythonToCTranslator:
                     item = self._translate_expression(call.args[0])
                     return f"/* {obj}.append({item}) - not implemented */"
                 return f"/* {obj}.append() - not implemented */"
+            elif method == "split":
+                # Handle string.split() method
+                if args:
+                    # split with delimiter
+                    args_str = ", ".join(args)
+                    return f"split({obj}, {args_str})"
+                else:
+                    # split with whitespace (default)
+                    return f"split({obj}, )"
+            elif method == "lower":
+                # Handle string.lower() method
+                return f"lower({obj}, )"
+            elif method == "items":
+                # Handle dict.items() method
+                return f"/* {obj}.items() - not implemented */"
+            elif method == "keys":
+                # Handle dict.keys() method
+                return f"/* {obj}.keys() - not implemented */"
+            elif method == "values":
+                # Handle dict.values() method
+                return f"/* {obj}.values() - not implemented */"
             else:
                 # For other methods, treat as regular function call
                 args_str = ", ".join(args)
@@ -984,6 +1049,49 @@ class SimplePythonToCTranslator:
 
         self.indent_level = 1
         return lines
+
+    def _translate_dict(self, dict_node: ast.Dict) -> str:
+        """Translate dictionary literal to C initialization."""
+        if not dict_node.keys or not dict_node.values:
+            # Empty dictionary - use STC hashmap if available
+            if self.use_stc_containers:
+                return "{0}"  # Initialize empty STC hashmap
+            else:
+                return "{0}"  # Empty initialization
+
+        # For non-empty dictionaries, we need to create proper STC hashmap initialization
+        # This is a simplified approach - full implementation would need proper STC integration
+        return "{0}"  # Simplified: just initialize empty for now
+
+    def _translate_attribute(self, attr_node: ast.Attribute) -> str:
+        """Translate attribute access (obj.attr)."""
+        obj = self._translate_expression(attr_node.value)
+        attr = attr_node.attr
+
+        # Handle specific Python attribute patterns
+        if isinstance(attr_node.value, ast.Name):
+            if attr_node.value.id == 'sys' and attr == 'argv':
+                # Handle sys.argv specifically
+                return "argv"  # C main function uses argc/argv
+            elif attr == 'split':
+                # Handle string.split() - return function name for method calls
+                return f"split"
+            elif attr == 'lower':
+                # Handle string.lower() - return function name for method calls
+                return f"lower"
+            elif attr == 'append':
+                # Handle list.append() - return function name for method calls
+                return f"append"
+        elif isinstance(attr_node.value, ast.Attribute):
+            # Handle nested attributes like os.path.exists
+            if (isinstance(attr_node.value.value, ast.Name) and
+                attr_node.value.value.id == 'os' and
+                attr_node.value.attr == 'path' and
+                attr == 'exists'):
+                return "exists"  # Simplified to just 'exists' function call
+
+        # For other attributes, generate C-style access
+        return f"{obj}.{attr}"
 
     def _is_2d_array_context(self, var_name: str) -> bool:
         """Determine if a variable should be treated as a 2D array."""

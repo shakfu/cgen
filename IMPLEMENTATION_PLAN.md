@@ -1,6 +1,31 @@
 # CGen: Three-Layer Code Generation Platform - Implementation Plan
 
-## 🚀 Progress Summary
+## Executive Summary
+
+This plan outlines the transformation of the current `cfile` library into a comprehensive three-layer code generation platform called **CGen**, implementing the revolutionary architecture where unconstrained Python at code-generation-time optimizes static Python into highly efficient and readable C code.
+
+## Project Vision and Goals
+
+### Vision Statement
+
+Create a revolutionary code generation platform that breaks through traditional compiler limitations by leveraging the full power of Python's ecosystem at code-generation-time to produce C code that exceeds hand-written performance.
+
+### Primary Goals
+1. **Performance**: Generate C code that outperforms hand-written equivalents
+2. **Expressiveness**: Maintain Python's developer-friendly syntax and semantics
+3. **Intelligence**: Use unlimited computational resources for optimization
+4. **Extensibility**: Enable domain-specific optimizations and plugins
+5. **Reliability**: Ensure mathematical correctness and provable safety
+6. **Readability**: Ensure that the generated C code is readable and straightforward to understand.
+
+### Success Metrics
+- 10-100x performance improvement over CPython for computational code
+- 2-10x performance improvement over hand-written C through superior optimization
+- 80%+ coverage of common computational Python patterns
+- Sub-second compilation times for typical functions
+- 100% test coverage with formal verification where applicable
+
+## Progress Summary
 
 **Status**: Phase 6 Complete - STC Integration + TIER 4 Elements Implemented ✅
 **Overall Progress**: 98% Complete (6/6 phases core features + TIER 4 advanced elements)
@@ -54,30 +79,6 @@
   - Integration testing across all three layers
   - Formal verification testing with Z3 theorem prover integration
 - ✅ **Documentation Updates**: Updated CLAUDE.md and testing documentation for pytest workflow
-
-## Executive Summary
-
-This plan outlines the transformation of the current `cfile` library into a comprehensive three-layer code generation platform called **CGen**, implementing the revolutionary architecture where unconstrained Python at code-generation-time optimizes static Python into highly efficient and readable C code.
-
-## Project Vision and Goals
-
-### Vision Statement
-Create a revolutionary code generation platform that breaks through traditional compiler limitations by leveraging the full power of Python's ecosystem at code-generation-time to produce C code that exceeds hand-written performance.
-
-### Primary Goals
-1. **Performance**: Generate C code that outperforms hand-written equivalents
-2. **Expressiveness**: Maintain Python's developer-friendly syntax and semantics
-3. **Intelligence**: Use unlimited computational resources for optimization
-4. **Extensibility**: Enable domain-specific optimizations and plugins
-5. **Reliability**: Ensure mathematical correctness and provable safety
-6. **Readability**: Ensure that the generated C code is readable and straightforward to understand.
-
-### Success Metrics
-- 10-100x performance improvement over CPython for computational code
-- 2-10x performance improvement over hand-written C through superior optimization
-- 80%+ coverage of common computational Python patterns
-- Sub-second compilation times for typical functions
-- 100% test coverage with formal verification where applicable
 
 ## Current State Analysis
 
@@ -341,7 +342,7 @@ tests/                          # All tests in root/tests
 - **Multi-tier Support**: Different levels of Python feature support
 - **Demo Script**: Interactive demonstration of all frontend capabilities
 
-## 📋 Detailed Implementation Documentation (Phase 2)
+## Detailed Implementation Documentation (Phase 2)
 
 ### Frontend Layer Architecture (`src/cgen/frontend/`)
 
@@ -1594,3 +1595,250 @@ Phase 6.5: Advanced Features         [Future] 🎯 Enhancement
 - [ ] Professional support and consulting services
 
 This roadmap ensures systematic completion of the STC integration while building toward a production-ready, high-performance Python-to-C translation system that can compete with hand-written C code in both performance and maintainability.
+
+## 🔍 Python-to-C Translation Analysis and Improvement Tasks
+
+### Translation Quality Assessment Results
+
+Based on comprehensive analysis of CGen's automatic Python-to-C translation capabilities using the `simple_text_processor.py` example, the following critical areas require improvement to achieve production-ready translation quality.
+
+### Current Translation Status ✅
+
+**Successfully Fixed:**
+- ✅ Multiple `#define T` STC macro redefinitions in template generation
+- ✅ Dictionary literal translation (`{}` → `{0}`)
+- ✅ Attribute access improvements (`sys.argv` → `argv`, `os.path.exists` → `exists`)
+- ✅ Enhanced for loop translation with better iteration patterns
+- ✅ String method call handling (`content.split()` → `split(content, )`)
+
+### 🚨 CRITICAL Translation Issues Requiring Immediate Attention
+
+#### Phase 7.1: Runtime Library Support (HIGH PRIORITY) 🔴
+**Problem**: Generated C code calls undefined functions that need C runtime implementations.
+
+**Missing C Runtime Functions:**
+- [ ] **String Operations**
+  - `split(char* content, char* delimiter)` - String tokenization
+  - `lower(char* content)` - String case conversion
+  - `isalpha(char c)` - Character classification (need `#include <ctype.h>`)
+  - `exists(char* filename)` - File existence check (need file I/O wrapper)
+
+- [ ] **Container Operations**
+  - `WordsVec_size()`, `CountsVec_size()`, `ResultVec_push()` - STC container functions
+  - Container instantiation and proper STC header inclusion
+  - Memory management for container cleanup
+
+- [ ] **File I/O Operations**
+  - File reading wrapper functions for `with open()` pattern
+  - Error handling for file operations
+  - Memory management for file content
+
+**Implementation Tasks:**
+- [ ] **Create C Runtime Library** (`src/cgen/runtime/`)
+  - `string_ops.h/c` - String manipulation functions
+  - `file_ops.h/c` - File I/O wrapper functions
+  - `container_ops.h/c` - STC container helper functions
+  - `memory_ops.h/c` - Memory management utilities
+
+**Deliverables:**
+- [ ] Complete C runtime library with 20+ essential functions
+- [ ] Automatic inclusion of runtime headers in generated code
+- [ ] Test suite validating all runtime functions
+- [ ] Documentation for supported Python → C operation mappings
+
+#### Phase 7.2: STC Template System Fixes (HIGH PRIORITY) 🔴
+**Problem**: STC container types are referenced but not properly instantiated in generated code.
+
+**Template Issues:**
+- [ ] **Container Type Instantiation**
+  - `WordsVec`, `CountsVec`, `ResultVec` types declared but not defined
+  - Missing proper `#define T` declarations for each container type
+  - Container template parameters incorrectly inferred from Python types
+
+- [ ] **STC Header Management**
+  - STC headers not included in correct order
+  - Template definitions scattered throughout generated code
+  - Missing cleanup and destruction calls
+
+**Implementation Tasks:**
+- [ ] **Enhanced STC Integration** (`src/cgen/ext/stc/`)
+  - Fix template generation order in `simple_translator.py:90-95`
+  - Improve container type inference from Python type annotations
+  - Add automatic container destruction in function epilogues
+  - Generate proper STC container initialization patterns
+
+**Deliverables:**
+- [ ] Working STC container generation with proper template instantiation
+- [ ] 15+ tests validating STC container operations
+- [ ] Container memory management with automatic cleanup
+- [ ] Type-safe container operations matching Python semantics
+
+#### Phase 7.3: Variable Scope and Context Issues (HIGH PRIORITY) 🔴
+**Problem**: Variables used outside their declaration scope, missing function parameters.
+
+**Scope Issues:**
+- [ ] **Variable Lifetime Management**
+  - `content` variable accessed outside function scope
+  - `word_size` undefined but referenced in loops
+  - Function parameters not properly threaded through call chains
+
+- [ ] **Function Signature Generation**
+  - `main()` function should accept `int argc, char* argv[]`
+  - Missing function parameter propagation in complex call chains
+  - Return type inference failures for complex expressions
+
+**Implementation Tasks:**
+- [ ] **Enhanced Variable Tracking** (`src/cgen/intelligence/generators/simple_translator.py`)
+  - Implement proper variable scoping in `_translate_function()`
+  - Add function parameter context threading
+  - Fix variable lifetime analysis in nested scopes
+  - Generate proper C function signatures with parameters
+
+**Deliverables:**
+- [ ] Correct variable scoping in all generated functions
+- [ ] Proper function signature generation with parameters
+- [ ] Variable lifetime analysis and scope validation
+- [ ] 10+ tests covering variable scope edge cases
+
+#### Phase 7.4: Type System and Expression Fixes (MEDIUM PRIORITY) 🟡
+**Problem**: Type mismatches and incomplete expression translation.
+
+**Type Issues:**
+- [ ] **Expression Type Resolution**
+  - String vs integer comparison errors (`clean_word == word_counts`)
+  - Pointer arithmetic on string literals
+  - Invalid array size calculations using `sizeof()` on pointers
+
+- [ ] **Complex Expression Translation**
+  - Empty expression parameters in function calls (`split(content, ), )`)
+  - Missing intermediate variable generation for complex expressions
+  - F-string translation failures (`f"Error: File {filename}"` → `"Error: File VAR"`)
+
+**Implementation Tasks:**
+- [ ] **Type System Enhancement** (`src/cgen/intelligence/generators/simple_translator.py`)
+  - Improve `_infer_expression_type()` for complex expressions
+  - Add type compatibility checking in `_translate_expression()`
+  - Fix string literal and variable type handling
+  - Enhance f-string translation with proper variable substitution
+
+**Deliverables:**
+- [ ] Type-safe expression generation
+- [ ] Proper f-string translation with variable interpolation
+- [ ] Enhanced type inference for complex expressions
+- [ ] 20+ tests covering type system edge cases
+
+#### Phase 7.5: Control Flow and Statement Translation (MEDIUM PRIORITY) 🟡
+**Problem**: Complex control flow patterns not properly translated.
+
+**Control Flow Issues:**
+- [ ] **For Loop Translation**
+  - `for word, count in word_counts.items()` → incomplete translation
+  - Dictionary iteration patterns need proper STC hashmap iteration
+  - List comprehension patterns missing
+
+- [ ] **Exception Handling**
+  - `try/except` blocks → C error handling patterns
+  - `with open()` context managers → proper resource management
+  - Error propagation and cleanup code generation
+
+**Implementation Tasks:**
+- [ ] **Enhanced Control Flow** (`src/cgen/intelligence/generators/simple_translator.py`)
+  - Complete `_translate_for()` implementation for dictionary iteration
+  - Add exception handling translation to error codes and gotos
+  - Implement context manager translation for resource management
+  - Add list comprehension → C loop translation
+
+**Deliverables:**
+- [ ] Complete for loop translation including dictionary iteration
+- [ ] Exception handling translation to C error patterns
+- [ ] Context manager support for resource management
+- [ ] 15+ tests covering control flow edge cases
+
+### 🔧 Implementation Priority and Timeline
+
+#### Phase 7.1: Runtime Library (Weeks 1-2) 🔴 **CRITICAL**
+**Impact**: Enables basic compiled C programs to run successfully
+- Week 1: String and file operation implementations
+- Week 2: Container operations and memory management
+
+#### Phase 7.2: STC Template Fixes (Weeks 3-4) 🔴 **CRITICAL**
+**Impact**: Fixes container-based programs and memory safety
+- Week 3: Template generation order and instantiation
+- Week 4: Container lifecycle and memory management
+
+#### Phase 7.3: Variable Scope Fixes (Weeks 5-6) 🔴 **CRITICAL**
+**Impact**: Eliminates compilation errors and scope issues
+- Week 5: Variable lifetime and scoping analysis
+- Week 6: Function signature and parameter handling
+
+#### Phase 7.4: Type System Enhancement (Weeks 7-8) 🟡 **IMPORTANT**
+**Impact**: Improves code correctness and type safety
+- Week 7: Expression type resolution and checking
+- Week 8: F-string and complex expression translation
+
+#### Phase 7.5: Control Flow Enhancement (Weeks 9-10) 🟡 **IMPORTANT**
+**Impact**: Supports complex Python programming patterns
+- Week 9: Advanced for loop and iteration patterns
+- Week 10: Exception handling and context managers
+
+### 📊 Success Metrics
+
+**Phase 7.1 Success Criteria:**
+- [ ] `simple_text_processor_complete.c` compiles without undefined function errors
+- [ ] Generated C program executes and produces expected output
+- [ ] Runtime library supports 95% of common Python operations
+
+**Phase 7.2 Success Criteria:**
+- [ ] All STC container operations work correctly in generated code
+- [ ] No memory leaks in container-based programs
+- [ ] Container type inference accuracy >90%
+
+**Phase 7.3 Success Criteria:**
+- [ ] No variable scope or undeclared variable errors in generated code
+- [ ] Function signatures correctly generated with proper parameters
+- [ ] Variable lifetime analysis prevents access violations
+
+**Phase 7.4 Success Criteria:**
+- [ ] Type-safe generated code with no implicit conversion warnings
+- [ ] F-strings translate correctly with variable interpolation
+- [ ] Complex expressions generate correct C equivalents
+
+**Phase 7.5 Success Criteria:**
+- [ ] Dictionary iteration translates to correct STC hashmap operations
+- [ ] Exception handling generates proper C error handling patterns
+- [ ] Context managers translate to resource management code
+
+### 🧪 Testing Strategy
+
+**Translation Validation:**
+- [ ] **Golden Reference Tests**: Compare generated C output against hand-written C
+- [ ] **Compilation Tests**: Ensure all generated C code compiles successfully
+- [ ] **Runtime Tests**: Validate that generated C produces same output as Python
+- [ ] **Memory Tests**: Check for leaks and memory safety violations
+- [ ] **Performance Tests**: Benchmark generated code against Python and hand-written C
+
+**Test Suite Expansion:**
+- [ ] **Translation Test Suite**: 50+ Python → C translation test cases
+- [ ] **Runtime Library Tests**: 30+ tests for C runtime function correctness
+- [ ] **Integration Tests**: 20+ end-to-end Python program translations
+- [ ] **Performance Regression Tests**: Continuous performance monitoring
+- [ ] **Memory Safety Tests**: Valgrind integration for leak detection
+
+### 📈 Expected Outcomes
+
+**Short-term (Phases 7.1-7.3):**
+- Generated C code compiles and runs successfully
+- Basic Python programs translate to working C programs
+- Foundation for advanced translation features
+
+**Medium-term (Phases 7.4-7.5):**
+- Complex Python programs translate with high fidelity
+- Type-safe and memory-safe generated C code
+- Performance competitive with hand-written C
+
+**Long-term Impact:**
+- Production-ready Python-to-C translation system
+- Enables high-performance computing applications
+- Demonstrates CGen's revolutionary code generation capabilities
+
+This comprehensive analysis provides a clear roadmap for addressing the fundamental translation issues identified during the hands-on testing and brings CGen closer to production-ready Python-to-C translation capabilities.

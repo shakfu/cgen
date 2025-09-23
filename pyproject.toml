@@ -39,6 +39,9 @@ dev = [
     "pytest>=8.4.2",
     "pytest-cov>=7.0.0",
 ]
+editor = [
+    "leo>=6.8.6.1",
+]
 
 [project.optional-dependencies]
 
