@@ -7,8 +7,8 @@ import pytest
 
 
 from src.cgen.frontend.ast_analyzer import AnalysisResult
-from src.cgen.intelligence.base import AnalysisContext, OptimizationLevel
-from src.cgen.intelligence.optimizers.compile_time_evaluator import (
+from src.cgen.frontend.base import AnalysisContext, OptimizationLevel
+from src.cgen.frontend.optimizers.compile_time_evaluator import (
     CompileTimeEvaluator,
     CompileTimeReport,
     ConstantValue,

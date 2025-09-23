@@ -1,15 +1,25 @@
-"""CGen Frontend - Static Python Analysis Layer (Layer 1).
+"""CGen Frontend - Unified Analysis and Intelligence Layer.
 
-This module handles the analysis and parsing of static Python code.
-It identifies statically analyzable constructs and prepares them for
-the intelligence layer.
+This module handles the complete analysis pipeline from static Python parsing
+through intelligent optimization and formal verification. Previously split into
+frontend and intelligence layers, this unified layer provides:
 
-Key components:
+Core Analysis:
 - AST parsing and analysis
 - Type inference and validation
 - Static constraint checking
 - Python subset validation
 - Static IR generation
+
+Intelligent Analysis:
+- Static analysis and symbolic execution
+- Loop analysis and optimization detection
+- Function specialization opportunities
+- Compile-time evaluation
+- Bounds checking and memory safety
+- Call graph analysis
+- Vectorization detection
+- Formal verification capabilities
 """
 
 # AST Analysis Framework
@@ -53,6 +63,74 @@ from .subset_validator import FeatureRule, FeatureStatus, StaticPythonSubsetVali
 # Type Inference System
 from .type_inference import InferenceMethod, InferenceResult, TypeConstraint, TypeInferenceEngine
 
+# Intelligence Base
+from .base import (
+        AnalysisContext,
+        AnalysisLevel,
+        AnalysisReport,
+        BaseAnalyzer,
+        BaseOptimizer,
+        BaseVerifier,
+        IntelligencePipeline,
+        OptimizationLevel,
+        OptimizationResult,
+        VerificationResult,
+    )
+
+# Static Analysis and Symbolic Execution
+from .analyzers import (
+    BoundsChecker,
+    BoundsCheckingReport,
+    BoundsViolation,
+    CallGraphAnalyzer,
+    CallGraphReport,
+    CallPath,
+    CallSite,
+    CFGNode,
+    ControlFlowGraph,
+    ExecutionPath,
+    FunctionNode,
+    MemoryRegion,
+    StaticAnalysisReport,
+    StaticAnalyzer,
+    SymbolicExecutionReport,
+    SymbolicExecutor,
+    SymbolicState,
+    SymbolicValue,
+)
+
+# Optimization Analysis
+from .optimizers import (
+    CompileTimeEvaluator,
+    CompileTimeReport,
+    ConstantValue,
+    FunctionProfile,
+    FunctionSpecializationCandidate,
+    FunctionSpecializer,
+    LoopAnalysisReport,
+    LoopAnalyzer,
+    LoopInfo,
+    LoopOptimization,
+    MemoryAccess,
+    OptimizationCandidate,
+    SpecializationReport,
+    VectorizationCandidate,
+    VectorizationConstraint,
+    VectorizationDetector,
+    VectorizationReport,
+    VectorizationType,
+)
+
+# Formal Verification
+from .verifiers import (
+    AlgorithmProof,
+    BoundsProver,
+    CorrectnessProver,
+    MemorySafetyProof,
+    ProofResult,
+    TheoremProver,
+)
+
 __all__ = [
     # AST Analysis
     "ASTAnalyzer",
@@ -91,4 +169,60 @@ __all__ = [
     "IRDataType",
     "IRBuilder",
     "build_ir_from_code",
+    # Intelligence Base
+    "AnalysisContext",
+        "AnalysisLevel",
+        "AnalysisReport",
+        "BaseAnalyzer",
+        "BaseOptimizer",
+        "BaseVerifier",
+        "IntelligencePipeline",
+        "OptimizationLevel",
+        "OptimizationResult",
+        "VerificationResult",
+    # Static Analysis
+    "StaticAnalyzer",
+    "StaticAnalysisReport",
+    "CFGNode",
+    "ControlFlowGraph",
+    "SymbolicExecutor",
+    "SymbolicExecutionReport",
+    "SymbolicValue",
+    "SymbolicState",
+    "ExecutionPath",
+    "BoundsChecker",
+    "BoundsCheckingReport",
+    "MemoryRegion",
+    "BoundsViolation",
+    "CallGraphAnalyzer",
+    "CallGraphReport",
+    "CallPath",
+    "CallSite",
+    "FunctionNode",
+    # Optimization Analysis
+    "CompileTimeEvaluator",
+    "CompileTimeReport",
+    "ConstantValue",
+    "OptimizationCandidate",
+    "LoopAnalyzer",
+    "LoopAnalysisReport",
+    "LoopInfo",
+    "LoopOptimization",
+    "FunctionSpecializer",
+    "SpecializationReport",
+    "FunctionProfile",
+    "FunctionSpecializationCandidate",
+    "VectorizationDetector",
+    "VectorizationReport",
+    "VectorizationCandidate",
+    "VectorizationType",
+    "VectorizationConstraint",
+    "MemoryAccess",
+    # Formal Verification
+    "TheoremProver",
+    "ProofResult",
+    "BoundsProver",
+    "MemorySafetyProof",
+    "CorrectnessProver",
+    "AlgorithmProof",
 ]

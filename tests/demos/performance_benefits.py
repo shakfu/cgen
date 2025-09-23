@@ -11,8 +11,8 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from src.cgen.intelligence.optimizers import CompileTimeEvaluator, VectorizationDetector
-from src.cgen.intelligence.base import AnalysisContext, OptimizationLevel
+from src.cgen.frontend.optimizers import CompileTimeEvaluator, VectorizationDetector
+from src.cgen.frontend.base import AnalysisContext, OptimizationLevel
 from src.cgen.frontend.ast_analyzer import ASTAnalyzer
 
 

@@ -22,9 +22,9 @@ project_root = Path(__file__).parent.parent
 sys.path.append(str(project_root))
 sys.path.append(str(project_root / "src"))
 
-from src.cgen.intelligence.analyzers import StaticAnalyzer
-from src.cgen.intelligence.optimizers import CompileTimeEvaluator, VectorizationDetector
-from src.cgen.intelligence.base import AnalysisContext, AnalysisLevel, OptimizationLevel
+from cgen.frontend.analyzers import StaticAnalyzer
+from cgen.frontend.optimizers import CompileTimeEvaluator, VectorizationDetector
+from cgen.frontend.base import AnalysisContext, AnalysisLevel, OptimizationLevel
 from src.cgen.frontend.ast_analyzer import ASTAnalyzer
 import cfile
 

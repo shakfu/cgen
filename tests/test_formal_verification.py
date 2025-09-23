@@ -18,12 +18,12 @@ project_root = Path(__file__).parent.parent
 sys.path.append(str(project_root))
 sys.path.append(str(project_root / "src"))
 
-from src.cgen.intelligence.base import AnalysisContext, AnalysisLevel, OptimizationLevel
+from src.cgen.frontend.base import AnalysisContext, AnalysisLevel, OptimizationLevel
 from src.cgen.frontend.ast_analyzer import ASTAnalyzer
-from src.cgen.intelligence.verifiers.theorem_prover import TheoremProver, PropertyType
-from src.cgen.intelligence.verifiers.bounds_prover import BoundsProver, MemorySafetyType
-from src.cgen.intelligence.verifiers.correctness_prover import CorrectnessProver, FormalSpecification
-from src.cgen.intelligence.verifiers.performance_analyzer import PerformanceAnalyzer, ComplexityClass
+from src.cgen.frontend.verifiers.theorem_prover import TheoremProver, PropertyType
+from src.cgen.frontend.verifiers.bounds_prover import BoundsProver, MemorySafetyType
+from src.cgen.frontend.verifiers.correctness_prover import CorrectnessProver, FormalSpecification
+from src.cgen.frontend.verifiers.performance_analyzer import PerformanceAnalyzer, ComplexityClass
 
 
 # Test algorithms with different complexity patterns

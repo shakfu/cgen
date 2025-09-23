@@ -5,8 +5,8 @@ import ast
 import pytest
 
 from src.cgen.frontend.ast_analyzer import AnalysisResult, FunctionInfo
-from src.cgen.intelligence.analyzers.bounds_checker import BoundsChecker, BoundsViolationType
-from src.cgen.intelligence.base import AnalysisContext, AnalysisLevel
+from src.cgen.frontend.analyzers.bounds_checker import BoundsChecker, BoundsViolationType
+from src.cgen.frontend.base import AnalysisContext, AnalysisLevel
 
 
 class TestBoundsChecker:

@@ -5,7 +5,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from src.cgen.intelligence.optimizers.vectorization_detector import (
+from src.cgen.frontend.optimizers.vectorization_detector import (
     MemoryAccess,
     VectorizationCandidate,
     VectorizationConstraint,

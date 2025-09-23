@@ -20,13 +20,13 @@ import json
 from typing import Dict, Any
 
 # Import all intelligence layer components
-from src.cgen.intelligence.analyzers import (
+from src.cgen.frontend.analyzers import (
     StaticAnalyzer, SymbolicExecutor, BoundsChecker, CallGraphAnalyzer
 )
-from src.cgen.intelligence.optimizers import (
+from src.cgen.frontend.optimizers import (
     CompileTimeEvaluator, LoopAnalyzer, FunctionSpecializer, VectorizationDetector
 )
-from src.cgen.intelligence.base import AnalysisContext, AnalysisLevel, OptimizationLevel
+from src.cgen.frontend.base import AnalysisContext, AnalysisLevel, OptimizationLevel
 from src.cgen.frontend.ast_analyzer import ASTAnalyzer
 
 

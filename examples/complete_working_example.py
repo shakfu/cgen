@@ -22,9 +22,9 @@ project_root = Path(__file__).parent.parent
 sys.path.append(str(project_root))
 sys.path.append(str(project_root / "src"))
 
-from src.cgen.intelligence.analyzers import StaticAnalyzer, BoundsChecker, CallGraphAnalyzer
-from src.cgen.intelligence.optimizers import CompileTimeEvaluator, VectorizationDetector
-from src.cgen.intelligence.base import AnalysisContext, AnalysisLevel, OptimizationLevel
+from cgen.frontend.analyzers import StaticAnalyzer, BoundsChecker, CallGraphAnalyzer
+from cgen.frontend.optimizers import CompileTimeEvaluator, VectorizationDetector
+from cgen.frontend.base import AnalysisContext, AnalysisLevel, OptimizationLevel
 from src.cgen.frontend.ast_analyzer import ASTAnalyzer
 import cfile
 
@@ -114,7 +114,7 @@ def generate_c_code_with_correct_api():
     c_code = """#include <stdio.h>
 #include <math.h>
 
-// Compile-time optimized constants (from intelligence analysis)
+// Compile-time optimized constants (from cgen.frontend analysis)
 #define PI 3.141592653589793
 
 // Recursive function (identified by call graph analysis)

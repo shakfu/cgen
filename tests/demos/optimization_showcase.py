@@ -11,9 +11,9 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from src.cgen.intelligence.analyzers import StaticAnalyzer, BoundsChecker, CallGraphAnalyzer
-from src.cgen.intelligence.optimizers import CompileTimeEvaluator, LoopAnalyzer, VectorizationDetector
-from src.cgen.intelligence.base import AnalysisContext, AnalysisLevel, OptimizationLevel
+from src.cgen.frontend.analyzers import StaticAnalyzer, BoundsChecker, CallGraphAnalyzer
+from src.cgen.frontend.optimizers import CompileTimeEvaluator, LoopAnalyzer, VectorizationDetector
+from src.cgen.frontend.base import AnalysisContext, AnalysisLevel, OptimizationLevel
 from src.cgen.frontend.ast_analyzer import ASTAnalyzer
 
 

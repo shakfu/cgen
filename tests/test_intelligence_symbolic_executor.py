@@ -5,8 +5,8 @@ import ast
 import pytest
 
 from src.cgen.frontend.ast_analyzer import AnalysisResult, FunctionInfo
-from src.cgen.intelligence.analyzers.symbolic_executor import SymbolicExecutor, SymbolicValueType
-from src.cgen.intelligence.base import AnalysisContext, AnalysisLevel
+from src.cgen.frontend.analyzers.symbolic_executor import SymbolicExecutor, SymbolicValueType
+from src.cgen.frontend.base import AnalysisContext, AnalysisLevel
 
 
 class TestSymbolicExecutor:

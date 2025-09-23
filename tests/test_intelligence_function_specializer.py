@@ -7,8 +7,8 @@ import pytest
 
 
 from src.cgen.frontend.ast_analyzer import AnalysisResult
-from src.cgen.intelligence.base import AnalysisContext, OptimizationLevel
-from src.cgen.intelligence.optimizers.function_specializer import (
+from src.cgen.frontend.base import AnalysisContext, OptimizationLevel
+from src.cgen.frontend.optimizers.function_specializer import (
     CallPattern,
     FunctionSpecializer,
     SpecializationCandidate,

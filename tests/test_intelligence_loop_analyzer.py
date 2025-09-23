@@ -6,8 +6,8 @@ from unittest.mock import Mock
 import pytest
 
 from src.cgen.frontend.ast_analyzer import AnalysisResult
-from src.cgen.intelligence.base import AnalysisContext, OptimizationLevel
-from src.cgen.intelligence.optimizers.loop_analyzer import (
+from src.cgen.frontend.base import AnalysisContext, OptimizationLevel
+from src.cgen.frontend.optimizers.loop_analyzer import (
     LoopAnalysisReport,
     LoopAnalyzer,
     LoopInfo,

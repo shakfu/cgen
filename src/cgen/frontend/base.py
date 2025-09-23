@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
-from ..frontend.ast_analyzer import AnalysisResult
+from .ast_analyzer import AnalysisResult
 
 
 class AnalysisLevel(Enum):

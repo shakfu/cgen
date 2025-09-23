@@ -6,9 +6,9 @@ A focused demonstration of the key capabilities of each implemented component.
 """
 
 import ast
-from src.cgen.intelligence.analyzers import StaticAnalyzer, SymbolicExecutor, BoundsChecker, CallGraphAnalyzer
-from src.cgen.intelligence.optimizers import CompileTimeEvaluator, LoopAnalyzer, FunctionSpecializer, VectorizationDetector
-from src.cgen.intelligence.base import AnalysisContext, AnalysisLevel, OptimizationLevel
+from src.cgen.frontend.analyzers import StaticAnalyzer, SymbolicExecutor, BoundsChecker, CallGraphAnalyzer
+from src.cgen.frontend.optimizers import CompileTimeEvaluator, LoopAnalyzer, FunctionSpecializer, VectorizationDetector
+from src.cgen.frontend.base import AnalysisContext, AnalysisLevel, OptimizationLevel
 from src.cgen.frontend.ast_analyzer import ASTAnalyzer
 
 

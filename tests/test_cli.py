@@ -150,7 +150,7 @@ def fibonacci(n):
 
     def test_optimization_level_mapping(self):
         """Test optimization level string conversion."""
-        from cgen.intelligence.base import OptimizationLevel
+        from cgen.frontend.base import OptimizationLevel
 
         assert self.cli._get_optimization_level("none") == OptimizationLevel.NONE
         assert self.cli._get_optimization_level("basic") == OptimizationLevel.BASIC
@@ -162,7 +162,7 @@ def fibonacci(n):
 
     def test_analysis_context_creation(self):
         """Test analysis context creation."""
-        from cgen.intelligence.base import AnalysisLevel, OptimizationLevel
+        from src.cgen.frontend.base import AnalysisLevel, OptimizationLevel
 
         context = self.cli._create_analysis_context(
             self.test_code,

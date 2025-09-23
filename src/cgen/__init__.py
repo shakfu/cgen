@@ -1,19 +1,21 @@
-"""CGen - Intelligent Python-to-C Code Generation with Three-Layer Architecture.
+"""CGen - Intelligent Python-to-C Code Generation with Simplified Two-Layer Architecture.
 
-CGen implements a revolutionary three-layer architecture:
-1. Layer 1 (Frontend): Static Python analysis and parsing
-2. Layer 2 (Intelligence): Code-generation-time optimization and transformation
-3. Layer 3 (Core): C code generation and output
+CGen implements a streamlined two-layer architecture:
+1. Layer 1 (Frontend): Unified analysis layer combining static Python parsing with intelligent optimization
+2. Layer 2 (Generator): C code generation and output
 
 This package provides:
 - High-performance Python-to-C conversion
 - Intelligent optimization during code generation
-- Extensible architecture for domain-specific optimizations
+- Static analysis with bounds checking and symbolic execution
+- Loop optimization and vectorization detection
+- Function specialization and compile-time evaluation
+- Formal verification capabilities
 - Comprehensive C code generation capabilities
 - Build system generation and direct compilation
 """
 
-# C code generation capabilities (Layer 3)
+# C code generation capabilities (Layer 2)
 from .generator import (
     Alignment,
     BreakBeforeBraces,

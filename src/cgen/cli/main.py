@@ -27,11 +27,11 @@ from ..frontend.constraint_checker import StaticConstraintChecker
 from ..frontend.static_ir import IRBuilder
 from ..frontend.subset_validator import StaticPythonSubsetValidator
 from ..frontend.type_inference import TypeInferenceEngine
-from ..intelligence.analyzers import BoundsChecker, CallGraphAnalyzer, StaticAnalyzer, SymbolicExecutor
-from ..intelligence.base import AnalysisContext, AnalysisLevel, OptimizationLevel
-from ..intelligence.optimizers import CompileTimeEvaluator, FunctionSpecializer, LoopAnalyzer, VectorizationDetector
-from ..intelligence.verifiers import BoundsProver, CorrectnessProver, TheoremProver
-from ..intelligence.verifiers.performance_analyzer import PerformanceAnalyzer
+from ..frontend.analyzers import BoundsChecker, CallGraphAnalyzer, StaticAnalyzer, SymbolicExecutor
+from ..frontend.base import AnalysisContext, AnalysisLevel, OptimizationLevel
+from ..frontend.optimizers import CompileTimeEvaluator, FunctionSpecializer, LoopAnalyzer, VectorizationDetector
+from ..frontend.verifiers import BoundsProver, CorrectnessProver, TheoremProver
+from ..frontend.verifiers.performance_analyzer import PerformanceAnalyzer
 
 
 class CGenCLI:
@@ -857,7 +857,7 @@ Examples:
 
             # Try to use STC translator, fall back to simple translator
             try:
-                from ..intelligence.generators.simple_translator import SimplePythonToCTranslator
+                from ..frontend.generators.simple_translator import SimplePythonToCTranslator
                 translator = SimplePythonToCTranslator(use_stc_containers=use_stc)
                 c_code = translator.translate_module(context.ast_node)
             except ImportError:
