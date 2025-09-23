@@ -716,18 +716,22 @@ class Writer(Formatter):
         self._write(f"{elem.result_var} = {{0}}")
         self._eol()
 
-        # Generate the slicing loop
+        # Start new line for the for loop with proper indentation
+        self._start_line()
         self._write(f"for (size_t i = {elem.start_expr}; i < {elem.end_expr} && i < {elem.container_name}_size(&{elem.container_name}); ++i) {{")
         self._eol()
         self._indent()
 
-        # Push each element from source to result
+        # Start new line for the body with proper indentation
+        self._start_line()
         self._write(f"{elem.result_var}_push(&{elem.result_var}, *{elem.container_name}_at(&{elem.container_name}, i))")
         self._eol()
 
         self._dedent()
+        # Start new line for the closing brace with proper indentation
+        self._start_line()
         self._write("}")
-        self._eol()
+        # Don't add _eol() here - let the statement handler manage it
         self.last_element = ElementType.STATEMENT
 
     def _write_struct_usage(self, elem: core.Struct) -> None:
@@ -1667,6 +1671,10 @@ class Writer(Formatter):
     def _write_raw_code(self, elem) -> None:
         """Write raw C code."""
         self._write(elem.code)
+        # Add semicolon for declaration-style code (like STC declarations)
+        if elem.code.strip().startswith(('declare_', 'typedef')) and not elem.code.strip().endswith(';'):
+            self._write(';')
+        self._eol()
         self.last_element = ElementType.STATEMENT
 
     def _write_stc_container(self, elem) -> None:
