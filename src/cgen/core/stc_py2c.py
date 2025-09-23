@@ -21,6 +21,7 @@ from .py2c import PythonToCConverter, UnsupportedFeatureError, TypeMappingError
 from ..ext.stc.containers import STCContainer, STC_CONTAINERS, STCCodeGenerator
 from ..ext.stc.translator import STCPythonToCTranslator
 from ..ext.stc.memory_manager import STCMemoryManager, MemoryScope
+from ..runtime import RuntimeConfig, get_runtime_headers, get_runtime_sources
 
 
 @dataclass
@@ -125,8 +126,11 @@ class STCOptimizer:
 class STCEnhancedPythonToCConverter(PythonToCConverter):
     """Enhanced Python-to-C converter with comprehensive STC support."""
 
-    def __init__(self):
+    def __init__(self, runtime_config: Optional[RuntimeConfig] = None):
         super().__init__()
+
+        # Runtime library configuration
+        self.runtime_config = runtime_config or RuntimeConfig()
 
         # STC integration components
         self.stc_translator = STCPythonToCTranslator()
@@ -176,6 +180,11 @@ class STCEnhancedPythonToCConverter(PythonToCConverter):
         sequence.append(self.c_factory.sysinclude("stdio.h"))
         sequence.append(self.c_factory.sysinclude("stdlib.h"))
         sequence.append(self.c_factory.sysinclude("stdbool.h"))
+
+        # Add runtime library includes
+        runtime_headers = self.runtime_config.get_headers()
+        for header in runtime_headers:
+            sequence.append(self.c_factory.include(header))
 
         # Generate and add STC includes
         stc_includes, stc_type_defs = self._generate_stc_setup(type_info)
@@ -747,9 +756,9 @@ class STCEnhancedPythonToCConverter(PythonToCConverter):
 
 
 # Convenience functions
-def convert_python_to_c_with_stc(python_code: str) -> str:
+def convert_python_to_c_with_stc(python_code: str, runtime_config: Optional[RuntimeConfig] = None) -> str:
     """Convert Python code to C with STC container support."""
-    converter = STCEnhancedPythonToCConverter()
+    converter = STCEnhancedPythonToCConverter(runtime_config)
     c_sequence = converter.convert_code(python_code)
 
     from ..core.style import StyleOptions
@@ -759,9 +768,9 @@ def convert_python_to_c_with_stc(python_code: str) -> str:
     return writer.write_str(c_sequence)
 
 
-def convert_python_file_to_c_with_stc(input_file: str, output_file: str) -> None:
+def convert_python_file_to_c_with_stc(input_file: str, output_file: str, runtime_config: Optional[RuntimeConfig] = None) -> None:
     """Convert Python file to C with STC container support."""
-    converter = STCEnhancedPythonToCConverter()
+    converter = STCEnhancedPythonToCConverter(runtime_config)
     c_sequence = converter.convert_file(input_file)
 
     from ..core.style import StyleOptions
@@ -769,3 +778,15 @@ def convert_python_file_to_c_with_stc(input_file: str, output_file: str) -> None
 
     writer = Writer(StyleOptions())
     writer.write_file(c_sequence, output_file)
+
+
+def get_compilation_info(runtime_config: Optional[RuntimeConfig] = None) -> Dict[str, List[str]]:
+    """Get compilation information for building C code with runtime library."""
+    config = runtime_config or RuntimeConfig()
+
+    return {
+        'headers': config.get_headers(),
+        'sources': config.get_sources(),
+        'compile_flags': config.get_compile_flags(),
+        'include_path': [str(config.runtime_dir)]
+    }
