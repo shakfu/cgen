@@ -234,7 +234,7 @@ class StaticPythonSubsetValidator:
             name="Control Flow",
             tier=SubsetTier.TIER_1_FUNDAMENTAL,
             status=FeatureStatus.FULLY_SUPPORTED,
-            description="Basic control flow: if/else, while, for with range",
+            description="Basic control flow: if/else, while, for with range/containers",
             ast_nodes=[ast.If, ast.While, ast.For],
             validator=self._validate_control_flow,
             c_mapping="Direct mapping to C control structures",
@@ -410,11 +410,18 @@ class StaticPythonSubsetValidator:
     def _validate_control_flow(self, node: ast.stmt) -> bool:
         """Validate control flow constraints."""
         if isinstance(node, ast.For):
-            # For loops must use range()
+            # For loops can use range() or iterate over containers
             if isinstance(node.iter, ast.Call):
+                # range() calls
                 if isinstance(node.iter.func, ast.Name):
                     return node.iter.func.id == "range"
                 return False
+            elif isinstance(node.iter, ast.Name):
+                # Container iteration: for item in container
+                return True
+            elif isinstance(node.iter, ast.Attribute):
+                # Method calls that return iterables (like list.keys())
+                return True
             return False
 
         return True
