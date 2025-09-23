@@ -443,3 +443,112 @@ class CFactory:
     def right_shift_assign(self, left: Union[str, core.Element], right: Union[str, core.Element]) -> "core.CompoundAssignmentOperator":
         """New compound right shift assignment operator (>>=)."""
         return core.CompoundAssignmentOperator(left, ">>=", right)
+
+    # C11 Advanced Features
+
+    def atomic_type(self, base_type: "str | core.Type | core.DataType") -> "core.AtomicType":
+        """New C11 atomic type (_Atomic)."""
+        return core.AtomicType(base_type)
+
+    def alignas_specifier(self, alignment: "str | int") -> "core.AlignasSpecifier":
+        """New C11 alignment specifier (_Alignas)."""
+        return core.AlignasSpecifier(alignment)
+
+    def alignof_operator(self, type_or_expr: "str | core.Type | core.DataType") -> "core.AlignofOperator":
+        """New C11 alignment query operator (_Alignof)."""
+        return core.AlignofOperator(type_or_expr)
+
+    def thread_local_specifier(self, variable: "core.Variable | str") -> "core.ThreadLocalSpecifier":
+        """New C11 thread-local storage specifier (_Thread_local)."""
+        return core.ThreadLocalSpecifier(variable)
+
+    # Complex and Fixed-width Types
+
+    def complex_type(self, base_type: str = "double") -> "core.ComplexType":
+        """New C11 complex number type (_Complex)."""
+        return core.ComplexType(base_type)
+
+    def fixed_width_integer_type(self, width: int, signed: bool = True) -> "core.FixedWidthIntegerType":
+        """New C11 fixed-width integer type (int8_t, uint32_t, etc.)."""
+        return core.FixedWidthIntegerType(width, signed)
+
+    # Convenience methods for common fixed-width types
+    def int8_t(self) -> "core.FixedWidthIntegerType":
+        """New int8_t type."""
+        return core.FixedWidthIntegerType(8, signed=True)
+
+    def uint8_t(self) -> "core.FixedWidthIntegerType":
+        """New uint8_t type."""
+        return core.FixedWidthIntegerType(8, signed=False)
+
+    def int16_t(self) -> "core.FixedWidthIntegerType":
+        """New int16_t type."""
+        return core.FixedWidthIntegerType(16, signed=True)
+
+    def uint16_t(self) -> "core.FixedWidthIntegerType":
+        """New uint16_t type."""
+        return core.FixedWidthIntegerType(16, signed=False)
+
+    def int32_t(self) -> "core.FixedWidthIntegerType":
+        """New int32_t type."""
+        return core.FixedWidthIntegerType(32, signed=True)
+
+    def uint32_t(self) -> "core.FixedWidthIntegerType":
+        """New uint32_t type."""
+        return core.FixedWidthIntegerType(32, signed=False)
+
+    def int64_t(self) -> "core.FixedWidthIntegerType":
+        """New int64_t type."""
+        return core.FixedWidthIntegerType(64, signed=True)
+
+    def uint64_t(self) -> "core.FixedWidthIntegerType":
+        """New uint64_t type."""
+        return core.FixedWidthIntegerType(64, signed=False)
+
+    # Advanced Storage Classes
+
+    def auto_specifier(self, variable: "core.Variable | str") -> "core.AutoSpecifier":
+        """New C11 auto storage class specifier."""
+        return core.AutoSpecifier(variable)
+
+    def register_specifier(self, variable: "core.Variable | str") -> "core.RegisterSpecifier":
+        """New register storage class specifier."""
+        return core.RegisterSpecifier(variable)
+
+    def restrict_specifier(self, pointer_variable: "core.Variable | str") -> "core.RestrictSpecifier":
+        """New C99/C11 restrict type qualifier."""
+        return core.RestrictSpecifier(pointer_variable)
+
+    # Advanced Constructs
+
+    def inline_specifier(self, function: "core.Function | str") -> "core.InlineSpecifier":
+        """New inline function specifier."""
+        return core.InlineSpecifier(function)
+
+    def flexible_array_member(self, name: str, element_type: "str | core.Type | core.DataType") -> "core.FlexibleArrayMember":
+        """New C99/C11 flexible array member."""
+        return core.FlexibleArrayMember(name, element_type)
+
+    def designated_initializer(self, designators: "list[str | int]", value: "str | core.Element") -> "core.DesignatedInitializer":
+        """New C99/C11 designated initializer."""
+        return core.DesignatedInitializer(designators, value)
+
+    # Complex Pointer Types
+
+    def pointer_to_pointer(self, base_type: "str | core.Type | core.DataType", levels: int = 2) -> "core.PointerToPointer":
+        """New multi-level pointer type (e.g., int**, char***)."""
+        return core.PointerToPointer(base_type, levels)
+
+    # Advanced Preprocessor
+
+    def pragma_directive(self, pragma_text: str, adjust: int = 0) -> "core.PragmaDirective":
+        """New pragma preprocessor directive."""
+        return core.PragmaDirective(pragma_text, adjust)
+
+    def function_like_macro(self, name: str, parameters: "list[str]", replacement: str, adjust: int = 0) -> "core.FunctionLikeMacro":
+        """New function-like macro with parameters."""
+        return core.FunctionLikeMacro(name, parameters, replacement, adjust)
+
+    def variadic_macro(self, name: str, fixed_params: "list[str]", replacement: str, adjust: int = 0) -> "core.VariadicMacro":
+        """New variadic macro with ... parameter."""
+        return core.VariadicMacro(name, fixed_params, replacement, adjust)

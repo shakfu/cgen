@@ -152,6 +152,28 @@ class Writer(Formatter):
             "IncrementOperator": self._write_increment_operator,
             "DecrementOperator": self._write_decrement_operator,
             "CompoundAssignmentOperator": self._write_compound_assignment_operator,
+            # C11 Advanced Features
+            "AtomicType": self._write_atomic_type,
+            "AlignasSpecifier": self._write_alignas_specifier,
+            "AlignofOperator": self._write_alignof_operator,
+            "ThreadLocalSpecifier": self._write_thread_local_specifier,
+            # Complex and Fixed-width Types
+            "ComplexType": self._write_complex_type,
+            "FixedWidthIntegerType": self._write_fixed_width_integer_type,
+            # Advanced Storage Classes
+            "AutoSpecifier": self._write_auto_specifier,
+            "RegisterSpecifier": self._write_register_specifier,
+            "RestrictSpecifier": self._write_restrict_specifier,
+            # Advanced Constructs
+            "InlineSpecifier": self._write_inline_specifier,
+            "FlexibleArrayMember": self._write_flexible_array_member,
+            "DesignatedInitializer": self._write_designated_initializer,
+            # Complex Pointer Types
+            "PointerToPointer": self._write_pointer_to_pointer,
+            # Advanced Preprocessor
+            "PragmaDirective": self._write_pragma_directive,
+            "FunctionLikeMacro": self._write_function_like_macro,
+            "VariadicMacro": self._write_variadic_macro,
         }
         self.last_element = ElementType.NONE
 
@@ -327,6 +349,8 @@ class Writer(Formatter):
             self._write(str(value))
         elif isinstance(value, str):
             self._write(f'"{value}"')
+        elif isinstance(value, core.DesignatedInitializer):
+            self._write_element(value)
         else:
             raise NotImplementedError(str(type(value)))
 
@@ -440,7 +464,16 @@ class Writer(Formatter):
             self._write("static ")
         if elem.extern:
             self._write("extern ")
-        if isinstance(elem.data_type, core.Type):
+        if isinstance(elem.data_type, core.PointerToPointer):
+            # Write pointer-to-pointer type (check before Type since PointerToPointer inherits from Type)
+            self._write_element(elem.data_type)
+            # For pointer-to-pointer, skip the regular pointer formatting
+            result = " " + elem.name
+            result += self._format_array_dimensions(elem)
+            self._write(result)
+            self.last_element = ElementType.VARIABLE_DECLARATION
+            return
+        elif isinstance(elem.data_type, core.Type):
             self._write_type_declaration(elem.data_type)
         elif isinstance(elem.data_type, core.Struct):
             self._write_struct_usage(elem.data_type)
@@ -907,10 +940,16 @@ class Writer(Formatter):
 
     def _format_array_dimensions(self, elem) -> str:
         """Format array dimensions for multi-dimensional arrays."""
+        # Check for flexible array member
+        if hasattr(elem, 'is_flexible') and elem.is_flexible:
+            return "[]"
+
         # First check if the element itself has array dimensions
         if hasattr(elem, 'array_dimensions') and elem.array_dimensions:
             return "".join(f"[{dim}]" for dim in elem.array_dimensions)
         elif hasattr(elem, 'array') and elem.array is not None:
+            if elem.array == -1:  # Flexible array marker
+                return "[]"
             return f"[{elem.array}]"
 
         # If not, check if the data_type has array dimensions (for variables with array types)
@@ -918,6 +957,8 @@ class Writer(Formatter):
             if hasattr(elem.data_type, 'array_dimensions') and elem.data_type.array_dimensions:
                 return "".join(f"[{dim}]" for dim in elem.data_type.array_dimensions)
             elif hasattr(elem.data_type, 'array') and elem.data_type.array is not None:
+                if elem.data_type.array == -1:  # Flexible array marker
+                    return "[]"
                 return f"[{elem.data_type.array}]"
 
         return ""
@@ -1358,4 +1399,165 @@ class Writer(Formatter):
             self._write_element(elem.right)
 
         self.last_element = ElementType.STATEMENT
+
+    # C11 Advanced Features Writer Methods
+
+    def _write_atomic_type(self, elem) -> None:
+        """Write C11 atomic type (_Atomic)."""
+        self._write("_Atomic(")
+        if isinstance(elem.base_type, str):
+            self._write(elem.base_type)
+        else:
+            self._write_element(elem.base_type)
+        self._write(")")
+        self.last_element = ElementType.TYPE_DECLARATION
+
+    def _write_alignas_specifier(self, elem) -> None:
+        """Write C11 alignment specifier (_Alignas)."""
+        self._write("_Alignas(")
+        if isinstance(elem.alignment, int):
+            self._write(str(elem.alignment))
+        else:
+            self._write(elem.alignment)
+        self._write(")")
+        self.last_element = ElementType.TYPE_DECLARATION
+
+    def _write_alignof_operator(self, elem) -> None:
+        """Write C11 alignment query operator (_Alignof)."""
+        self._write("_Alignof(")
+        if isinstance(elem.type_or_expr, str):
+            self._write(elem.type_or_expr)
+        else:
+            self._write_element(elem.type_or_expr)
+        self._write(")")
+        self.last_element = ElementType.STATEMENT
+
+    def _write_thread_local_specifier(self, elem) -> None:
+        """Write C11 thread-local storage specifier (_Thread_local)."""
+        self._write("_Thread_local ")
+        if isinstance(elem.variable, str):
+            self._write(elem.variable)
+        else:
+            self._write_element(elem.variable)
+        self.last_element = ElementType.STATEMENT
+
+    def _write_complex_type(self, elem) -> None:
+        """Write C11 complex number type (_Complex)."""
+        self._write(elem.base_type)
+        self.last_element = ElementType.TYPE_DECLARATION
+
+    def _write_fixed_width_integer_type(self, elem) -> None:
+        """Write C11 fixed-width integer type."""
+        self._write(elem.base_type)
+        self.last_element = ElementType.TYPE_DECLARATION
+
+    def _write_auto_specifier(self, elem) -> None:
+        """Write C11 auto storage class specifier."""
+        self._write("auto ")
+        if isinstance(elem.variable, str):
+            self._write(elem.variable)
+        else:
+            self._write_element(elem.variable)
+        self.last_element = ElementType.STATEMENT
+
+    def _write_register_specifier(self, elem) -> None:
+        """Write register storage class specifier."""
+        self._write("register ")
+        if isinstance(elem.variable, str):
+            self._write(elem.variable)
+        else:
+            self._write_element(elem.variable)
+        self.last_element = ElementType.STATEMENT
+
+    def _write_restrict_specifier(self, elem) -> None:
+        """Write C99/C11 restrict type qualifier."""
+        if isinstance(elem.pointer_variable, str):
+            self._write(f"restrict {elem.pointer_variable}")
+        else:
+            self._write("restrict ")
+            self._write_element(elem.pointer_variable)
+        self.last_element = ElementType.STATEMENT
+
+    def _write_inline_specifier(self, elem) -> None:
+        """Write inline function specifier."""
+        self._write("inline ")
+        if isinstance(elem.function, str):
+            self._write(elem.function)
+        else:
+            self._write_element(elem.function)
+        self.last_element = ElementType.STATEMENT
+
+    def _write_flexible_array_member(self, elem) -> None:
+        """Write C99/C11 flexible array member."""
+        if isinstance(elem.element_type, str):
+            self._write(elem.element_type)
+        else:
+            self._write_element(elem.element_type)
+        self._write(f" {elem.name}[]")
+        self.last_element = ElementType.STATEMENT
+
+    def _write_designated_initializer(self, elem) -> None:
+        """Write C99/C11 designated initializer."""
+        # Write designators
+        for i, designator in enumerate(elem.designators):
+            if isinstance(designator, int):
+                self._write(f"[{designator}]")
+            else:
+                self._write(f".{designator}")
+
+        self._write(" = ")
+
+        # Write value
+        if isinstance(elem.value, str):
+            self._write(elem.value)
+        else:
+            self._write_element(elem.value)
+
+        self.last_element = ElementType.STATEMENT
+
+    def _write_pointer_to_pointer(self, elem) -> None:
+        """Write multi-level pointer type."""
+        if isinstance(elem.base_type, str):
+            self._write(elem.base_type)
+        else:
+            self._write_element(elem.base_type)
+        self._write(elem.pointer_levels)
+        self.last_element = ElementType.TYPE_DECLARATION
+
+    def _write_pragma_directive(self, elem) -> None:
+        """Write pragma preprocessor directive."""
+        self._write(f"#pragma {elem.pragma_text}")
+        self.last_element = ElementType.DIRECTIVE
+
+    def _write_function_like_macro(self, elem) -> None:
+        """Write function-like macro with parameters."""
+        self._write(f"#define {elem.name}(")
+
+        # Write parameters
+        for i, param in enumerate(elem.parameters):
+            if i > 0:
+                self._write(", ")
+            self._write(param)
+
+        self._write(f") {elem.replacement}")
+        self.last_element = ElementType.DIRECTIVE
+
+    def _write_variadic_macro(self, elem) -> None:
+        """Write variadic macro with ... parameter."""
+        self._write(f"#define {elem.name}(")
+
+        # Write fixed parameters
+        for i, param in enumerate(elem.fixed_params):
+            if i > 0:
+                self._write(", ")
+            self._write(param)
+
+        # Add variadic parameter
+        if elem.fixed_params:
+            self._write(", ...")
+        else:
+            self._write("...")
+
+        self._write(f") {elem.replacement}")
+        self.last_element = ElementType.DIRECTIVE
 

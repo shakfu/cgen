@@ -35,6 +35,28 @@ from .core import (
     IncrementOperator,
     DecrementOperator,
     CompoundAssignmentOperator,
+    # C11 Advanced Features
+    AtomicType,
+    AlignasSpecifier,
+    AlignofOperator,
+    ThreadLocalSpecifier,
+    # Complex and Fixed-width Types
+    ComplexType,
+    FixedWidthIntegerType,
+    # Advanced Storage Classes
+    AutoSpecifier,
+    RegisterSpecifier,
+    RestrictSpecifier,
+    # Advanced Constructs
+    InlineSpecifier,
+    FlexibleArrayMember,
+    DesignatedInitializer,
+    # Complex Pointer Types
+    PointerToPointer,
+    # Advanced Preprocessor
+    PragmaDirective,
+    FunctionLikeMacro,
+    VariadicMacro,
 )
 
 __all__ = [
@@ -77,4 +99,26 @@ __all__ = [
     "IncrementOperator",
     "DecrementOperator",
     "CompoundAssignmentOperator",
+    # C11 Advanced Features
+    "AtomicType",
+    "AlignasSpecifier",
+    "AlignofOperator",
+    "ThreadLocalSpecifier",
+    # Complex and Fixed-width Types
+    "ComplexType",
+    "FixedWidthIntegerType",
+    # Advanced Storage Classes
+    "AutoSpecifier",
+    "RegisterSpecifier",
+    "RestrictSpecifier",
+    # Advanced Constructs
+    "InlineSpecifier",
+    "FlexibleArrayMember",
+    "DesignatedInitializer",
+    # Complex Pointer Types
+    "PointerToPointer",
+    # Advanced Preprocessor
+    "PragmaDirective",
+    "FunctionLikeMacro",
+    "VariadicMacro",
 ]

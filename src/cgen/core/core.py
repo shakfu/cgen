@@ -218,8 +218,8 @@ class StructMember(Element):
         array: int | None = None,
     ) -> None:
         _validate_c_identifier(name, "struct member name")
-        if array is not None and (not isinstance(array, int) or array < 0):
-            raise ValueError("array size must be a non-negative integer or None")
+        if array is not None and (not isinstance(array, int) or (array < 0 and array != -1)):
+            raise ValueError("array size must be a non-negative integer, -1 (flexible array), or None")
         self.name = name
         self.const = const
         self.pointer = pointer
@@ -1053,4 +1053,216 @@ class CompoundAssignmentOperator(Element):
         self.left = left
         self.operator = operator
         self.right = right
+
+
+# C11 Advanced Features
+
+class AtomicType(Element):
+    """C11 atomic type (_Atomic)."""
+
+    def __init__(self, base_type: "str | Type | DataType") -> None:
+        if isinstance(base_type, str):
+            if not base_type.strip():
+                raise ValueError("atomic base type cannot be empty")
+        self.base_type = base_type
+
+
+class AlignasSpecifier(Element):
+    """C11 alignment specifier (_Alignas)."""
+
+    def __init__(self, alignment: "str | int") -> None:
+        if isinstance(alignment, str):
+            if not alignment.strip():
+                raise ValueError("alignment specifier cannot be empty")
+        elif isinstance(alignment, int):
+            if alignment <= 0:
+                raise ValueError("alignment must be positive")
+        else:
+            raise TypeError("alignment must be string or positive integer")
+        self.alignment = alignment
+
+
+class AlignofOperator(Element):
+    """C11 alignment query operator (_Alignof)."""
+
+    def __init__(self, type_or_expr: "str | Type | DataType") -> None:
+        if isinstance(type_or_expr, str):
+            if not type_or_expr.strip():
+                raise ValueError("alignof operand cannot be empty")
+        self.type_or_expr = type_or_expr
+
+
+class ThreadLocalSpecifier(Element):
+    """C11 thread-local storage specifier (_Thread_local)."""
+
+    def __init__(self, variable: "Variable | str") -> None:
+        if isinstance(variable, str):
+            _validate_c_identifier(variable, "thread-local variable")
+        self.variable = variable
+
+
+# Complex and Fixed-width Types
+
+class ComplexType(Type):
+    """C11 complex number types (_Complex)."""
+
+    def __init__(self, base_type: str = "double") -> None:
+        valid_base_types = ["float", "double", "long double"]
+        if base_type not in valid_base_types:
+            raise ValueError(f"Invalid complex base type '{base_type}'. Valid types: {valid_base_types}")
+        super().__init__(f"{base_type} _Complex")
+
+
+class FixedWidthIntegerType(Type):
+    """C11 fixed-width integer types (int8_t, uint32_t, etc.)."""
+
+    def __init__(self, width: int, signed: bool = True) -> None:
+        valid_widths = [8, 16, 32, 64]
+        if width not in valid_widths:
+            raise ValueError(f"Invalid integer width {width}. Valid widths: {valid_widths}")
+
+        prefix = "int" if signed else "uint"
+        type_name = f"{prefix}{width}_t"
+        super().__init__(type_name)
+        self.width = width
+        self.signed = signed
+
+
+# Advanced Storage Classes
+
+class AutoSpecifier(Element):
+    """C11 auto storage class specifier."""
+
+    def __init__(self, variable: "Variable | str") -> None:
+        if isinstance(variable, str):
+            _validate_c_identifier(variable, "auto variable")
+        self.variable = variable
+
+
+class RegisterSpecifier(Element):
+    """Register storage class specifier."""
+
+    def __init__(self, variable: "Variable | str") -> None:
+        if isinstance(variable, str):
+            _validate_c_identifier(variable, "register variable")
+        self.variable = variable
+
+
+class RestrictSpecifier(Element):
+    """C99/C11 restrict type qualifier."""
+
+    def __init__(self, pointer_variable: "Variable | str") -> None:
+        if isinstance(pointer_variable, str):
+            _validate_c_identifier(pointer_variable, "restrict pointer")
+        self.pointer_variable = pointer_variable
+
+
+# Advanced Constructs
+
+class InlineSpecifier(Element):
+    """Inline function specifier."""
+
+    def __init__(self, function: "Function | str") -> None:
+        if isinstance(function, str):
+            _validate_c_identifier(function, "inline function")
+        self.function = function
+
+
+class FlexibleArrayMember(StructMember):
+    """C99/C11 flexible array member (struct member with empty array)."""
+
+    def __init__(self, name: str, element_type: "str | Type | DataType") -> None:
+        # Initialize as a struct member with a special array marker
+        super().__init__(name, element_type, array=-1)  # Use -1 to indicate flexible array
+        self.element_type = element_type
+        self.is_flexible = True  # Marker for writer
+
+
+class DesignatedInitializer(Element):
+    """C99/C11 designated initializer for arrays and structs."""
+
+    def __init__(self, designators: "list[str | int]", value: "str | Element") -> None:
+        if not designators:
+            raise ValueError("designated initializer must have at least one designator")
+
+        for designator in designators:
+            if isinstance(designator, str):
+                if not designator.strip():
+                    raise ValueError("string designator cannot be empty")
+            elif not isinstance(designator, int):
+                raise TypeError("designator must be string or integer")
+
+        if isinstance(value, str) and not value.strip():
+            raise ValueError("designated initializer value cannot be empty")
+
+        self.designators = designators
+        self.value = value
+
+
+# Complex Pointer Types
+
+class PointerToPointer(Type):
+    """Multi-level pointer type (e.g., int**, char***)."""
+
+    def __init__(self, base_type: "str | Type | DataType", levels: int = 2) -> None:
+        if levels < 2:
+            raise ValueError("pointer-to-pointer must have at least 2 levels")
+        if levels > 5:  # Reasonable limit
+            raise ValueError("pointer levels should not exceed 5 for readability")
+
+        if isinstance(base_type, str):
+            if not base_type.strip():
+                raise ValueError("pointer base type cannot be empty")
+
+        super().__init__(base_type)
+        self.levels = levels
+        self.pointer_levels = "*" * levels
+
+
+# Advanced Preprocessor
+
+class PragmaDirective(Directive):
+    """Pragma preprocessor directive."""
+
+    def __init__(self, pragma_text: str, adjust: int = 0) -> None:
+        super().__init__(adjust)
+        if not pragma_text.strip():
+            raise ValueError("pragma text cannot be empty")
+        self.pragma_text = pragma_text
+
+
+class FunctionLikeMacro(Directive):
+    """Function-like macro with parameters."""
+
+    def __init__(self, name: str, parameters: "list[str]", replacement: str, adjust: int = 0) -> None:
+        super().__init__(adjust)
+        _validate_c_identifier(name, "macro name")
+
+        for param in parameters:
+            _validate_c_identifier(param, "macro parameter")
+
+        if not replacement.strip():
+            raise ValueError("macro replacement cannot be empty")
+
+        self.name = name
+        self.parameters = parameters
+        self.replacement = replacement
+
+
+class VariadicMacro(Directive):
+    """Variadic macro with ... parameter."""
+
+    def __init__(self, name: str, fixed_params: "list[str]", replacement: str, adjust: int = 0) -> None:
+        super().__init__(adjust)
+        _validate_c_identifier(name, "variadic macro name")
+
+        for param in fixed_params:
+            _validate_c_identifier(param, "macro parameter")
+
+        if not replacement.strip():
+            raise ValueError("variadic macro replacement cannot be empty")
+
+        self.name = name
+        self.fixed_params = fixed_params
+        self.replacement = replacement
 
