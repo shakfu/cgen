@@ -10,6 +10,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Dict, List
 
+from ..common import log
 from .ast_analyzer import TypeInfo
 
 
@@ -51,6 +52,7 @@ class TypeInferenceEngine:
     """Advanced type inference engine for static Python code."""
 
     def __init__(self):
+        self.log = log.config(self.__class__.__name__)
         self.inferred_types: Dict[str, InferenceResult] = {}
         self.constraints: List[TypeConstraint] = []
         self.binary_op_result_types = {

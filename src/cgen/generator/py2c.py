@@ -32,6 +32,7 @@ from .stc_integration import (
 )
 from .writer import Writer
 from .style import StyleOptions
+from ..common import log
 
 
 class UnsupportedFeatureError(Exception):
@@ -50,6 +51,7 @@ class PythonToCConverter:
     """Converts type-annotated Python code to C code using cfile."""
 
     def __init__(self):
+        self.log = log.config(self.__class__.__name__)
         self.c_factory = CFactory()
         self.type_mapping = {
             "int": "int",
@@ -64,14 +66,18 @@ class PythonToCConverter:
 
     def convert_file(self, python_file_path: str) -> core.Sequence:
         """Convert a Python file to C code sequence."""
+        self.log.info(f"Converting Python file: {python_file_path}")
         with open(python_file_path) as f:
             python_code = f.read()
         return self.convert_code(python_code)
 
     def convert_code(self, python_code: str) -> core.Sequence:
         """Convert Python code string to C code sequence."""
+        self.log.debug("Starting Python to C code conversion")
         tree = ast.parse(python_code)
-        return self._convert_module(tree)
+        result = self._convert_module(tree)
+        self.log.debug("Python to C code conversion completed")
+        return result
 
     def _convert_module(self, module: ast.Module) -> core.Sequence:
         """Convert Python module to C sequence."""

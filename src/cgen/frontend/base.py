@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
+from ..common import log
 from .ast_analyzer import AnalysisResult
 
 
@@ -71,6 +72,7 @@ class BaseAnalyzer(ABC):
     """Base class for all analyzers in the intelligence layer."""
 
     def __init__(self, name: str, analysis_level: AnalysisLevel = AnalysisLevel.BASIC):
+        self.log = log.config(self.__class__.__name__)
         self.name = name
         self.analysis_level = analysis_level
         self._cache: Dict[str, Any] = {}

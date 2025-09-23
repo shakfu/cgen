@@ -8,6 +8,7 @@ from typing import Any, TextIO
 from . import core
 from . import style as c_style
 from .style import BreakBeforeBraces
+from ..common import log
 
 
 class ElementType(Enum):
@@ -34,6 +35,7 @@ class Formatter:
     """Low-level generator."""
 
     def __init__(self, indent_width: int, indentation_char: str) -> None:
+        self.log = log.config(self.__class__.__name__)
         self.file_path: str | None = None
         self.fh: TextIO | None = None  # pylint: disable=invalid-name
         self.indentation_char: str = indentation_char
@@ -93,6 +95,7 @@ class Writer(Formatter):
 
     def __init__(self, style: c_style.StyleOptions) -> None:
         super().__init__(style.indent_width, style.indent_char)
+        self.log = log.config(self.__class__.__name__)
         self.style = style
         self.switcher_all = {
             "Type": self._write_base_type,

@@ -19,6 +19,7 @@ from typing import Optional
 
 # Import the pipeline
 from ..pipeline import CGenPipeline, PipelineConfig, BuildMode, OptimizationLevel
+from ..common import log
 
 
 class SimpleCGenCLI:
@@ -26,6 +27,7 @@ class SimpleCGenCLI:
 
     def __init__(self):
         """Initialize the CLI."""
+        self.log = log.config(self.__class__.__name__)
         self.default_build_dir = Path("build")
 
     def create_parser(self) -> argparse.ArgumentParser:
@@ -169,9 +171,12 @@ Build Directory Structure:
         src_dir = build_dir / "src"
         src_dir.mkdir(exist_ok=True)
 
+        self.log.debug(f"Build directory: {build_dir}")
+        self.log.debug(f"Source directory: {src_dir}")
+
         if self.verbose:
-            print(f"Build directory: {build_dir}")
-            print(f"Source directory: {src_dir}")
+            self.log.debug(f"Build directory: {build_dir}")
+            self.log.debug(f"Source directory: {src_dir}")
 
     def copy_stc_library(self, build_dir: Path) -> None:
         """Copy relevant STC library components to build directory."""
@@ -181,14 +186,15 @@ Build Directory Structure:
             if dest_stc_dir.exists():
                 shutil.rmtree(dest_stc_dir)
             shutil.copytree(src_stc_dir, dest_stc_dir)
+            self.log.debug(f"Copied STC library to: {dest_stc_dir}")
             if self.verbose:
-                print(f"Copied STC library to: {dest_stc_dir}")
+                self.log.debug(f"Copied STC library to: {dest_stc_dir}")
 
     def convert_command(self, args) -> int:
         """Execute convert command."""
         input_path = Path(args.input_file)
         if not input_path.exists():
-            print(f"Error: Input file not found: {input_path}", file=sys.stderr)
+            self.log.error(f"Input file not found: {input_path}")
             return 1
 
         build_dir = Path(args.build_dir)
@@ -206,28 +212,25 @@ Build Directory Structure:
         result = pipeline.convert(input_path)
 
         if not result.success:
-            print("Conversion failed:", file=sys.stderr)
+            self.log.error("Conversion failed")
             for error in result.errors:
-                print(f"  Error: {error}", file=sys.stderr)
+                self.log.error(f"Error: {error}")
             return 1
 
         # Copy STC library
         self.copy_stc_library(build_dir)
 
-        print(f"✓ Conversion successful!")
-        print(f"  C source: {result.output_files.get('c_source', 'N/A')}")
+        self.log.info(f"Conversion successful! C source: {result.output_files.get('c_source', 'N/A')}")
         if result.warnings:
-            print("Warnings:")
             for warning in result.warnings:
-                print(f"  Warning: {warning}")
-
+                self.log.warning(f"Warning: {warning}")
         return 0
 
     def build_command(self, args) -> int:
         """Execute build command (compile directly or generate Makefile based on -m flag)."""
         input_path = Path(args.input_file)
         if not input_path.exists():
-            print(f"Error: Input file not found: {input_path}", file=sys.stderr)
+            self.log.error(f"Input file not found: {input_path}")
             return 1
 
         build_dir = Path(args.build_dir)
@@ -253,9 +256,9 @@ Build Directory Structure:
 
         if not result.success:
             error_msg = "Build failed:" if args.makefile else "Compilation failed:"
-            print(error_msg, file=sys.stderr)
+            self.log.error(error_msg)
             for error in result.errors:
-                print(f"  Error: {error}", file=sys.stderr)
+                self.log.error(f"Error: {error}")
             return 1
 
         # Copy STC library
@@ -271,10 +274,7 @@ Build Directory Structure:
                     shutil.move(str(makefile_src), str(makefile_dest))
                     result.output_files['makefile'] = str(makefile_dest)
 
-            print(f"✓ Build preparation successful!")
-            print(f"  C source: {result.output_files.get('c_source', 'N/A')}")
-            print(f"  Makefile: {result.output_files.get('makefile', 'N/A')}")
-            print(f"  To build: cd {build_dir} && make")
+            self.log.info(f"Build preparation successful! C source: {result.output_files.get('c_source', 'N/A')}, Makefile: {result.output_files.get('makefile', 'N/A')}")
         else:
             # Direct compilation mode
             # Move executable to build root
@@ -285,17 +285,13 @@ Build Directory Structure:
                     shutil.move(str(exe_src), str(exe_dest))
                     result.executable_path = str(exe_dest)
 
-            print(f"✓ Compilation successful!")
-            print(f"  C source: {result.output_files.get('c_source', 'N/A')}")
-            print(f"  Executable: {result.executable_path}")
+            self.log.info(f"Compilation successful! Executable: {result.executable_path}")
             if result.executable_path:
                 exe_name = Path(result.executable_path).name
-                print(f"  To run: ./{build_dir}/{exe_name}")
 
         if result.warnings:
-            print("Warnings:")
             for warning in result.warnings:
-                print(f"  Warning: {warning}")
+                self.log.warning(f"Warning: {warning}")
 
         return 0
 
@@ -305,9 +301,9 @@ Build Directory Structure:
 
         if build_dir.exists():
             shutil.rmtree(build_dir)
-            print(f"✓ Cleaned build directory: {build_dir}")
+            self.log.info(f"Cleaned build directory: {build_dir}")
         else:
-            print(f"Build directory doesn't exist: {build_dir}")
+            self.log.info(f"Build directory doesn't exist: {build_dir}")
 
         return 0
 
@@ -320,19 +316,18 @@ Build Directory Structure:
         continue_on_error = args.continue_on_error
         summary_only = args.summary_only
 
-        print("CGen Batch Translation")
-        print("=" * 50)
+        self.log.info("Starting CGen batch translation")
 
         # Check if source_dir directory exists
         if not os.path.exists(source_dir):
-            print(f"Error: source directory not found: {source_dir}", file=sys.stderr)
+            self.log.error(f"Source directory not found: {source_dir}")
             return 1
 
         # Create output directory
         try:
             os.makedirs(output_dir, exist_ok=True)
         except Exception as e:
-            print(f"Error: Failed to create output directory {output_dir}: {e}", file=sys.stderr)
+            self.log.error(f"Failed to create output directory {output_dir}: {e}")
             return 1
 
         # Find all Python files in source_dir directory
@@ -343,16 +338,12 @@ Build Directory Structure:
                 python_files.append(filepath)
 
         if not python_files:
-            print(f"Warning: No Python files found in {source_dir}")
+            self.log.warning(f"No Python files found in {source_dir}")
             return 1
 
         python_files.sort()  # Process in alphabetical order
 
-        print(f"Input directory: {source_dir}")
-        print(f"Output directory: {output_dir}")
-        print(f"Python files found: {len(python_files)}")
-        print(f"Optimization level: {args.optimization}")
-        print()
+        self.log.info(f"Batch processing {len(python_files)} files from {source_dir} to {output_dir}")
 
         # Process each file
         successful_translations = 0
@@ -365,7 +356,7 @@ Build Directory Structure:
             output_file = os.path.join(output_dir, output_filename)
 
             if not summary_only:
-                print(f"[{i}/{len(python_files)}] Processing {filename}...")
+                self.log.info(f"[{i}/{len(python_files)}] Processing {filename}")
 
             try:
                 # Use the pipeline to convert the file
@@ -395,7 +386,7 @@ Build Directory Structure:
                     })
 
                     if not summary_only:
-                        print(f"    -> {output_filename} ({lines_generated} lines)")
+                        self.log.info(f"    -> {output_filename} ({lines_generated} lines)")
                 else:
                     failed_translations += 1
                     error_msg = "; ".join(result.errors) if result.errors else "Unknown error"
@@ -407,10 +398,10 @@ Build Directory Structure:
                     })
 
                     if not summary_only:
-                        print(f"    -> Failed: {error_msg}")
+                        self.log.error(f"Failed: {error_msg}")
 
                     if not continue_on_error:
-                        print(f"Stopping due to error in {filename}. Use --continue-on-error to continue processing.")
+                        self.log.info(f"Stopping due to error in {filename}. Use --continue-on-error to continue processing.")
                         break
 
             except Exception as e:
@@ -424,30 +415,27 @@ Build Directory Structure:
                 })
 
                 if not summary_only:
-                    print(f"    -> Failed: {error_msg}")
+                    self.log.error(f"Failed: {error_msg}")
 
                 if not continue_on_error:
-                    print(f"Stopping due to error in {filename}. Use --continue-on-error to continue processing.")
+                    self.log.warn(f"Stopping due to error in {filename}. Use --continue-on-error to continue processing.")
                     break
 
         # Print summary
-        print()
-        print("Translation Summary")
-        print("=" * 40)
-        print(f"Total files processed: {len(translation_results)}")
-        print(f"Successful translations: {successful_translations}")
-        print(f"Failed translations: {failed_translations}")
+        self.log.info(f"Total files processed: {len(translation_results)}")
+        self.log.info(f"Successful translations: {successful_translations}")
+        self.log.info(f"Failed translations: {failed_translations}")
 
-        if failed_translations > 0:
-            print()
-            print("Failed translations:")
-            for result in translation_results:
-                if result['status'] == 'FAILED':
-                    print(f"  {result['input']}: {result['error']}")
+        # if failed_translations > 0:
+        #     print()
+        #     print("Failed translations:")
+        #     for result in translation_results:
+        #         if result['status'] == 'FAILED':
+        #             print(f"  {result['input']}: {result['error']}")
 
-        if successful_translations > 0:
-            total_lines = sum(result['lines'] for result in translation_results if result['status'] == 'SUCCESS')
-            print(f"Total C code lines generated: {total_lines}")
+        # if successful_translations > 0:
+        #     total_lines = sum(result['lines'] for result in translation_results if result['status'] == 'SUCCESS')
+        #     print(f"Total C code lines generated: {total_lines}")
 
         return 0 if failed_translations == 0 else 1
 
@@ -474,7 +462,7 @@ Build Directory Structure:
         elif args.command == "batch":
             return self.batch_command(args)
         else:
-            print(f"Unknown command: {args.command}", file=sys.stderr)
+            self.log.error(f"Unknown command: {args.command}")
             return 1
 
 
@@ -484,10 +472,10 @@ def main(argv: Optional[list] = None) -> int:
         cli = SimpleCGenCLI()
         return cli.run(argv)
     except KeyboardInterrupt:
-        print("\nInterrupted", file=sys.stderr)
+        self.log.error("Interrupted")
         return 1
     except Exception as e:
-        print(f"Error: {e}", file=sys.stderr)
+        self.log.error(f"Error: {e}")
         return 1
 
 

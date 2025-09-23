@@ -13,6 +13,8 @@ import sys
 import os
 from typing import Dict, List, Optional, Set, Tuple
 
+from ...common import log
+
 # Add the ext.stc module to the path for STC integration
 try:
     sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', '..'))
@@ -27,6 +29,7 @@ class SimplePythonToCTranslator:
     """Simple translator that generates C code as strings with optional STC support."""
 
     def __init__(self, use_stc_containers=True):
+        self.log = log.config(self.__class__.__name__)
         self.variables = {}  # variable_name -> c_type
         self.functions = {}  # function_name -> return_type
         self.indent_level = 0
@@ -64,6 +67,7 @@ class SimplePythonToCTranslator:
                 self.stc_container_vars.update(self.stc_translator.container_variables)
             except Exception as e:
                 # Fall back to traditional translation if STC analysis fails
+                self.log.warning(f"STC analysis failed, falling back to traditional translation: {e}")
                 print(f"Warning: STC analysis failed, falling back to traditional translation: {e}")
 
         # Add header comment

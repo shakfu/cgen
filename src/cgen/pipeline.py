@@ -45,6 +45,7 @@ from .frontend import (
 )
 from .generator import PythonToCConverter, StyleOptions
 from .builder import MakefileGenerator, CGenMakefileGenerator
+from .common import log
 
 
 class BuildMode(Enum):
@@ -116,6 +117,7 @@ class CGenPipeline:
 
     def __init__(self, config: Optional[PipelineConfig] = None):
         """Initialize the pipeline with configuration."""
+        self.log = log.config(self.__class__.__name__)
         self.config = config or PipelineConfig()
         self._init_components()
 
@@ -161,6 +163,7 @@ class CGenPipeline:
         """
         input_path = Path(input_path)
         if not input_path.exists():
+            self.log.error(f"Input file not found: {input_path}")
             return PipelineResult(
                 success=False,
                 input_file=str(input_path),
@@ -190,38 +193,51 @@ class CGenPipeline:
         )
 
         try:
+            self.log.info(f"Starting pipeline conversion for: {input_path}")
+
             # Read input file
             source_code = input_path.read_text()
 
             # Phase 1: Validation
+            self.log.debug("Starting validation phase")
             validation_result = self._validation_phase(source_code, input_path, result)
             if not validation_result:
+                self.log.error("Validation phase failed")
                 return result
 
             # Phase 2: Analysis
+            self.log.debug("Starting analysis phase")
             analysis_result = self._analysis_phase(source_code, result)
             if not analysis_result:
+                self.log.error("Analysis phase failed")
                 return result
 
             # Phase 3: Python Optimization
+            self.log.debug("Starting Python optimization phase")
             python_opt_result = self._python_optimization_phase(analysis_result, result)
 
             # Phase 4: Mapping (currently combined with generation)
             # Phase 5: C Optimization (currently part of generation)
             # Phase 6: Generation
+            self.log.debug("Starting generation phase")
             generation_result = self._generation_phase(python_opt_result, output_dir, result)
             if not generation_result:
+                self.log.error("Generation phase failed")
                 return result
 
             # Phase 7: Build
             if self.config.build_mode != BuildMode.NONE:
+                self.log.debug(f"Starting build phase with mode: {self.config.build_mode}")
                 build_result = self._build_phase(output_dir, result)
                 if not build_result:
+                    self.log.error("Build phase failed")
                     return result
 
+            self.log.info(f"Pipeline conversion completed successfully for: {input_path}")
             return result
 
         except Exception as e:
+            self.log.error(f"Pipeline error: {str(e)}")
             result.success = False
             result.errors.append(f"Pipeline error: {str(e)}")
             return result

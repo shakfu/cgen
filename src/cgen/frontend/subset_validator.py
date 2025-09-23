@@ -10,6 +10,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Callable, Dict, List, Optional
 
+from ..common import log
+
 
 class SubsetTier(Enum):
     """Tiers of Python subset support."""
@@ -62,6 +64,7 @@ class StaticPythonSubsetValidator:
     """Validator for the Static Python Subset."""
 
     def __init__(self):
+        self.log = log.config(self.__class__.__name__)
         self.feature_rules = self._initialize_feature_rules()
         self.validation_cache: Dict[str, ValidationResult] = {}
 

@@ -9,6 +9,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Dict, List, Optional
 
+from ..common import log
+
 
 class NodeType(Enum):
     """Types of AST nodes we can analyze."""
@@ -112,6 +114,7 @@ class ASTAnalyzer(ast.NodeVisitor):
     """Enhanced AST analyzer for static Python code analysis."""
 
     def __init__(self):
+        self.log = log.config(self.__class__.__name__)
         self.result = AnalysisResult()
         self.current_function: Optional[str] = None
         self.current_scope = "global"

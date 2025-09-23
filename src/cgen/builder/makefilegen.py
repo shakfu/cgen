@@ -20,6 +20,8 @@ import sysconfig
 from pathlib import Path
 from typing import Any, Callable, Optional, TypeAlias, List, Dict
 
+from ..common import log
+
 # type aliases
 PathLike: TypeAlias = Path | str
 TestFunc: TypeAlias = Callable[[str], bool]
@@ -68,6 +70,7 @@ class Builder:
         use_stc: bool = True,
         stc_include_path: Optional[str] = None,
     ):
+        self.log = log.config(self.__class__.__name__)
         self.name = name
         self.source_dir = Path(source_dir)
         self.include_dirs = include_dirs or []
@@ -185,6 +188,11 @@ class Builder:
         """Execute the build command."""
         cmd = self.build_command()
 
+        self.log.debug(f"Building with STC support: {self.use_stc}")
+        if self.use_stc and self.stc_include_path:
+            self.log.debug(f"STC include path: {self.stc_include_path}")
+        self.log.debug(f"Build command: {' '.join(cmd)}")
+
         if verbose:
             print(f"Building with STC support: {self.use_stc}")
             if self.use_stc and self.stc_include_path:
@@ -193,12 +201,20 @@ class Builder:
 
         try:
             result = subprocess.run(cmd, check=True, capture_output=True, text=True)
+            self.log.info(f"Build successful: {self.name}")
+            if result.stdout:
+                self.log.debug(f"stdout: {result.stdout}")
             if verbose:
                 print(f" Build successful: {self.name}")
                 if result.stdout:
                     print(f"stdout: {result.stdout}")
             return True
         except subprocess.CalledProcessError as e:
+            self.log.error(f"Build failed: {e}")
+            if e.stdout:
+                self.log.debug(f"stdout: {e.stdout}")
+            if e.stderr:
+                self.log.debug(f"stderr: {e.stderr}")
             print(f" Build failed: {e}")
             if e.stdout:
                 print(f"stdout: {e.stdout}")
@@ -206,6 +222,7 @@ class Builder:
                 print(f"stderr: {e.stderr}")
             return False
         except FileNotFoundError:
+            self.log.error(f"Compiler not found: {self.compiler}")
             print(f" Compiler not found: {self.compiler}")
             return False
 
@@ -230,6 +247,7 @@ class MakefileGenerator:
         use_stc: bool = True,
         stc_include_path: Optional[str] = None,
     ):
+        self.log = log.config(self.__class__.__name__)
         self.name = name
         self.source_dir = Path(source_dir)
         self.build_dir = Path(build_dir)
@@ -501,11 +519,15 @@ class MakefileGenerator:
             makefile_content = self.generate_makefile()
             with open(filename, "w") as f:
                 f.write(makefile_content)
+            self.log.info(f"Generated Makefile: {filename}")
+            if self.use_stc and self.stc_include_path:
+                self.log.info(f"STC support enabled: {self.stc_include_path}")
             print(f" Generated Makefile: {filename}")
             if self.use_stc and self.stc_include_path:
                 print(f" STC support enabled: {self.stc_include_path}")
             return True
         except Exception as e:
+            self.log.error(f"Failed to write Makefile: {e}")
             print(f" Failed to write Makefile: {e}")
             return False
 
@@ -514,6 +536,7 @@ class CGenMakefileGenerator:
     """CGen-specific Makefile generator with STC integration."""
 
     def __init__(self, project_name: str = "cgen_project"):
+        self.log = log.config(self.__class__.__name__)
         self.project_name = project_name
 
     def create_for_generated_code(

@@ -9,6 +9,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Dict, List, Optional
 
+from ..common import log
 from .ast_analyzer import TypeInfo
 from .type_inference import TypeInferenceEngine
 
@@ -76,6 +77,7 @@ class StaticConstraintChecker:
     """Comprehensive static constraint checker for Python-to-C conversion."""
 
     def __init__(self):
+        self.log = log.config(self.__class__.__name__)
         self.report = ConstraintReport()
         self.type_engine = TypeInferenceEngine()
         self.current_function: Optional[str] = None
