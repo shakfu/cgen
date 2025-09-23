@@ -105,6 +105,10 @@ class Writer(Formatter):
             "StringLiteral": self._write_string_literal,
             "FunctionReturn": self._write_func_return,
             "FunctionCall": self._write_func_call,
+            "BinaryExpression": self._write_binary_expression,
+            "UnaryExpression": self._write_unary_expression,
+            "STCContainerElement": self._write_stc_container,
+            "STCOperationElement": self._write_stc_operation,
             "Blank": self._write_blank,
             "Whitespace": self._write_whitespace,
             "LineComment": self._write_line_comment,
@@ -174,6 +178,11 @@ class Writer(Formatter):
             "PragmaDirective": self._write_pragma_directive,
             "FunctionLikeMacro": self._write_function_like_macro,
             "VariadicMacro": self._write_variadic_macro,
+
+            # Raw code and STC integration
+            "RawCode": self._write_raw_code,
+            "STCContainerElement": self._write_stc_container,
+            "STCOperationElement": self._write_stc_operation,
         }
         self.last_element = ElementType.NONE
 
@@ -626,6 +635,33 @@ class Writer(Formatter):
                 self._write(", ")
             self._write_expression(arg)
         self._write(")")
+
+    def _write_binary_expression(self, elem: core.BinaryExpression) -> None:
+        # Add parentheses for complex nested expressions to ensure proper precedence
+        needs_parens = isinstance(elem.left, core.Element) or isinstance(elem.right, core.Element)
+        if needs_parens and elem.operator in ["&&", "||"]:
+            self._write("(")
+
+        self._write_expression(elem.left)
+        self._write(f" {elem.operator} ")
+        self._write_expression(elem.right)
+
+        if needs_parens and elem.operator in ["&&", "||"]:
+            self._write(")")
+
+    def _write_unary_expression(self, elem: core.UnaryExpression) -> None:
+        self._write(elem.operator)
+        self._write_expression(elem.operand)
+
+    def _write_stc_container(self, elem) -> None:
+        """Write STC container declaration."""
+        # elem should be STCContainerElement
+        self._write(f"{elem.container_type} {elem.name}")
+
+    def _write_stc_operation(self, elem) -> None:
+        """Write STC operation call."""
+        # elem should be STCOperationElement
+        self._write(elem.operation_code)
 
     def _write_struct_usage(self, elem: core.Struct) -> None:
         """Writes struct usage."""
@@ -1560,4 +1596,19 @@ class Writer(Formatter):
 
         self._write(f") {elem.replacement}")
         self.last_element = ElementType.DIRECTIVE
+
+    def _write_raw_code(self, elem) -> None:
+        """Write raw C code."""
+        self._write(elem.code)
+        self.last_element = ElementType.STATEMENT
+
+    def _write_stc_container(self, elem) -> None:
+        """Write STC container element."""
+        self._write(f"{elem.container_type} {elem.name}")
+        self.last_element = ElementType.DECLARATION
+
+    def _write_stc_operation(self, elem) -> None:
+        """Write STC operation element."""
+        self._write(elem.operation_code)
+        self.last_element = ElementType.STATEMENT
 

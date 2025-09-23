@@ -81,6 +81,14 @@ class Comment(Element):
         self.adjust = adjust
 
 
+class RawCode(Element):
+    """Raw C code element."""
+
+    def __init__(self, code: str) -> None:
+        """Initialize raw code element."""
+        self.code = code
+
+
 class BlockComment(Comment):
     """Block Comment.
 
@@ -450,6 +458,23 @@ class FunctionCall(Element):
         else:
             raise NotImplementedError(str(type(arg)))
         return self
+
+
+class BinaryExpression(Element):
+    """Binary expression (e.g., a + b, func() * 2)."""
+
+    def __init__(self, left: str | Element, operator: str, right: str | Element) -> None:
+        self.left = left
+        self.operator = operator
+        self.right = right
+
+
+class UnaryExpression(Element):
+    """Unary expression (e.g., -x, !flag)."""
+
+    def __init__(self, operator: str, operand: str | Element) -> None:
+        self.operator = operator
+        self.operand = operand
 
 
 class FunctionReturn(Element):

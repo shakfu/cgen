@@ -15,9 +15,54 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 
 ---
 
-## [0.1.x]
+## [0.2.0]
 
 ### Added
+
+#### Complete STC (Smart Template Containers) Integration
+
+- **Full Container Support**: Comprehensive Python-to-STC container mapping with automatic header generation
+- **Type System**: `list[int]` → `vec_int32`, `dict[str, int]` → `hmap_cstr_int32`, `set[str]` → `hset_cstr`
+- **Container Operations**: Native STC operations for append, length, iteration with proper C code generation
+- **Memory Management**: Automatic STC container initialization and cleanup with `{0}` initialization
+- **Multi-Container Discovery**: Two-pass analysis for automatic STC include and declaration generation
+
+#### Expression System Overhaul
+
+- **Binary Expression Support**: New `BinaryExpression` class for proper arithmetic and logical operations
+- **Unary Expression Support**: New `UnaryExpression` class for negation, logical not, and bitwise operations
+- **Function Call Integration**: Fixed function calls in expressions to generate proper C code instead of Python object representations
+- **Complex Expression Handling**: Nested expressions, boolean operations, and comparison chains
+
+#### Code Generation Improvements
+
+- **Element-Based Architecture**: Replaced string interpolation with proper C element objects
+- **Raw Code Support**: New `RawCode` element for direct C code insertion
+- **STC Writers**: Dedicated writers for STC container elements and operations
+- **Container Method Calls**: Support for `list.append()`, `len(list)` with automatic STC operation mapping
+
+#### Parser and Analysis Enhancements
+
+- **Container Type Analysis**: `analyze_container_type()` function for detecting Python container annotations
+- **Variable Tracking**: Container variable registry for proper operation mapping
+- **Type Annotation Processing**: Enhanced type extraction with full container type support
+- **Method Call Resolution**: Attribute-based method calls for container operations
+
+### Fixed
+
+- **Function Call Object Representation**: Resolved issue where function calls showed `<object at 0x...>` in expressions
+- **For-Loop Range Expressions**: Fixed complex expressions in for-loop ranges (e.g., `range(1, n + 1)`)
+- **Expression Type Consistency**: All expression methods now return proper `core.Element` objects
+- **Import Dependencies**: Corrected module imports for STC integration and writer classes
+
+### Changed
+
+- **Expression Architecture**: Migrated from string-based to element-based expression handling
+- **Container Type Mapping**: Updated from simple pointer conversion to full STC container integration
+- **Test Expectations**: Updated tests to reflect STC containers instead of C pointers
+- **Module Processing**: Enhanced two-pass module processing for container discovery and generation
+
+#### Previously Added (0.1.1)
 
 #### Runtime Library Support
 

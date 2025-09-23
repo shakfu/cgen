@@ -25,6 +25,12 @@ from typing import Any, Dict, List, Optional, Union
 
 from . import core
 from .factory import CFactory
+from .core import BinaryExpression, UnaryExpression
+from .stc_integration import (
+    analyze_container_type, stc_type_mapper, stc_declaration_generator,
+    stc_operation_mapper, STCContainerElement, STCOperationElement
+)
+from .writer import Writer
 
 
 class UnsupportedFeatureError(Exception):
@@ -52,6 +58,7 @@ class PythonToCConverter:
             "None": "void",
         }
         self.current_function: Optional[core.Function] = None
+        self.container_variables: Dict[str, Dict[str, Any]] = {}  # Track container variables
         self.variable_context: Dict[str, core.Variable] = {}
 
     def convert_file(self, python_file_path: str) -> core.Sequence:
@@ -69,11 +76,30 @@ class PythonToCConverter:
         """Convert Python module to C sequence."""
         sequence = core.Sequence()
 
+        # First pass - process all statements to discover container types
+        for node in module.body:
+            self._discover_container_types(node)
+
         # Add standard includes that might be needed
         sequence.append(self.c_factory.sysinclude("stdio.h"))
         sequence.append(self.c_factory.sysinclude("stdbool.h"))
+
+        # Add STC includes if we have containers
+        stc_includes = stc_declaration_generator.generate_includes()
+        if stc_includes:
+            for include in stc_includes:
+                sequence.append(include)
+
         sequence.append(self.c_factory.blank())
 
+        # Add STC container declarations
+        stc_declarations = stc_declaration_generator.generate_declarations()
+        if stc_declarations:
+            for decl in stc_declarations:
+                sequence.append(core.RawCode(decl))
+            sequence.append(self.c_factory.blank())
+
+        # Second pass - convert all statements
         for node in module.body:
             c_element = self._convert_statement(node)
             if c_element:
@@ -84,6 +110,49 @@ class PythonToCConverter:
                     sequence.append(c_element)
 
         return sequence
+
+    def _discover_container_types(self, node: ast.AST) -> None:
+        """First pass to discover all container types used in the module."""
+        if isinstance(node, ast.AnnAssign) and node.annotation:
+            # Check for container type annotations
+            container_info = analyze_container_type(node.annotation)
+            if container_info:
+                container_type, element_types = container_info
+                if container_type == "list" and len(element_types) == 1:
+                    stc_type_mapper.get_list_container_name(element_types[0])
+                elif container_type == "dict" and len(element_types) == 2:
+                    stc_type_mapper.get_dict_container_name(element_types[0], element_types[1])
+                elif container_type == "set" and len(element_types) == 1:
+                    stc_type_mapper.get_set_container_name(element_types[0])
+
+        elif isinstance(node, ast.FunctionDef):
+            # Check function parameters and return types
+            if node.returns:
+                container_info = analyze_container_type(node.returns)
+                if container_info:
+                    container_type, element_types = container_info
+                    if container_type == "list" and len(element_types) == 1:
+                        stc_type_mapper.get_list_container_name(element_types[0])
+                    elif container_type == "dict" and len(element_types) == 2:
+                        stc_type_mapper.get_dict_container_name(element_types[0], element_types[1])
+                    elif container_type == "set" and len(element_types) == 1:
+                        stc_type_mapper.get_set_container_name(element_types[0])
+
+            for arg in node.args.args:
+                if arg.annotation:
+                    container_info = analyze_container_type(arg.annotation)
+                    if container_info:
+                        container_type, element_types = container_info
+                        if container_type == "list" and len(element_types) == 1:
+                            stc_type_mapper.get_list_container_name(element_types[0])
+                        elif container_type == "dict" and len(element_types) == 2:
+                            stc_type_mapper.get_dict_container_name(element_types[0], element_types[1])
+                        elif container_type == "set" and len(element_types) == 1:
+                            stc_type_mapper.get_set_container_name(element_types[0])
+
+        # Recursively process child nodes
+        for child in ast.iter_child_nodes(node):
+            self._discover_container_types(child)
 
     def _convert_statement(self, node: ast.stmt) -> Union[core.Element, List[core.Element], None]:
         """Convert a Python statement to C element(s)."""
@@ -169,10 +238,28 @@ class PythonToCConverter:
             # Handle -> None
             return "void"
         elif isinstance(annotation, ast.Subscript):
-            # Handle generic types like list[int]
-            if isinstance(annotation.value, ast.Name) and annotation.value.id == "list":
-                element_type = self._extract_type_annotation(annotation.slice)
-                return f"{element_type}*"  # Convert list[T] to T*
+            # Handle generic container types like list[int], dict[str, int], set[int]
+            container_info = analyze_container_type(annotation)
+            if container_info:
+                container_type, element_types = container_info
+
+                if container_type == "list":
+                    if len(element_types) == 1:
+                        return stc_type_mapper.get_list_container_name(element_types[0])
+                    else:
+                        raise TypeMappingError(f"list must have exactly one type parameter")
+                elif container_type == "dict":
+                    if len(element_types) == 2:
+                        return stc_type_mapper.get_dict_container_name(element_types[0], element_types[1])
+                    else:
+                        raise TypeMappingError(f"dict must have exactly two type parameters")
+                elif container_type == "set":
+                    if len(element_types) == 1:
+                        return stc_type_mapper.get_set_container_name(element_types[0])
+                    else:
+                        raise TypeMappingError(f"set must have exactly one type parameter")
+                else:
+                    raise TypeMappingError(f"Unsupported container type: {container_type}")
             else:
                 raise TypeMappingError(f"Unsupported generic type: {ast.unparse(annotation)}")
         else:
@@ -186,19 +273,64 @@ class PythonToCConverter:
         var_name = node.target.id
         var_type = self._extract_type_annotation(node.annotation)
 
-        # Create variable
-        variable = self.c_factory.variable(var_name, var_type)
-        self.variable_context[var_name] = variable
+        # Check if this is a container type
+        container_info = analyze_container_type(node.annotation)
+        if container_info:
+            container_type, element_types = container_info
 
-        # Convert value expression
-        if node.value:
-            value_expr = self._convert_expression(node.value)
-            # Create declaration and assignment as separate statements
-            decl_stmt = self.c_factory.statement(self.c_factory.declaration(variable))
-            assign_stmt = self.c_factory.statement(self.c_factory.assignment(variable, value_expr))
-            return [decl_stmt, assign_stmt]
+            # Track container variable
+            self.container_variables[var_name] = {
+                'container_type': container_type,
+                'element_types': element_types,
+                'stc_type': var_type
+            }
+
+            # Create variable
+            variable = self.c_factory.variable(var_name, var_type)
+            self.variable_context[var_name] = variable
+
+            # For containers, handle initialization specially
+            if node.value:
+                # Check if initializing with empty list/dict/set
+                if (isinstance(node.value, ast.List) and len(node.value.elts) == 0) or \
+                   (isinstance(node.value, ast.Dict) and len(node.value.keys) == 0) or \
+                   (isinstance(node.value, ast.Set) and len(node.value.elts) == 0):
+                    # Empty container initialization using STC
+                    init_code = stc_operation_mapper.map_list_operation(var_name, "init_empty") if container_type == "list" else \
+                               stc_operation_mapper.map_dict_operation(var_name, "init_empty") if container_type == "dict" else \
+                               f"{var_name} = {{0}}"  # Generic empty initialization for sets
+
+                    decl_stmt = self.c_factory.statement(self.c_factory.declaration(variable))
+                    init_stmt = self.c_factory.statement(STCOperationElement(init_code))
+                    return [decl_stmt, init_stmt]
+                else:
+                    # Complex container initialization - convert value expression
+                    value_expr = self._convert_expression(node.value)
+                    decl_stmt = self.c_factory.statement(self.c_factory.declaration(variable))
+                    assign_stmt = self.c_factory.statement(self.c_factory.assignment(variable, value_expr))
+                    return [decl_stmt, assign_stmt]
+            else:
+                # Declaration without initialization - still need to initialize containers
+                decl_stmt = self.c_factory.statement(self.c_factory.declaration(variable))
+                init_code = stc_operation_mapper.map_list_operation(var_name, "init_empty") if container_type == "list" else \
+                           stc_operation_mapper.map_dict_operation(var_name, "init_empty") if container_type == "dict" else \
+                           f"{var_name} = {{0}}"
+                init_stmt = self.c_factory.statement(STCOperationElement(init_code))
+                return [decl_stmt, init_stmt]
         else:
-            return self.c_factory.statement(self.c_factory.declaration(variable))
+            # Regular variable handling
+            variable = self.c_factory.variable(var_name, var_type)
+            self.variable_context[var_name] = variable
+
+            # Convert value expression
+            if node.value:
+                value_expr = self._convert_expression(node.value)
+                # Create declaration and assignment as separate statements
+                decl_stmt = self.c_factory.statement(self.c_factory.declaration(variable))
+                assign_stmt = self.c_factory.statement(self.c_factory.assignment(variable, value_expr))
+                return [decl_stmt, assign_stmt]
+            else:
+                return self.c_factory.statement(self.c_factory.declaration(variable))
 
     def _convert_assignment(self, node: ast.Assign) -> core.Statement:
         """Convert regular assignment (var = value)."""
@@ -257,7 +389,7 @@ class PythonToCConverter:
         else:
             raise UnsupportedFeatureError(f"Unsupported constant type: {type(value)}")
 
-    def _convert_binary_operation(self, node: ast.BinOp) -> str:
+    def _convert_binary_operation(self, node: ast.BinOp) -> core.Element:
         """Convert binary operation to C syntax."""
         left = self._convert_expression(node.left)
         right = self._convert_expression(node.right)
@@ -280,11 +412,12 @@ class PythonToCConverter:
 
         if type(node.op) in op_map:
             op_str = op_map[type(node.op)]
-            return f"{left} {op_str} {right}"  # Remove the parentheses for now
+            # Create a BinaryExpression element that can handle nested expressions
+            return BinaryExpression(left, op_str, right)
         else:
             raise UnsupportedFeatureError(f"Unsupported binary operator: {type(node.op).__name__}")
 
-    def _convert_comparison(self, node: ast.Compare) -> str:
+    def _convert_comparison(self, node: ast.Compare) -> core.Element:
         """Convert comparison to C syntax."""
         # Simple implementation: handle single comparison operations
         if len(node.ops) != 1 or len(node.comparators) != 1:
@@ -304,11 +437,11 @@ class PythonToCConverter:
 
         if type(node.ops[0]) in op_map:
             op_str = op_map[type(node.ops[0])]
-            return f"{left} {op_str} {right}"
+            return BinaryExpression(left, op_str, right)
         else:
             raise UnsupportedFeatureError(f"Unsupported comparison operator: {type(node.ops[0]).__name__}")
 
-    def _convert_boolean_operation(self, node: ast.BoolOp) -> str:
+    def _convert_boolean_operation(self, node: ast.BoolOp) -> core.Element:
         """Convert boolean operation (and, or) to C syntax."""
         # Convert all operands
         operands = [self._convert_expression(operand) for operand in node.values]
@@ -321,12 +454,21 @@ class PythonToCConverter:
 
         if type(node.op) in op_map:
             op_str = op_map[type(node.op)]
-            # Join all operands with the operator
-            return f"({f' {op_str} '.join(str(operand) for operand in operands)})"
+            # For multiple operands, create a chain of binary expressions
+            if len(operands) == 2:
+                return BinaryExpression(operands[0], op_str, operands[1])
+            elif len(operands) > 2:
+                # Create a left-associative chain: ((a && b) && c) && d
+                result = BinaryExpression(operands[0], op_str, operands[1])
+                for operand in operands[2:]:
+                    result = BinaryExpression(result, op_str, operand)
+                return result
+            else:
+                raise UnsupportedFeatureError("Boolean operation must have at least 2 operands")
         else:
             raise UnsupportedFeatureError(f"Unsupported boolean operator: {type(node.op).__name__}")
 
-    def _convert_unary_operation(self, node: ast.UnaryOp) -> str:
+    def _convert_unary_operation(self, node: ast.UnaryOp) -> core.Element:
         """Convert unary operation to C syntax."""
         operand = self._convert_expression(node.operand)
 
@@ -339,7 +481,7 @@ class PythonToCConverter:
 
         if type(node.op) in op_map:
             op_str = op_map[type(node.op)]
-            return f"{op_str}{operand}"
+            return UnaryExpression(op_str, operand)
         else:
             raise UnsupportedFeatureError(f"Unsupported unary operator: {type(node.op).__name__}")
 
@@ -347,10 +489,73 @@ class PythonToCConverter:
         """Convert function call to C function call."""
         if isinstance(node.func, ast.Name):
             func_name = node.func.id
-            args = [self._convert_expression(arg) for arg in node.args]
-            return self.c_factory.func_call(func_name, args)
+
+            # Handle built-in functions that work on containers
+            if func_name == "len":
+                if len(node.args) != 1:
+                    raise UnsupportedFeatureError("len() requires exactly one argument")
+
+                arg = node.args[0]
+                if isinstance(arg, ast.Name) and arg.id in self.container_variables:
+                    container_name = arg.id
+                    container_info = self.container_variables[container_name]
+                    container_type = container_info['container_type']
+
+                    if container_type == "list":
+                        operation_code = stc_operation_mapper.map_list_operation(container_name, "len")
+                        return STCOperationElement(operation_code)
+                    elif container_type == "dict":
+                        operation_code = stc_operation_mapper.map_dict_operation(container_name, "len")
+                        return STCOperationElement(operation_code)
+                    else:
+                        raise UnsupportedFeatureError(f"len() not supported for {container_type}")
+                else:
+                    # Not a container, treat as regular function call
+                    args = [self._convert_expression(arg) for arg in node.args]
+                    return self.c_factory.func_call(func_name, args)
+            else:
+                # Regular function call
+                args = [self._convert_expression(arg) for arg in node.args]
+                return self.c_factory.func_call(func_name, args)
+        elif isinstance(node.func, ast.Attribute):
+            # Handle method calls (e.g., list.append, dict.get)
+            if isinstance(node.func.value, ast.Name):
+                obj_name = node.func.value.id
+                method_name = node.func.attr
+
+                # Check if this is a container method call
+                if obj_name in self.container_variables:
+                    container_info = self.container_variables[obj_name]
+                    container_type = container_info['container_type']
+
+                    if container_type == "list":
+                        if method_name == "append":
+                            if len(node.args) != 1:
+                                raise UnsupportedFeatureError("list.append() requires exactly one argument")
+                            arg = self._convert_expression(node.args[0])
+                            # Convert to string for STC operation
+                            if isinstance(arg, core.Element):
+                                temp_writer = Writer()
+                                arg_str = temp_writer.write_str_elem(arg)
+                            else:
+                                arg_str = str(arg)
+                            operation_code = stc_operation_mapper.map_list_operation(obj_name, "append", arg_str)
+                            return STCOperationElement(operation_code)
+                        else:
+                            raise UnsupportedFeatureError(f"Unsupported list method: {method_name}")
+
+                    elif container_type == "dict":
+                        # Handle dict methods like get, set, etc.
+                        raise UnsupportedFeatureError(f"Dict method {method_name} not implemented yet")
+
+                    else:
+                        raise UnsupportedFeatureError(f"Unsupported container method: {container_type}.{method_name}")
+                else:
+                    raise UnsupportedFeatureError(f"Method call on non-container object: {obj_name}.{method_name}")
+            else:
+                raise UnsupportedFeatureError("Complex method calls not supported")
         else:
-            raise UnsupportedFeatureError("Only simple function calls supported")
+            raise UnsupportedFeatureError("Only simple function calls and method calls supported")
 
     def _convert_if(self, node: ast.If) -> core.Element:
         """Convert if statement to C if statement."""
@@ -429,12 +634,40 @@ class PythonToCConverter:
                 raise UnsupportedFeatureError("Invalid range() arguments in for loop")
 
             # Build for loop components
-            init = f"int {loop_var} = {start}"
-            condition = f"{loop_var} < {end}"
-            if str(step) == "1":
+            # Convert expressions to proper C elements
+            if isinstance(start, core.Element):
+                init_expr = BinaryExpression(loop_var, "=", start)
+                init = f"int {loop_var} = "  # Partial - will be completed by writer
+            else:
+                init = f"int {loop_var} = {start}"
+
+            # Create condition as BinaryExpression
+            if isinstance(end, core.Element):
+                condition_expr = BinaryExpression(loop_var, "<", end)
+            else:
+                condition_expr = BinaryExpression(loop_var, "<", end)
+
+            # For now, use a simpler approach and convert complex expressions to strings
+            from .writer import Writer
+            from .style import StyleOptions
+            temp_writer = Writer(StyleOptions())
+
+            def expr_to_str(expr):
+                if isinstance(expr, core.Element):
+                    return temp_writer.write_str_elem(expr)
+                else:
+                    return str(expr)
+
+            start_str = expr_to_str(start)
+            end_str = expr_to_str(end)
+            step_str = expr_to_str(step)
+
+            init = f"int {loop_var} = {start_str}"
+            condition = f"{loop_var} < {end_str}"
+            if step_str == "1":
                 increment = f"{loop_var}++"
             else:
-                increment = f"{loop_var} += {step}"
+                increment = f"{loop_var} += {step_str}"
 
             # Convert body
             body_statements = []

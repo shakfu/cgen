@@ -70,14 +70,16 @@ def greet(name: str) -> str:
         c_code = convert_python_to_c(python_code)
         assert "char* greet(char* name)" in c_code
 
-    def test_list_type_to_pointer(self, py2c_converter):
-        """Test list type conversion to pointer."""
+    def test_list_type_to_stc_container(self, py2c_converter):
+        """Test list type conversion to STC container."""
         python_code = """
 def process_array(data: list[int]) -> int:
     return 0
 """
         c_code = convert_python_to_c(python_code)
-        assert "int process_array(int* data)" in c_code
+        assert "int process_array(vec_int32 data)" in c_code
+        assert "declare_vec(vec_int32, int32);" in c_code
+        assert '#include "stc/vec.h"' in c_code
 
     def test_function_call_conversion(self, py2c_converter):
         """Test function call conversion."""
