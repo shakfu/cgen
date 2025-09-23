@@ -6,8 +6,8 @@ from io import StringIO
 from typing import Any, TextIO
 
 from . import core
-from . import style as c_style
-from .style import BreakBeforeBraces
+from ..generator import style as c_style
+from ..generator.style import BreakBeforeBraces
 
 
 class ElementType(Enum):

@@ -13,7 +13,7 @@ sys.path.insert(0, str(src_path))
 # Import common modules for test fixtures
 import cgen.core as cgen_core
 from cgen.core.py2c import PythonToCConverter
-from cgen.core.style import StyleOptions
+from cgen.generator.style import StyleOptions
 
 
 @pytest.fixture

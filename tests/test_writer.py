@@ -2,7 +2,7 @@
 
 import cgen.core as cfile
 import cgen.core.core as core
-import cgen.core.style as style
+import cgen.generator.style as style
 
 
 class TestWhitespace:

@@ -495,7 +495,7 @@ def convert_python_to_c(python_code: str) -> str:
     converter = PythonToCConverter()
     c_sequence = converter.convert_code(python_code)
 
-    from .style import StyleOptions
+    from ..generator.style import StyleOptions
     from .writer import Writer
 
     writer = Writer(StyleOptions())
@@ -507,7 +507,7 @@ def convert_python_file_to_c(input_file: str, output_file: str) -> None:
     converter = PythonToCConverter()
     c_sequence = converter.convert_file(input_file)
 
-    from .style import StyleOptions
+    from ..generator.style import StyleOptions
     from .writer import Writer
 
     writer = Writer(StyleOptions())

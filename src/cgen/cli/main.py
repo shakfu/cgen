@@ -49,7 +49,8 @@ class CGenCLI:
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
 Examples:
-  cgen analyze factorial.py                    # Analyze Python code
+  cgen analyze factorial.py                   # Analyze Python code
+  cgen build factorial.py                     # Translate then build Python code
   cgen verify --memory-safety factorial.py    # Verify memory safety
   cgen optimize factorial.py                  # Show optimization opportunities
   cgen generate factorial.py -o factorial.c   # Generate optimized C code
@@ -69,6 +70,9 @@ Examples:
 
         # analyze command
         self._add_analyze_command(subparsers)
+
+        # build command
+        self._add_build_command(subparsers)
 
         # verify command
         self._add_verify_command(subparsers)
@@ -91,15 +95,6 @@ Examples:
         # demo command
         self._add_demo_command(subparsers)
 
-        # build command (makefilegen integration)
-        self._add_build_command(subparsers)
-
-        # makefile command (makefilegen integration)
-        self._add_makefile_command(subparsers)
-
-        # Legacy py2c command
-        self._add_py2c_command(subparsers)
-
         # version command
         subparsers.add_parser("version", help="Show version information")
 
@@ -120,6 +115,27 @@ Examples:
         analyze_parser.add_argument("--ir", action="store_true", help="Show static IR")
         analyze_parser.add_argument("--all", action="store_true", help="Show all analysis results")
         analyze_parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
+
+    def _add_build_command(self, subparsers):
+        """Add build command."""
+        build_parser = subparsers.add_parser(
+            "build",
+            help="Translate then build Python code",
+            description="Translate Python code to C code and build it"
+        )
+        build_parser.add_argument("input", help="Python file to build")
+        build_parser.add_argument("-b", "--build-dir", help="Build directory")
+        build_parser.add_argument("-c", "--compile-only", action="store_true", help="Compile only")
+        build_parser.add_argument("-r", "--run", action="store_true", help="Run the executable")
+        build_parser.add_argument("-m", "--makefile", action="store_true", help="Generate Makefile")
+        build_parser.add_argument("-o", "--optimize", action="store_true", help="Enable optimizations")
+        build_parser.add_argument("--no-stc", action="store_true", help="Disable STC support")
+        build_parser.add_argument("-I", "--include", action="append", help="Include directories")
+        build_parser.add_argument("-L", "--libdir", action="append", help="Library directories")
+        build_parser.add_argument("-l", "--lib", action="append", help="Libraries to link")
+        build_parser.add_argument("--flags", help="Additional compiler flags")
+        build_parser.add_argument("--compiler", default="gcc", help="Compiler to use")
+        build_parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
 
     def _add_verify_command(self, subparsers):
         """Add verify command."""
@@ -155,8 +171,8 @@ Examples:
         """Add generate command."""
         generate_parser = subparsers.add_parser(
             "generate",
-            help="Generate optimized C code",
-            description="Generate C code with intelligence layer optimizations"
+            help="Translate Python code to C code",
+            description="Translate Python code to C code with optimizations"
         )
         generate_parser.add_argument("input", help="Python file to convert")
         generate_parser.add_argument("-o", "--output", help="Output C file")
@@ -214,13 +230,6 @@ Examples:
         )
         demo_parser.add_argument("demo_type", choices=["frontend", "intelligence", "verification", "generation", "all"], help="Type of demo to run")
 
-    def _add_py2c_command(self, subparsers):
-        """Add legacy py2c command."""
-        py2c_parser = subparsers.add_parser("py2c", help="Legacy Python-to-C conversion")
-        py2c_parser.add_argument("input", help="Input Python file")
-        py2c_parser.add_argument("-o", "--output", help="Output C file")
-        py2c_parser.add_argument("--optimize", action="store_true", help="Enable optimizations")
-
     def run(self, argv: Optional[List[str]] = None) -> int:
         """Run the CLI with given arguments."""
         parser = self.create_parser()
@@ -239,6 +248,7 @@ Examples:
         # Route to command handlers
         command_handlers = {
             "analyze": self._handle_analyze,
+            "build": self._handle_build,
             "verify": self._handle_verify,
             "optimize": self._handle_optimize,
             "generate": self._handle_generate,
@@ -248,7 +258,6 @@ Examples:
             "demo": self._handle_demo,
             "build": self._handle_build,
             "makefile": self._handle_makefile,
-            "py2c": self._handle_py2c,
             "version": self._handle_version,
         }
 
@@ -302,6 +311,14 @@ Examples:
             self._show_ir_analysis(context)
 
         return 0
+
+    def _handle_build(self, args) -> int:
+        """Handle build command."""
+        self._info("CGen Direct Build")
+        self._info("=" * 50)
+
+        if not self._check_file_exists(args.input):
+            return 1
 
     def _handle_verify(self, args) -> int:
         """Handle verify command."""
@@ -410,10 +427,10 @@ Examples:
         optimization_level = self._get_optimization_level(args.optimization_level)
         context = self._create_analysis_context(code, analysis_level, optimization_level)
 
-        self._info(f" Input: {args.input}")
-        self._info(f" Output: {output_file}")
-        self._info(f"  Analysis Level: {analysis_level.value}")
-        self._info(f" Optimization Level: {optimization_level.value}")
+        self._info(f"Input: {args.input}")
+        self._info(f"Output: {output_file}")
+        self._info(f"Analysis Level: {analysis_level.value}")
+        self._info(f"Optimization Level: {optimization_level.value}")
 
         # Show STC status
         use_stc = getattr(args, "use_stc", True)
@@ -430,7 +447,7 @@ Examples:
             self._info("STC Containers: Disabled (traditional C patterns)")
 
         # Generate C code with intelligence
-        self._info("\n🧠 Running intelligence analysis...")
+        self._info("\nRunning intelligence analysis...")
         c_code = self._generate_intelligent_c_code(context, args)
 
         # Write output
@@ -475,7 +492,7 @@ Examples:
         pipeline_results["frontend"] = frontend_results
 
         # Phase 2: Intelligence Analysis
-        self._info("\n🧠 Phase 2: Intelligence Analysis")
+        self._info("\n Phase 2: Intelligence Analysis")
         intelligence_results = self._run_intelligence_analysis(context)
         pipeline_results["intelligence"] = intelligence_results
 
@@ -566,24 +583,6 @@ Examples:
             return demo_func()
         else:
             self._error(f"Unknown demo type: {args.demo_type}")
-            return 1
-
-    def _handle_py2c(self, args) -> int:
-        """Handle legacy py2c command."""
-        self._warning("  Using legacy py2c mode. Consider using 'cgen generate' for intelligence features.")
-
-        # Basic py2c functionality
-        try:
-            output_file = args.output or args.input.replace(".py", ".c")
-            self._info(f"Converting {args.input} to {output_file}...")
-
-            # Use simple conversion for legacy mode
-            # This would call the original py2c functionality
-            self._info("Conversion completed successfully.")
-            return 0
-
-        except Exception as e:
-            self._error(f"Conversion failed: {e}")
             return 1
 
     def _handle_version(self, args) -> int:
@@ -814,7 +813,7 @@ Examples:
                 c_code = converter.convert_code(context.source_code)
 
                 # Convert sequence to string
-                from ..core.style import StyleOptions
+                from ..generator.style import StyleOptions
                 from ..core.writer import Writer
 
                 writer = Writer(StyleOptions())
