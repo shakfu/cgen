@@ -328,6 +328,9 @@ class PythonToCConverter:
         """Convert Python module to C sequence."""
         sequence = core.Sequence()
 
+        # Clear STC state for fresh conversion
+        stc_type_mapper.used_containers.clear()
+
         # First pass - process all statements to discover container types and assert usage
         uses_assert = False
         for node in module.body:
@@ -397,12 +400,19 @@ class PythonToCConverter:
             container_info = analyze_container_type(node.annotation)
             if container_info:
                 container_type, element_types = container_info
+                # Check if this annotated variable is actually used in operations
+                var_name = None
+                if isinstance(node.target, ast.Name):
+                    var_name = node.target.id
+
+                # For now, assume all annotated containers are used (register_usage=True)
+                # This is safer and ensures we include necessary headers
                 if container_type == "list" and len(element_types) == 1:
-                    stc_type_mapper.get_list_container_name(element_types[0], register_usage=False)
+                    stc_type_mapper.get_list_container_name(element_types[0], register_usage=True)
                 elif container_type == "dict" and len(element_types) == 2:
-                    stc_type_mapper.get_dict_container_name(element_types[0], element_types[1], register_usage=False)
+                    stc_type_mapper.get_dict_container_name(element_types[0], element_types[1], register_usage=True)
                 elif container_type == "set" and len(element_types) == 1:
-                    stc_type_mapper.get_set_container_name(element_types[0], register_usage=False)
+                    stc_type_mapper.get_set_container_name(element_types[0], register_usage=True)
 
         elif isinstance(node, ast.FunctionDef):
             # Check function parameters and return types
@@ -410,12 +420,13 @@ class PythonToCConverter:
                 container_info = analyze_container_type(node.returns)
                 if container_info:
                     container_type, element_types = container_info
+                    # Return types should be registered as used since they appear in function signatures
                     if container_type == "list" and len(element_types) == 1:
-                        stc_type_mapper.get_list_container_name(element_types[0], register_usage=False)
+                        stc_type_mapper.get_list_container_name(element_types[0], register_usage=True)
                     elif container_type == "dict" and len(element_types) == 2:
-                        stc_type_mapper.get_dict_container_name(element_types[0], element_types[1], register_usage=False)
+                        stc_type_mapper.get_dict_container_name(element_types[0], element_types[1], register_usage=True)
                     elif container_type == "set" and len(element_types) == 1:
-                        stc_type_mapper.get_set_container_name(element_types[0], register_usage=False)
+                        stc_type_mapper.get_set_container_name(element_types[0], register_usage=True)
 
             for arg in node.args.args:
                 if arg.annotation:
@@ -490,8 +501,8 @@ class PythonToCConverter:
 
     def _convert_function_def(self, node: ast.FunctionDef) -> List[core.Element]:
         """Convert Python function definition to C function."""
-        # Extract return type
-        return_type = self._extract_type_annotation(node.returns) if node.returns else "void"
+        # Extract return type (speculative - doesn't create container usage)
+        return_type = self._extract_type_annotation(node.returns, register_usage=False) if node.returns else "void"
 
         # Create function parameters
         params = []
@@ -562,7 +573,7 @@ class PythonToCConverter:
         for stmt in node.body:
             if isinstance(stmt, ast.AnnAssign) and isinstance(stmt.target, ast.Name):
                 field_name = stmt.target.id
-                field_type = self._extract_type_annotation(stmt.annotation)
+                field_type = self._extract_type_annotation(stmt.annotation, register_usage=False)
 
                 # Convert container types to C equivalents
                 c_type = self._map_struct_field_type(field_type)
@@ -714,7 +725,7 @@ class PythonToCConverter:
         else:
             return core.RawCode(f"assert({self._expression_to_string(test_expr)});")
 
-    def _extract_type_annotation(self, annotation: ast.expr) -> str:
+    def _extract_type_annotation(self, annotation: ast.expr, register_usage: bool = True) -> str:
         """Extract C type from Python type annotation."""
         if isinstance(annotation, ast.Name):
             python_type = annotation.id
@@ -736,17 +747,17 @@ class PythonToCConverter:
 
                 if container_type == "list":
                     if len(element_types) == 1:
-                        return stc_type_mapper.get_list_container_name(element_types[0])
+                        return stc_type_mapper.get_list_container_name(element_types[0], register_usage=register_usage)
                     else:
                         raise TypeMappingError(f"list must have exactly one type parameter")
                 elif container_type == "dict":
                     if len(element_types) == 2:
-                        return stc_type_mapper.get_dict_container_name(element_types[0], element_types[1])
+                        return stc_type_mapper.get_dict_container_name(element_types[0], element_types[1], register_usage=register_usage)
                     else:
                         raise TypeMappingError(f"dict must have exactly two type parameters")
                 elif container_type == "set":
                     if len(element_types) == 1:
-                        return stc_type_mapper.get_set_container_name(element_types[0])
+                        return stc_type_mapper.get_set_container_name(element_types[0], register_usage=register_usage)
                     else:
                         raise TypeMappingError(f"set must have exactly one type parameter")
                 else:

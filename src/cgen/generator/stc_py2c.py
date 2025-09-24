@@ -362,13 +362,13 @@ class STCEnhancedPythonToCConverter(PythonToCConverter):
             return STC_CONTAINERS.get(python_type)
         return None
 
-    def _extract_type_annotation(self, annotation: ast.expr) -> str:
+    def _extract_type_annotation(self, annotation: ast.expr, register_usage: bool = True) -> str:
         """Enhanced type annotation extraction with STC support."""
         if isinstance(annotation, ast.Name):
             python_type = annotation.id
             if python_type in self.stc_type_mapping:
                 return self.stc_type_mapping[python_type]
-            return super()._extract_type_annotation(annotation)
+            return super()._extract_type_annotation(annotation, register_usage=register_usage)
 
         elif isinstance(annotation, ast.Subscript):
             # Handle List[T], Dict[K,V], Set[T] with STC containers
@@ -387,12 +387,12 @@ class STCEnhancedPythonToCConverter(PythonToCConverter):
             else:
                 # Try parent implementation for other generic types
                 try:
-                    return super()._extract_type_annotation(annotation)
+                    return super()._extract_type_annotation(annotation, register_usage=register_usage)
                 except:
                     # If parent fails, return generic pointer for container types
                     return "void*"
 
-        return super()._extract_type_annotation(annotation)
+        return super()._extract_type_annotation(annotation, register_usage=register_usage)
 
     def _convert_annotated_assignment(self, node: ast.AnnAssign) -> Union[core.Statement, List[core.Statement]]:
         """Enhanced annotated assignment with STC container support."""
@@ -489,7 +489,7 @@ class STCEnhancedPythonToCConverter(PythonToCConverter):
         self.memory_manager.enter_function(node.name)
 
         # Extract return type and register parameters
-        return_type = self._extract_type_annotation(node.returns) if node.returns else "void"
+        return_type = self._extract_type_annotation(node.returns, register_usage=False) if node.returns else "void"
 
         # Register container parameters with memory manager
         for arg in node.args.args:

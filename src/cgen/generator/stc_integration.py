@@ -35,6 +35,10 @@ class STCTypeMapper:
         stc_type = self.python_type_to_stc(element_type)
         container_name = f"vec_{stc_type.replace('_t', '')}"
         if register_usage:
+            # Debug logging to track where containers are registered
+            from ..common import log
+            logger = log.config("STCTypeMapper.get_list")
+            logger.debug(f"Registering list container: {container_name} for element_type: {element_type}")
             self.used_containers.add(container_name)
         return container_name
 
@@ -52,11 +56,19 @@ class STCTypeMapper:
         stc_type = self.python_type_to_stc(element_type)
         container_name = f"hset_{stc_type.replace('_t', '')}"
         if register_usage:
+            # Debug logging to track where containers are registered
+            from ..common import log
+            logger = log.config("STCTypeMapper.get_set")
+            logger.debug(f"Registering set container: {container_name} for element_type: {element_type}")
             self.used_containers.add(container_name)
         return container_name
 
     def register_container_usage(self, container_name: str) -> None:
         """Register that a container is actually used in generated code."""
+        # Debug logging to track where containers are registered
+        from ..common import log
+        logger = log.config("STCTypeMapper.register")
+        logger.debug(f"Registering container usage: {container_name}")
         self.used_containers.add(container_name)
 
 
