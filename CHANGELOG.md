@@ -260,7 +260,7 @@ int index = cgen_str_find(text, "World");
 - **Performance Optimized**: Efficient C code generation with minimal overhead
 - **Pythonic Semantics**: Maintains Python behavior while leveraging C performance
 
-## [0.3.0] - 2024-09-23
+## [0.3.0]
 
 ### Added
 
