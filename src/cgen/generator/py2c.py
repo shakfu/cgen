@@ -248,6 +248,10 @@ class PythonToCConverter:
         function = self.c_factory.function(node.name, return_type, params=params)
         self.current_function = function
 
+        # Add function parameters to variable context so they can be modified
+        for param in params:
+            self.variable_context[param.name] = param
+
         # Create function body
         body_statements = []
         for stmt in node.body:

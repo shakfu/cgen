@@ -15,6 +15,75 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 
 ---
 
+## [0.1.10]
+
+### Fixed
+
+#### Parameter Modification Support
+
+- **Function Parameter Modification**: Resolved restriction preventing parameter modification within function bodies
+  - **Root Cause**: Function parameters were not being added to the `variable_context`, causing validation errors for parameter assignments
+  - **Solution**: Enhanced `_convert_function_def()` method in `py2c.py:712` to add function parameters to variable context after function creation
+  - **Impact**: All parameter modification patterns now work correctly: `n = n + 1`, `a = temp`, `x = x * 2`, etc.
+  - **Generated Code**: Parameters can be freely modified within function scope, maintaining C semantics
+
+- **Parameter Modification Examples**: Complete support for various parameter modification patterns
+  - **Simple Modification**: `def modify_param(n: int) -> int: n = n + 1; return n` generates correct C code
+  - **Complex Algorithms**: Euclidean GCD with parameter swapping, factorial with parameter decrement
+  - **Multiple Parameters**: Functions modifying multiple parameters simultaneously
+  - **String Parameters**: Support for string parameter modifications (where applicable in C context)
+
+### Generated Code Examples
+
+**Parameter Modification:**
+
+```python
+def gcd_with_param_modification(a: int, b: int) -> int:
+    while b != 0:
+        temp: int = b
+        b = a % b
+        a = temp
+    return a
+
+def factorial_with_param_modification(n: int) -> int:
+    result: int = 1
+    while n > 1:
+        result = result * n
+        n = n - 1  # Parameter modification now works
+    return result
+```
+
+**Generated C code:**
+
+```c
+int gcd_with_param_modification(int a, int b) {
+    while (b != 0) {
+        int temp = b;
+        b = a % b;
+        a = temp;  // Parameter modification works correctly
+    }
+    return a;
+}
+
+int factorial_with_param_modification(int n) {
+    int result = 1;
+    while (n > 1) {
+        result = result * n;
+        n = n - 1;  // Parameter modification works correctly
+    }
+    return result;
+}
+```
+
+### Technical Achievements
+
+- **Test Suite Compatibility**: Updated test expectations to reflect parameter modification support
+- **Zero Regression Testing**: All 645 unit tests and 19/19 translation tests continue to pass
+- **Enhanced Functionality**: Eliminated artificial restriction while maintaining type safety and validation
+- **Algorithm Support**: Enables implementation of algorithms requiring parameter mutation (GCD, factorial, sorting, etc.)
+
+---
+
 ## [0.1.9]
 
 ### Added

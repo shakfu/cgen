@@ -173,18 +173,18 @@ def compute(x: int, y: int) -> int:
         assert len(result.warnings) > 0
         assert any("division" in warning.lower() for warning in result.warnings)
 
-    def test_invalid_parameter_modification(self):
-        """Test that parameter modification is caught."""
-        code = '''def bad_function(n: int) -> int:
-    n = n + 1  # This should fail
+    def test_parameter_modification_allowed(self):
+        """Test that parameter modification is now allowed."""
+        code = '''def modify_function(n: int) -> int:
+    n = n + 1  # This should now work
     return n'''
 
         test_file = self.create_test_file(code)
         result = self.pipeline.convert(test_file)
 
-        # Should fail because we're reassigning a parameter
-        assert not result.success
-        assert len(result.errors) > 0
+        # Should succeed because parameter modification is now supported
+        assert result.success
+        assert "n = n + 1;" in result.c_code
 
     def test_missing_type_annotations(self):
         """Test handling of missing type annotations."""
