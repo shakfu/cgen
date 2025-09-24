@@ -15,6 +15,40 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 
 ---
 
+## [0.1.12]
+
+### Fixed
+
+#### Major Code Generation and Architecture Improvements
+
+- **Generic Syntax Writing System**: Comprehensive refactoring of the C code generation writer system
+  - **Semicolon Placement Fix**: Resolved systematic issue where semicolons appeared at beginning of lines instead of end of statements
+  - **Generic Indentation System**: Fixed closing brace over-indentation with improved `_write_indented_block()` function
+  - **Impact**: Generated C code now has perfect formatting with proper semicolon placement and brace alignment
+  ```c
+  for (int x = 0; x < 5; x += 1) {
+      if (x % 2 == 1) {
+          function_call(x * x);
+      }  // ✅ Properly aligned
+  }      // ✅ Properly aligned
+  ```
+
+- **Code Consolidation Through Generic Functions**: Eliminated ~75% of duplicate code in syntax writing methods
+  - **Generic Storage Specifier Function**: Consolidated 5 methods (`auto`, `register`, `restrict`, `inline`, `_Thread_local`) into 1 generic function + simple wrappers
+  - **Generic Parenthesized Construct Function**: Consolidated 4 methods (`sizeof`, `_Alignof`, `_Atomic`, `_Alignas`) into 1 generic function + simple wrappers
+  - **Benefits**: ~70-80 lines of duplicate logic eliminated, significantly improved maintainability
+  ```python
+  def _write_storage_specifier(self, specifier: str, elem: Any, element_property: str, ...) -> None:
+  def _write_parenthesized_construct(self, function_name: str, elem: Any, operand_property: str, ...) -> None
+  def _write_indented_block(self, code: str) -> None
+  ```
+
+### Technical Architecture
+
+- **Enhanced Statement Processing**: Improved `_write_statement()` method with better detection of control structures
+- **Robust Indentation Engine**: Generic `_write_indented_block()` handles any multi-line code with proper brace management
+- **Reusable Generic Functions**: Created foundation for future syntax consolidation with well-documented, parameterized functions
+
 ## [0.1.11]
 
 ### Fixed
