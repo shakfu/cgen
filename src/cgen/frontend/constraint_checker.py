@@ -389,7 +389,6 @@ class StaticConstraintChecker:
         """Check for Python features not supported in C conversion."""
         unsupported_nodes = {
             ast.GeneratorExp: "Generator expressions",
-            ast.SetComp: "Set comprehensions",
             ast.Lambda: "Lambda functions",
             ast.Yield: "Yield statements",
             ast.Try: "Try-except blocks",

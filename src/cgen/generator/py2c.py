@@ -408,9 +408,17 @@ class PythonToCConverter:
         elif isinstance(expr, core.UnaryExpression):
             operand_str = self._expression_to_string(expr.operand)
             return f"{expr.operator}{operand_str}"
+        elif isinstance(expr, core.FunctionCall):
+            # Handle function calls properly
+            args_str = ', '.join(self._expression_to_string(arg) for arg in expr.args)
+            return f"{expr.name}({args_str})"
         elif hasattr(expr, 'operation_code'):
             # STCOperationElement
             return expr.operation_code
+        elif isinstance(expr, core.Element):
+            # Use Writer to properly convert Element to string
+            temp_writer = Writer(StyleOptions())
+            return temp_writer.write_str_elem(expr)
         elif hasattr(expr, '__str__'):
             return str(expr)
         else:
@@ -675,6 +683,10 @@ class PythonToCConverter:
             return self._convert_list_comprehension(node)
         elif isinstance(node, ast.DictComp):
             return self._convert_dict_comprehension(node)
+        elif isinstance(node, ast.SetComp):
+            return self._convert_set_comprehension(node)
+        elif isinstance(node, ast.Set):
+            return self._convert_set_literal(node)
         else:
             raise UnsupportedFeatureError(f"Unsupported expression: {type(node).__name__}")
 
@@ -1373,7 +1385,8 @@ class PythonToCConverter:
 
         if type(node.op) in op_map:
             op_str = op_map[type(node.op)]
-            assignment = f"{var_name} {op_str} {value_expr}"
+            value_str = self._expression_to_string(value_expr)
+            assignment = f"{var_name} {op_str} {value_str}"
             return self.c_factory.statement(assignment)
         else:
             raise UnsupportedFeatureError(f"Unsupported augmented assignment operator: {type(node.op).__name__}")
@@ -1572,12 +1585,130 @@ class PythonToCConverter:
 
         return ComprehensionElement(temp_var, full_code, result_container_type)
 
+    def _convert_set_comprehension(self, node: ast.SetComp) -> core.Element:
+        """Convert set comprehension to C loop with STC hset operations.
+
+        {expr for target in iter if condition} becomes:
+        hset_type result;
+        hset_type_init(&result);
+        for (...) {
+            if (condition) {
+                hset_type_insert(&result, expr);
+            }
+        }
+        """
+        # Generate unique temporary variable name
+        temp_var = self._generate_temp_var_name("set_comp_result")
+
+        # Determine element type (simplified for now - assume int32)
+        # TODO: Infer from expression
+        element_type = "int32"
+        result_container_type = f"hset_{element_type}"
+
+        # Create initialization code
+        init_code = f"{result_container_type} {temp_var};\n"
+        init_code += f"{result_container_type}_init(&{temp_var});"
+
+        # Process the single generator (similar to list comprehension)
+        if len(node.generators) != 1:
+            raise UnsupportedFeatureError("Multiple generators in set comprehensions not yet supported")
+
+        generator = node.generators[0]
+
+        # Extract loop variable and iterable
+        if not isinstance(generator.target, ast.Name):
+            raise UnsupportedFeatureError("Only simple loop variables supported in set comprehensions")
+
+        loop_var = generator.target.id
+
+        # Handle range-based iteration
+        if (isinstance(generator.iter, ast.Call) and
+            isinstance(generator.iter.func, ast.Name) and
+            generator.iter.func.id == "range"):
+
+            range_args = generator.iter.args
+            if len(range_args) == 1:
+                start = "0"
+                end = self._expression_to_string(self._convert_expression(range_args[0]))
+                step = "1"
+            elif len(range_args) == 2:
+                start = self._expression_to_string(self._convert_expression(range_args[0]))
+                end = self._expression_to_string(self._convert_expression(range_args[1]))
+                step = "1"
+            else:
+                raise UnsupportedFeatureError("Complex range() in set comprehensions not yet supported")
+
+            loop_code = f"for (int {loop_var} = {start}; {loop_var} < {end}; {loop_var} += {step}) {{\n"
+        else:
+            raise UnsupportedFeatureError("Non-range iterables in set comprehensions not yet supported")
+
+        # Handle conditions
+        condition_code = ""
+        close_condition = ""
+        if generator.ifs:
+            if len(generator.ifs) > 1:
+                raise UnsupportedFeatureError("Multiple conditions in set comprehensions not yet supported")
+
+            condition = generator.ifs[0]
+            condition_expr = self._expression_to_string(self._convert_expression(condition))
+            condition_code = f"    if ({condition_expr}) {{\n        "
+            close_condition = "    }\n"
+        else:
+            condition_code = "    "
+            close_condition = ""
+
+        # Convert the set element expression
+        expr = self._convert_expression(node.elt)
+        expr_str = self._expression_to_string(expr)
+
+        # Generate insert operation
+        insert_code = f"{result_container_type}_insert(&{temp_var}, {expr_str});\n"
+
+        # Combine all parts
+        full_code = init_code + "\n" + loop_code + condition_code + insert_code + close_condition + "}"
+
+        return ComprehensionElement(temp_var, full_code, result_container_type)
+
     def _generate_temp_var_name(self, base: str) -> str:
         """Generate a unique temporary variable name."""
         if not hasattr(self, '_temp_var_counter'):
             self._temp_var_counter = 0
         self._temp_var_counter += 1
         return f"{base}_{self._temp_var_counter}"
+
+    def _convert_set_literal(self, node: ast.Set) -> core.Element:
+        """Convert set literal to STC hset operations.
+
+        {1, 2, 3} becomes:
+        hset_int32 temp_set;
+        hset_int32_init(&temp_set);
+        hset_int32_insert(&temp_set, 1);
+        hset_int32_insert(&temp_set, 2);
+        hset_int32_insert(&temp_set, 3);
+        """
+        # Generate unique temporary variable name
+        temp_var = self._generate_temp_var_name("set_literal")
+
+        # Determine element type (simplified for now - assume int32)
+        # TODO: Infer from elements or context
+        element_type = "int32"
+        result_container_type = f"hset_{element_type}"
+
+        # Create initialization code
+        init_code = f"{result_container_type} {temp_var};\n"
+        init_code += f"{result_container_type}_init(&{temp_var});"
+
+        # Add elements to set
+        insert_code = ""
+        for element in node.elts:
+            element_expr = self._convert_expression(element)
+            element_str = self._expression_to_string(element_expr)
+            insert_code += f"\n{result_container_type}_insert(&{temp_var}, {element_str});"
+
+        # Combine all parts
+        full_code = init_code + insert_code
+
+        return ComprehensionElement(temp_var, full_code, result_container_type)
 
     def _convert_expression_statement(self, node: ast.Expr) -> core.Statement:
         """Convert expression statement (like standalone function call)."""
