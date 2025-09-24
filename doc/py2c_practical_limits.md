@@ -9,6 +9,7 @@ After thorough analysis and prototyping, Python-to-C conversion can realisticall
 ### ✅ Tier 1: Fundamental Support (Production Ready)
 
 #### Basic Types and Operations
+
 ```python
 # ✅ Fully supported
 def calculate(x: int, y: float, enabled: bool) -> float:
@@ -20,6 +21,7 @@ def calculate(x: int, y: float, enabled: bool) -> float:
 ```
 
 #### Structured Data Types
+
 ```python
 # ✅ Enums map directly to C enums
 from enum import Enum
@@ -44,6 +46,7 @@ class Point:
 ```
 
 #### Collections with Fixed Semantics
+
 ```python
 # ✅ Lists as arrays with size tracking
 def process_array(data: list[int], size: int) -> int:
@@ -60,6 +63,7 @@ def get_coordinates() -> tuple[int, int]:
 ### ✅ Tier 2: Advanced Static Features (Feasible)
 
 #### Union Types with Tagged Unions
+
 ```python
 from typing import Union
 
@@ -72,6 +76,7 @@ def process_value(data: Union[int, str]) -> str:
 ```
 
 **C Implementation:**
+
 ```c
 typedef enum { VALUE_INT, VALUE_STR } ValueTag;
 
@@ -98,6 +103,7 @@ char* process_value(Value data) {
 ```
 
 #### Optional Types
+
 ```python
 from typing import Optional
 
@@ -113,6 +119,7 @@ def find_max(data: list[int], size: int) -> Optional[int]:
 ```
 
 **C Implementation:**
+
 ```c
 typedef struct {
     bool has_value;
@@ -141,6 +148,7 @@ Optional_int find_max(int* data, size_t size) {
 ```
 
 #### Simple Generics (Monomorphization)
+
 ```python
 from typing import TypeVar, Generic
 
@@ -159,6 +167,7 @@ str_container: Container[str] = Container("hello")
 ```
 
 **C Implementation (Monomorphized):**
+
 ```c
 // Generated for Container[int]
 typedef struct {
@@ -182,6 +191,7 @@ char* Container_str_get(Container_str* self) {
 ### ⚠️ Tier 3: Complex but Achievable (Research Required)
 
 #### Pattern Matching
+
 ```python
 # Python 3.10+ pattern matching
 def classify_shape(shape: Union[Circle, Rectangle, Triangle]) -> str:
@@ -197,6 +207,7 @@ def classify_shape(shape: Union[Circle, Rectangle, Triangle]) -> str:
 ```
 
 #### Generator Functions (as State Machines)
+
 ```python
 def fibonacci_generator(n: int):
     a, b = 0, 1
@@ -206,6 +217,7 @@ def fibonacci_generator(n: int):
 ```
 
 **C Implementation:**
+
 ```c
 typedef struct {
     int a, b;
@@ -239,6 +251,7 @@ bool fibonacci_next(FibonacciState* state, int* result) {
 ### ❌ Tier 4: Fundamental Limitations
 
 #### Dynamic Type Introspection
+
 ```python
 # ❌ Cannot be converted statically
 def process_unknown(obj):
@@ -251,6 +264,7 @@ def process_unknown(obj):
 ```
 
 #### Runtime Code Generation
+
 ```python
 # ❌ Requires runtime evaluation
 def create_function(operation: str):
@@ -259,6 +273,7 @@ def create_function(operation: str):
 ```
 
 #### Duck Typing
+
 ```python
 # ❌ No static type information
 def quack_like_duck(obj):
@@ -269,21 +284,25 @@ def quack_like_duck(obj):
 ## Memory Management Strategies
 
 ### Strategy 1: Reference Counting (Automatic)
+
 - **Pros**: Automatic memory management, deterministic cleanup
 - **Cons**: Cannot handle cycles, overhead for every operation
 - **Best for**: Tree-like data structures, functional programming style
 
 ### Strategy 2: Arena Allocation (Regional)
+
 - **Pros**: Very fast allocation, automatic cleanup of regions
 - **Cons**: Cannot free individual objects, memory bloat
 - **Best for**: Request/response processing, temporary computations
 
 ### Strategy 3: Ownership Transfer (Rust-like)
+
 - **Pros**: Zero runtime overhead, memory safety
 - **Cons**: Complex static analysis, restrictive programming model
 - **Best for**: System programming, performance-critical code
 
 ### Strategy 4: Hybrid Approach
+
 ```python
 # Annotations guide memory management
 def process_data(
@@ -298,24 +317,28 @@ def process_data(
 ## Practical Implementation Roadmap
 
 ### Phase 1: Core Static Foundation (3-6 months)
+
 1. **Complete Basic Types**: Extend current implementation
 2. **Control Structures**: Add if/while/for support to cfile
 3. **Arrays and Strings**: Proper memory management
 4. **Function Calls**: Inter-function communication
 
 ### Phase 2: Structured Data (6-12 months)
+
 1. **Enum Support**: Direct mapping to C enums
 2. **DataClass Support**: Struct generation with methods
 3. **Tuple Support**: Anonymous structs
 4. **Basic Collections**: List, Dict with known size bounds
 
 ### Phase 3: Advanced Types (12-18 months)
+
 1. **Union Types**: Tagged unions implementation
 2. **Optional Types**: Maybe/Option pattern
 3. **Generic Monomorphization**: Template instantiation
 4. **Pattern Matching**: Switch statement generation
 
 ### Phase 4: Memory and Performance (18-24 months)
+
 1. **Memory Management**: Choose and implement strategy
 2. **Optimization**: Dead code elimination, inlining
 3. **Interop**: C library integration
@@ -324,6 +347,7 @@ def process_data(
 ## Real-World Applicability
 
 ### Suitable Applications (High Success Rate)
+
 - **Numerical Computing**: Scientific calculations, DSP
 - **Algorithms**: Sorting, searching, graph algorithms
 - **Data Processing**: ETL pipelines, log analysis
@@ -331,12 +355,14 @@ def process_data(
 - **Game Logic**: Turn-based games, simulation rules
 
 ### Challenging Applications (Medium Success Rate)
+
 - **Web Applications**: Limited by I/O and dynamic content
 - **GUIs**: Event-driven, dynamic layout requirements
 - **Machine Learning**: Depends on static vs dynamic model structure
 - **Network Programming**: Protocol parsing might work, high-level abstractions won't
 
 ### Unsuitable Applications (Low Success Rate)
+
 - **Metaprogramming**: Code generation, reflection
 - **Dynamic Configuration**: Runtime behavior changes
 - **Interactive Applications**: REPL, dynamic user input
@@ -345,16 +371,19 @@ def process_data(
 ## Performance Expectations
 
 ### Best Case Scenarios
+
 - **Numerical Loops**: 10-50x speedup over CPython
 - **Data Structures**: 5-20x speedup, much better memory usage
 - **Algorithm Implementation**: 20-100x speedup for compute-bound code
 
 ### Realistic Expectations
+
 - **Mixed Code**: 3-10x speedup overall
 - **I/O Bound**: Minimal speedup (I/O is still the bottleneck)
 - **String Processing**: 2-5x speedup (depends on memory allocation strategy)
 
 ### Overhead Considerations
+
 - **Memory Management**: 10-30% overhead for automatic management
 - **Type Checking**: Runtime checks for union types add 5-15% overhead
 - **Function Calls**: Possible 2-5% overhead compared to raw C
@@ -362,6 +391,7 @@ def process_data(
 ## Conclusion: The 80/20 Rule Applied
 
 **The 80% That Works:**
+
 - Functions with explicit types
 - Structured data (dataclasses, enums)
 - Algorithmic logic with known control flow
@@ -369,6 +399,7 @@ def process_data(
 - Data transformations with fixed schemas
 
 **The 20% That Doesn't:**
+
 - Dynamic type checking
 - Runtime code generation
 - Duck typing and protocols

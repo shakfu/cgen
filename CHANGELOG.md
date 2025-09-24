@@ -66,6 +66,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 ### Technical Implementation Details
 
 **String Operations Integration:**
+
 ```python
 # Python code
 text: str = "hello,world,python"
@@ -75,6 +76,7 @@ replaced: str = text.replace("world", "universe")
 ```
 
 **Generated C code:**
+
 ```c
 char* text = "hello,world,python";
 vec_cstr words = cgen_str_split(text, ",");
@@ -83,6 +85,7 @@ char* replaced = cgen_str_replace(text, "world", "universe");
 ```
 
 **Module Import Integration:**
+
 ```python
 # Python code
 import math
@@ -90,6 +93,7 @@ result: float = math.sqrt(16.0) + math.sin(3.14)
 ```
 
 **Generated C code:**
+
 ```c
 #include <math.h>
 double result = sqrt(16.0) + sin(3.14);
@@ -136,6 +140,7 @@ double result = sqrt(16.0) + sin(3.14);
 ### Generated Code Quality Examples
 
 **Before (concatenated and poorly formatted):**
+
 ```c
 declare_vec(vec_cstr, cstr);declare_hset(hset_int32, int32);declare_vec(vec_int32, int32);
 vec_int32 test_list_slicing(void)
@@ -149,6 +154,7 @@ subset_push(&subset, *numbers_at(&numbers, i))
 ```
 
 **After (properly formatted):**
+
 ```c
 declare_vec(vec_cstr, cstr);
 declare_hset(hset_int32, int32);
@@ -215,11 +221,14 @@ vec_int32 test_list_slicing(void)
 ### Generated Code Examples
 
 **Container Iteration:**
+
 ```python
 for num in numbers:
     total = total + num
 ```
+
 Generated C:
+
 ```c
 for (c_each(it, vec_int32, numbers)) {
     int num = *it.ref;
@@ -228,10 +237,13 @@ for (c_each(it, vec_int32, numbers)) {
 ```
 
 **List Slicing:**
+
 ```python
 subset: list[int] = numbers[1:3]
 ```
+
 Generated C:
+
 ```c
 vec_int32 subset = {0};
 for (size_t i = 1; i < 3 && i < numbers_size(&numbers); ++i) {
@@ -240,12 +252,15 @@ for (size_t i = 1; i < 3 && i < numbers_size(&numbers); ++i) {
 ```
 
 **String Operations:**
+
 ```python
 has_hello: bool = "Hello" in text
 upper_text: str = text.upper()
 index: int = text.find("World")
 ```
+
 Generated C:
+
 ```c
 bool has_hello = strstr(text, "Hello") != NULL;
 char* upper_text = cgen_str_upper(text);
@@ -292,12 +307,15 @@ int index = cgen_str_find(text, "World");
 #### Generated C Code Examples
 
 **Dictionary Operations:**
+
 ```python
 scores: dict[str, int] = {}
 scores["Alice"] = 95
 alice_score: int = scores["Alice"]
 ```
+
 Generated C:
+
 ```c
 hmap_cstr_int32 scores = {0};
 scores_insert(&scores, "Alice", 95);
@@ -305,12 +323,15 @@ int alice_score = *scores_at(&scores, "Alice");
 ```
 
 **Set Operations:**
+
 ```python
 unique_nums: set[int] = set()
 unique_nums.add(42)
 has_42: bool = 42 in unique_nums
 ```
+
 Generated C:
+
 ```c
 hset_int32 unique_nums = {0};
 unique_nums_insert(&unique_nums, 42);
@@ -318,12 +339,15 @@ bool has_42 = unique_nums_contains(&unique_nums, 42);
 ```
 
 **List Element Access:**
+
 ```python
 numbers: list[int] = [10, 20, 30]
 first: int = numbers[0]
 numbers[1] = 25
 ```
+
 Generated C:
+
 ```c
 vec_int32 numbers = {0};
 numbers_push(&numbers, 10); numbers_push(&numbers, 20); numbers_push(&numbers, 30);

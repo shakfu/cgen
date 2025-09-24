@@ -4,13 +4,13 @@
 
 You've identified a transformative insight that completely reframes the Python-to-C conversion problem. Instead of just two layers:
 
-```
+```text
 Layer 1: Static Python (constrained)  →  Layer 2: C (static)
 ```
 
 We now have three layers:
 
-```
+```text
 Layer 1: Static Python (input, constrained)
     ↓
 Layer 2: Python Code Generator (unconstrained, full Python power)
@@ -23,6 +23,7 @@ Layer 3: Generated C (output, optimized)
 ### What This Layer Can Do
 
 At **code-generation-time**, we have access to:
+
 - Full Python ecosystem and libraries
 - Unlimited computational power
 - Complete program analysis
@@ -38,6 +39,7 @@ This is essentially **"Python metaprogramming for C generation"** - we can use a
 ### 1. **Compile-Time Computation and Constant Folding**
 
 **Input (Static Python):**
+
 ```python
 @compile_time_optimize
 def fibonacci(n: int) -> int:
@@ -53,6 +55,7 @@ def process_data():
 ```
 
 **Generated C:**
+
 ```c
 int process_data() {
     // Computed at code-generation time!
@@ -65,6 +68,7 @@ int process_data() {
 ### 2. **Loop Unrolling and Specialization**
 
 **Input:**
+
 ```python
 @unroll_loops
 def matrix_multiply_3x3(a: Matrix3x3, b: Matrix3x3) -> Matrix3x3:
@@ -77,6 +81,7 @@ def matrix_multiply_3x3(a: Matrix3x3, b: Matrix3x3) -> Matrix3x3:
 ```
 
 **Generated C:**
+
 ```c
 Matrix3x3 matrix_multiply_3x3(Matrix3x3 a, Matrix3x3 b) {
     Matrix3x3 result = {0};
@@ -93,6 +98,7 @@ Matrix3x3 matrix_multiply_3x3(Matrix3x3 a, Matrix3x3 b) {
 ### 3. **Template Metaprogramming and Code Specialization**
 
 **Input:**
+
 ```python
 @specialize_for_types(int, float, double)
 def generic_sort(data: list[T], size: int) -> None:
@@ -104,6 +110,7 @@ def generic_sort(data: list[T], size: int) -> None:
 ```
 
 **Code Generator Creates:**
+
 ```c
 // Three specialized versions generated automatically
 void sort_int(int* data, size_t size) { /* optimized for int */ }
@@ -116,6 +123,7 @@ void sort_double(double* data, size_t size) { /* optimized for double */ }
 ### 4. **Data Structure Layout Optimization**
 
 **Input:**
+
 ```python
 @optimize_layout
 @dataclass
@@ -131,12 +139,14 @@ class ParticleSystem:
 ```
 
 **Code Generator Analysis:**
+
 - Detects Array-of-Structs vs Struct-of-Arrays patterns
 - Analyzes memory access patterns from usage
 - Considers cache line optimization
 - May even run benchmarks on target architecture
 
 **Generated C (Structure-of-Arrays for better vectorization):**
+
 ```c
 typedef struct {
     float* position_x;
@@ -167,6 +177,7 @@ void update_positions_vectorized(ParticleSystem* ps, float dt) {
 ### 5. **Machine Learning-Driven Optimization**
 
 **Code Generator with ML Models:**
+
 ```python
 class MLOptimizedCodeGen:
     def __init__(self):
@@ -191,6 +202,7 @@ class MLOptimizedCodeGen:
 ### 6. **Symbolic Execution and Proving**
 
 **Input:**
+
 ```python
 @prove_bounds_safety
 def array_process(data: list[int], size: int) -> int:
@@ -201,6 +213,7 @@ def array_process(data: list[int], size: int) -> int:
 ```
 
 **Code Generator:**
+
 ```python
 def analyze_bounds_safety(function_ast):
     """Use symbolic execution to prove bounds safety."""
@@ -223,6 +236,7 @@ def analyze_bounds_safety(function_ast):
 ```
 
 **Generated C (with proven safety):**
+
 ```c
 // Bounds checking eliminated by proof!
 int array_process(int* data, size_t size) {
@@ -238,6 +252,7 @@ int array_process(int* data, size_t size) {
 ### 7. **Database-Driven Code Generation**
 
 **Input:**
+
 ```python
 @database_optimized
 class UserQuery:
@@ -247,6 +262,7 @@ class UserQuery:
 ```
 
 **Code Generator:**
+
 ```python
 def generate_optimized_query(query_description, target_db="postgresql"):
     # Analyze database schema at code-gen time
@@ -268,6 +284,7 @@ def generate_optimized_query(query_description, target_db="postgresql"):
 ### 8. **Protocol Buffer and Schema Evolution**
 
 **Input:**
+
 ```python
 @protocol_optimized
 @dataclass
@@ -282,6 +299,7 @@ class NetworkMessage:
 ```
 
 **Code Generator:**
+
 ```python
 def generate_protocol_code(message_class, versions):
     """Generate backward-compatible serialization code."""
@@ -299,6 +317,7 @@ def generate_protocol_code(message_class, versions):
 ```
 
 **Generated C:**
+
 ```c
 // Multiple versions generated automatically
 typedef struct {
@@ -448,12 +467,13 @@ This three-layer architecture means we can:
 
 ## The New Paradigm
 
-```
+```text
 Traditional: Source Code → Compiler → Binary
 Our Approach: Static Python → Smart Python Generator → Optimized C → C Compiler → Binary
 ```
 
 The **Smart Python Generator** is where the magic happens - it's unconstrained Python analyzing constrained Python to produce optimal C. This layer can:
+
 - Run machine learning models
 - Access databases and web APIs
 - Perform complex mathematical analysis
