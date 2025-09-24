@@ -48,6 +48,187 @@ class TypeMappingError(Exception):
     pass
 
 
+class FunctionCallConverter:
+    """Handles conversion of Python function calls to C function calls."""
+
+    def __init__(self, converter):
+        """Initialize with reference to main PythonToCConverter."""
+        from ..common import log
+        self.log = log.config(self.__class__.__name__)
+        self.converter = converter
+        # Provide easy access to converter's attributes
+        self.defined_structs = converter.defined_structs
+        self.container_variables = converter.container_variables
+        self.variable_context = converter.variable_context
+        self.import_handler = converter.import_handler
+        self.c_factory = converter.c_factory
+        if hasattr(converter, 'struct_types'):
+            self.struct_types = converter.struct_types
+        else:
+            self.struct_types = {}
+
+    def convert(self, node: ast.Call) -> core.Element:
+        """Main entry point for function call conversion."""
+        if isinstance(node.func, ast.Name):
+            return self._convert_function_by_name(node)
+        elif isinstance(node.func, ast.Attribute):
+            return self._convert_method_call(node)
+        else:
+            raise UnsupportedFeatureError("Only simple function calls and method calls supported")
+
+    def _convert_function_by_name(self, node: ast.Call) -> core.Element:
+        """Convert function calls by name (e.g., len(), set(), MyClass())."""
+        func_name = node.func.id
+
+        # Handle struct constructor calls
+        if func_name in self.defined_structs:
+            return self._convert_constructor_call(func_name, node.args)
+
+        # Handle built-in functions
+        if func_name in ["set", "len"]:
+            return self._convert_builtin_call(func_name, node)
+
+        # Handle imported/module functions
+        c_func_name, is_stdlib = self.import_handler.resolve_function_call(func_name)
+        args = [self.converter._convert_expression(arg) for arg in node.args]
+        return self.c_factory.func_call(c_func_name, args)
+
+    def _convert_constructor_call(self, func_name: str, args: List[ast.expr]) -> core.Element:
+        """Convert struct constructor calls."""
+        converted_args = [self.converter._convert_expression(arg) for arg in args]
+        args_str = ', '.join(self.converter._expression_to_string(arg) for arg in converted_args)
+
+        # Check if this is a dataclass or namedtuple
+        if func_name in self.struct_types:
+            if self.struct_types[func_name] == 'dataclass':
+                # Use constructor function for dataclasses
+                constructor_name = f"make_{func_name}"
+                return core.RawCode(f"{constructor_name}({args_str})")
+            else:
+                # Use struct literal for namedtuples
+                return core.RawCode(f"({func_name}){{{args_str}}}")
+        else:
+            # Default to constructor function
+            constructor_name = f"make_{func_name}"
+            return core.RawCode(f"{constructor_name}({args_str})")
+
+    def _convert_builtin_call(self, func_name: str, node: ast.Call) -> core.Element:
+        """Convert built-in function calls like len(), set()."""
+        if func_name == "set":
+            # Handle set() constructor for empty sets
+            if len(node.args) == 0:
+                # Return a placeholder that will be handled by assignment
+                return core.RawCode("{0}")
+            else:
+                raise UnsupportedFeatureError("set() with arguments not supported yet")
+
+        elif func_name == "len":
+            if len(node.args) != 1:
+                raise UnsupportedFeatureError("len() requires exactly one argument")
+
+            arg = node.args[0]
+            if isinstance(arg, ast.Name) and arg.id in self.container_variables:
+                return self._convert_len_for_container(arg.id)
+            else:
+                # Not a container, treat as regular function call
+                args = [self.converter._convert_expression(arg) for arg in node.args]
+                return self.c_factory.func_call(func_name, args)
+
+    def _convert_len_for_container(self, container_name: str) -> core.Element:
+        """Convert len() call for STC containers."""
+        container_info = self.container_variables[container_name]
+        container_type = container_info['container_type']
+
+        if container_type == "list":
+            operation_code = stc_operation_mapper.map_list_operation(container_name, "len")
+        elif container_type == "dict":
+            operation_code = stc_operation_mapper.map_dict_operation(container_name, "len")
+        elif container_type == "set":
+            operation_code = stc_operation_mapper.map_set_operation(container_name, "len")
+        else:
+            raise UnsupportedFeatureError(f"len() not supported for {container_type}")
+
+        return STCOperationElement(operation_code)
+
+    def _convert_method_call(self, node: ast.Call) -> core.Element:
+        """Convert method calls (e.g., obj.method())."""
+        if not isinstance(node.func.value, ast.Name):
+            raise UnsupportedFeatureError("Complex method calls not supported")
+
+        obj_name = node.func.value.id
+        method_name = node.func.attr
+
+        # Check if this is a container method call
+        if obj_name in self.container_variables:
+            return self._convert_container_method(obj_name, method_name, node.args)
+
+        # Check if this is a string method call
+        elif obj_name in self.variable_context:
+            variable = self.variable_context[obj_name]
+            if self._is_string_variable(variable):
+                return self.converter._convert_string_method(obj_name, method_name, node.args)
+
+        # Handle module function calls (module.function())
+        c_func_name, is_stdlib = self.import_handler.resolve_module_function_call(obj_name, method_name)
+        args = [self.converter._convert_expression(arg) for arg in node.args]
+        return self.c_factory.func_call(c_func_name, args)
+
+    def _convert_container_method(self, obj_name: str, method_name: str, args: List[ast.expr]) -> core.Element:
+        """Convert container method calls (list.append, set.add, etc.)."""
+        container_info = self.container_variables[obj_name]
+        container_type = container_info['container_type']
+
+        if container_type == "list":
+            return self._convert_list_method(obj_name, method_name, args)
+        elif container_type == "set":
+            return self._convert_set_method(obj_name, method_name, args)
+        elif container_type == "dict":
+            raise UnsupportedFeatureError(f"Dict method {method_name} not implemented yet")
+        else:
+            raise UnsupportedFeatureError(f"Unsupported container method: {container_type}.{method_name}")
+
+    def _convert_list_method(self, obj_name: str, method_name: str, args: List[ast.expr]) -> core.Element:
+        """Convert list method calls."""
+        if method_name == "append":
+            if len(args) != 1:
+                raise UnsupportedFeatureError("list.append() requires exactly one argument")
+            arg_str = self._convert_arg_to_string(args[0])
+            operation_code = stc_operation_mapper.map_list_operation(obj_name, "append", arg_str)
+            return STCOperationElement(operation_code)
+        else:
+            raise UnsupportedFeatureError(f"Unsupported list method: {method_name}")
+
+    def _convert_set_method(self, obj_name: str, method_name: str, args: List[ast.expr]) -> core.Element:
+        """Convert set method calls."""
+        if method_name in ["add", "remove", "discard"]:
+            if len(args) != 1:
+                raise UnsupportedFeatureError(f"set.{method_name}() requires exactly one argument")
+            arg_str = self._convert_arg_to_string(args[0])
+            operation_code = stc_operation_mapper.map_set_operation(obj_name, method_name, arg_str)
+            return STCOperationElement(operation_code)
+        else:
+            raise UnsupportedFeatureError(f"Unsupported set method: {method_name}")
+
+    def _convert_arg_to_string(self, arg: ast.expr) -> str:
+        """Convert argument to string representation for STC operations."""
+        converted_arg = self.converter._convert_expression(arg)
+        if isinstance(converted_arg, core.Element):
+            from .writer import Writer
+            from .style import StyleOptions
+            temp_writer = Writer(StyleOptions())
+            return temp_writer.write_str_elem(converted_arg)
+        else:
+            return str(converted_arg)
+
+    def _is_string_variable(self, variable) -> bool:
+        """Check if variable is a string type."""
+        return (
+            (hasattr(variable.data_type, 'base_type') and variable.data_type.base_type == "char*") or
+            (isinstance(variable.data_type, str) and variable.data_type == "char*") or
+            str(variable.data_type) == "char*"
+        )
+
+
 class PythonToCConverter:
     """Converts type-annotated Python code to C code using cfile."""
 
@@ -122,6 +303,19 @@ class PythonToCConverter:
 
         # Second pass - convert all statements
         for node in module.body:
+            # Skip module-level docstrings (string constants at module level)
+            if (
+                isinstance(node, ast.Expr)
+                and isinstance(node.value, ast.Constant)
+                and isinstance(node.value.value, str)
+            ):
+                # Convert docstring to C comment instead of invalid string literal
+                docstring = node.value.value
+                if docstring.strip():
+                    comment = self.c_factory.line_comment(f" {docstring.strip()}")
+                    sequence.append(comment)
+                continue
+
             c_element = self._convert_statement(node)
             if c_element:
                 if isinstance(c_element, list):
@@ -948,161 +1142,8 @@ class PythonToCConverter:
 
     def _convert_function_call(self, node: ast.Call) -> core.Element:
         """Convert function call to C function call."""
-        if isinstance(node.func, ast.Name):
-            func_name = node.func.id
-
-            # Handle struct constructor calls
-            if func_name in self.defined_structs:
-                args = [self._convert_expression(arg) for arg in node.args]
-                args_str = ', '.join(self._expression_to_string(arg) for arg in args)
-
-                # Check if this is a dataclass or namedtuple
-                if hasattr(self, 'struct_types') and func_name in self.struct_types:
-                    if self.struct_types[func_name] == 'dataclass':
-                        # Use constructor function for dataclasses
-                        constructor_name = f"make_{func_name}"
-                        return core.RawCode(f"{constructor_name}({args_str})")
-                    else:
-                        # Use struct literal for namedtuples
-                        return core.RawCode(f"({func_name}){{{args_str}}}")
-                else:
-                    # Default to constructor function
-                    constructor_name = f"make_{func_name}"
-                    return core.RawCode(f"{constructor_name}({args_str})")
-
-            # Handle built-in functions that work on containers
-            if func_name == "set":
-                # Handle set() constructor for empty sets
-                if len(node.args) == 0:
-                    # Return a placeholder that will be handled by assignment
-                    return core.RawCode("{0}")
-                else:
-                    raise UnsupportedFeatureError("set() with arguments not supported yet")
-            elif func_name == "len":
-                if len(node.args) != 1:
-                    raise UnsupportedFeatureError("len() requires exactly one argument")
-
-                arg = node.args[0]
-                if isinstance(arg, ast.Name) and arg.id in self.container_variables:
-                    container_name = arg.id
-                    container_info = self.container_variables[container_name]
-                    container_type = container_info['container_type']
-
-                    if container_type == "list":
-                        operation_code = stc_operation_mapper.map_list_operation(container_name, "len")
-                        return STCOperationElement(operation_code)
-                    elif container_type == "dict":
-                        operation_code = stc_operation_mapper.map_dict_operation(container_name, "len")
-                        return STCOperationElement(operation_code)
-                    elif container_type == "set":
-                        operation_code = stc_operation_mapper.map_set_operation(container_name, "len")
-                        return STCOperationElement(operation_code)
-                    else:
-                        raise UnsupportedFeatureError(f"len() not supported for {container_type}")
-                else:
-                    # Not a container, treat as regular function call
-                    args = [self._convert_expression(arg) for arg in node.args]
-                    return self.c_factory.func_call(func_name, args)
-            else:
-                # Check if this is an imported function
-                c_func_name, is_stdlib = self.import_handler.resolve_function_call(func_name)
-                args = [self._convert_expression(arg) for arg in node.args]
-                return self.c_factory.func_call(c_func_name, args)
-        elif isinstance(node.func, ast.Attribute):
-            # Handle method calls (e.g., list.append, dict.get)
-            if isinstance(node.func.value, ast.Name):
-                obj_name = node.func.value.id
-                method_name = node.func.attr
-
-                # Check if this is a container method call
-                if obj_name in self.container_variables:
-                    container_info = self.container_variables[obj_name]
-                    container_type = container_info['container_type']
-
-                    if container_type == "list":
-                        if method_name == "append":
-                            if len(node.args) != 1:
-                                raise UnsupportedFeatureError("list.append() requires exactly one argument")
-                            arg = self._convert_expression(node.args[0])
-                            # Convert to string for STC operation
-                            if isinstance(arg, core.Element):
-                                temp_writer = Writer()
-                                arg_str = temp_writer.write_str_elem(arg)
-                            else:
-                                arg_str = str(arg)
-                            operation_code = stc_operation_mapper.map_list_operation(obj_name, "append", arg_str)
-                            return STCOperationElement(operation_code)
-                        else:
-                            raise UnsupportedFeatureError(f"Unsupported list method: {method_name}")
-
-                    elif container_type == "dict":
-                        # Handle dict methods like get, set, etc.
-                        raise UnsupportedFeatureError(f"Dict method {method_name} not implemented yet")
-
-                    elif container_type == "set":
-                        if method_name == "add":
-                            if len(node.args) != 1:
-                                raise UnsupportedFeatureError("set.add() requires exactly one argument")
-                            arg = self._convert_expression(node.args[0])
-                            # Convert to string for STC operation
-                            if isinstance(arg, core.Element):
-                                temp_writer = Writer(StyleOptions())
-                                arg_str = temp_writer.write_str_elem(arg)
-                            else:
-                                arg_str = str(arg)
-                            operation_code = stc_operation_mapper.map_set_operation(obj_name, "add", arg_str)
-                            return STCOperationElement(operation_code)
-                        elif method_name == "remove":
-                            if len(node.args) != 1:
-                                raise UnsupportedFeatureError("set.remove() requires exactly one argument")
-                            arg = self._convert_expression(node.args[0])
-                            if isinstance(arg, core.Element):
-                                temp_writer = Writer(StyleOptions())
-                                arg_str = temp_writer.write_str_elem(arg)
-                            else:
-                                arg_str = str(arg)
-                            operation_code = stc_operation_mapper.map_set_operation(obj_name, "remove", arg_str)
-                            return STCOperationElement(operation_code)
-                        elif method_name == "discard":
-                            if len(node.args) != 1:
-                                raise UnsupportedFeatureError("set.discard() requires exactly one argument")
-                            arg = self._convert_expression(node.args[0])
-                            if isinstance(arg, core.Element):
-                                temp_writer = Writer(StyleOptions())
-                                arg_str = temp_writer.write_str_elem(arg)
-                            else:
-                                arg_str = str(arg)
-                            operation_code = stc_operation_mapper.map_set_operation(obj_name, "discard", arg_str)
-                            return STCOperationElement(operation_code)
-                        else:
-                            raise UnsupportedFeatureError(f"Unsupported set method: {method_name}")
-
-                    else:
-                        raise UnsupportedFeatureError(f"Unsupported container method: {container_type}.{method_name}")
-                elif obj_name in self.variable_context:
-                    # Check if this is a string method call
-                    variable = self.variable_context[obj_name]
-                    is_string = (
-                        (hasattr(variable.data_type, 'base_type') and variable.data_type.base_type == "char*") or
-                        (isinstance(variable.data_type, str) and variable.data_type == "char*") or
-                        str(variable.data_type) == "char*"
-                    )
-                    if is_string:
-                        return self._convert_string_method(obj_name, method_name, node.args)
-                    else:
-                        # Check if this is a module function call (module.function())
-                        c_func_name, is_stdlib = self.import_handler.resolve_module_function_call(obj_name, method_name)
-                        args = [self._convert_expression(arg) for arg in node.args]
-                        return self.c_factory.func_call(c_func_name, args)
-                else:
-                    # Check if this is a module function call (module.function())
-                    c_func_name, is_stdlib = self.import_handler.resolve_module_function_call(obj_name, method_name)
-                    args = [self._convert_expression(arg) for arg in node.args]
-                    return self.c_factory.func_call(c_func_name, args)
-            else:
-                raise UnsupportedFeatureError("Complex method calls not supported")
-        else:
-            raise UnsupportedFeatureError("Only simple function calls and method calls supported")
+        converter = FunctionCallConverter(self)
+        return converter.convert(node)
 
     def _convert_string_method(self, obj_name: str, method_name: str, args: List[ast.expr]) -> core.Element:
         """Convert string method calls to C equivalents."""
@@ -1551,7 +1592,7 @@ class PythonToCConverter:
             else:
                 raise UnsupportedFeatureError("Complex range() in dict comprehensions not yet supported")
 
-            loop_code = f"for (int {loop_var} = {start}; {loop_var} < {end}; {loop_var} += {step}) {{\n"
+            loop_code = f"    for (int {loop_var} = {start}; {loop_var} < {end}; {loop_var} += {step}) {{\n"
         else:
             raise UnsupportedFeatureError("Non-range iterables in dict comprehensions not yet supported")
 

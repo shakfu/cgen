@@ -585,10 +585,14 @@ class Writer(Formatter):
             else:
                 self._write_ending_brace()
 
-    def _write_starting_brace(self) -> None:
-        handled = False
+    def _write_brace_before_block(self, after_control_statement: bool = False) -> None:
+        """Write opening brace with proper indentation based on style and context.
+
+        Args:
+            after_control_statement: True if this follows a control statement (if, while, for, etc.)
+        """
         if self.last_element == ElementType.FUNCTION_DECLARATION:
-            handled = True
+            # Special handling for function braces
             if self.style.brace_wrapping.after_function:
                 self._eol()
                 self._start_line()
@@ -597,9 +601,23 @@ class Writer(Formatter):
             else:
                 self._write(" {")
                 self._eol()
-        if not handled:
+        elif after_control_statement:
+            # Control statements (if, while, for) - respect break_before_braces style
+            if self.style.break_before_braces == BreakBeforeBraces.ATTACH:
+                self._write(" {")
+            else:
+                self._eol()
+                self._start_line()
+                self._write("{")
+            self._eol()
+        else:
+            # Regular blocks - maintain original behavior (no extra newline)
             self._write("{")
             self._eol()
+
+    def _write_starting_brace(self) -> None:
+        """Legacy method - use _write_brace_before_block instead."""
+        self._write_brace_before_block(after_control_statement=False)
 
     def _write_ending_brace(self) -> None:
         self._start_line()
@@ -615,7 +633,29 @@ class Writer(Formatter):
                 self._write_expression(part)
         else:
             self._write_expression(elem.parts[0])
-        self._write(";")
+
+        # Don't add semicolon for certain complex statements that already handle their own punctuation
+        # Check if any part is a ComprehensionElement, ForLoop, IfStatement, WhileLoop, etc.
+        needs_semicolon = True
+        for part in elem.parts:
+            if hasattr(part, '__class__'):
+                class_name = part.__class__.__name__
+                if class_name in ['ComprehensionElement', 'ForLoop', 'IfStatement', 'WhileLoop',
+                                'DoWhileLoop', 'SwitchStatement', 'STCForEachElement']:
+                    needs_semicolon = False
+                    break
+                # Also check for STCOperationElement that contains complete assignment statements
+                elif class_name == 'STCOperationElement':
+                    # Check if operation_code contains an assignment (=) - these are complete statements
+                    if hasattr(part, 'operation_code'):
+                        op_code = str(part.operation_code)
+                        if ' = ' in op_code and op_code.strip().endswith('}'):
+                            # This looks like a complete assignment like "var = {0}"
+                            needs_semicolon = False
+                            break
+
+        if needs_semicolon:
+            self._write(";")
         self.last_element = ElementType.STATEMENT
 
     def _write_expression(self, elem: Any) -> None:
@@ -669,7 +709,10 @@ class Writer(Formatter):
     def _write_stc_operation(self, elem) -> None:
         """Write STC operation call."""
         # elem should be STCOperationElement
-        self._write(elem.operation_code)
+        operation_str = str(elem.operation_code)
+        self._write(operation_str)
+        # Ensure proper formatting: if it's a complete assignment, don't let statement wrapper add semicolon
+        self.last_element = ElementType.STATEMENT
 
     def _write_stc_foreach(self, elem) -> None:
         """Write STC foreach loop."""
@@ -741,10 +784,13 @@ class Writer(Formatter):
 
         for i, line in enumerate(lines):
             if line.strip():  # Skip empty lines
+                clean_line = line.strip()
+
                 if i > 0:  # Start new line for all lines except the first
                     self._eol()
                     self._start_line()
-                self._write(line.strip())
+
+                self._write(clean_line)
 
         # Don't add final _eol() here - let the statement handler manage it
         self.last_element = ElementType.STATEMENT
@@ -838,40 +884,37 @@ class Writer(Formatter):
             self._write_element(elem.condition)
         self._write(")")
 
-        # Handle brace style
-        if self.style.break_before_braces == BreakBeforeBraces.ATTACH:
-            self._write(" ")
-        else:
-            self._eol()
-
-        # Write then block
+        # Write then block with proper brace handling
         if isinstance(elem.then_block, core.Block):
-            self._write_block(elem.then_block)
+            self._write_brace_before_block(after_control_statement=True)
+            if len(elem.then_block.elements):
+                self._indent()
+                self._write_sequence(elem.then_block)
+                self._dedent()
+            self._write_ending_brace()
         else:
-            self._write("{")
-            self._eol()
+            self._write_brace_before_block(after_control_statement=True)
             self._indent()
             self._write_element(elem.then_block)
             self._dedent()
-            self._write_line("}")
+            self._write_ending_brace()
 
         # Write else block if present
         if elem.else_block is not None:
             self._write(" else")
-            if self.style.break_before_braces == BreakBeforeBraces.ATTACH:
-                self._write(" ")
-            else:
-                self._eol()
-
             if isinstance(elem.else_block, core.Block):
-                self._write_block(elem.else_block)
+                self._write_brace_before_block(after_control_statement=True)
+                if len(elem.else_block.elements):
+                    self._indent()
+                    self._write_sequence(elem.else_block)
+                    self._dedent()
+                self._write_ending_brace()
             else:
-                self._write("{")
-                self._eol()
+                self._write_brace_before_block(after_control_statement=True)
                 self._indent()
                 self._write_element(elem.else_block)
                 self._dedent()
-                self._write_line("}")
+                self._write_ending_brace()
 
         self.last_element = ElementType.STATEMENT
 
@@ -885,23 +928,20 @@ class Writer(Formatter):
             self._write_element(elem.condition)
         self._write(")")
 
-        # Handle brace style
-        if self.style.break_before_braces == BreakBeforeBraces.ATTACH:
-            self._write(" ")
-        else:
-            self._eol()
-
-        # Write body
+        # Write body with proper brace handling
         if isinstance(elem.body, core.Block):
-            self._write_block(elem.body)
+            self._write_brace_before_block(after_control_statement=True)
+            if len(elem.body.elements):
+                self._indent()
+                self._write_sequence(elem.body)
+                self._dedent()
+            self._write_ending_brace()
         else:
-            self._write("{")
-            self._eol()
+            self._write_brace_before_block(after_control_statement=True)
             self._indent()
             self._write_element(elem.body)
             self._dedent()
-            self._write_line("}")
-
+            self._write_ending_brace()
         self.last_element = ElementType.STATEMENT
 
     def _write_for_loop(self, elem: core.ForLoop) -> None:
@@ -934,23 +974,20 @@ class Writer(Formatter):
 
         self._write(")")
 
-        # Handle brace style
-        if self.style.break_before_braces == BreakBeforeBraces.ATTACH:
-            self._write(" ")
-        else:
-            self._eol()
-
-        # Write body
+        # Write body with proper brace handling
         if isinstance(elem.body, core.Block):
-            self._write_block(elem.body)
+            self._write_brace_before_block(after_control_statement=True)
+            if len(elem.body.elements):
+                self._indent()
+                self._write_sequence(elem.body)
+                self._dedent()
+            self._write_ending_brace()
         else:
-            self._write("{")
-            self._eol()
+            self._write_brace_before_block(after_control_statement=True)
             self._indent()
             self._write_element(elem.body)
             self._dedent()
-            self._write_line("}")
-
+            self._write_ending_brace()
         self.last_element = ElementType.STATEMENT
 
 
@@ -1699,6 +1736,7 @@ class Writer(Formatter):
 
     def _write_stc_operation(self, elem) -> None:
         """Write STC operation element."""
-        self._write(elem.operation_code)
+        operation_str = str(elem.operation_code)
+        self._write(operation_str)
         self.last_element = ElementType.STATEMENT
 

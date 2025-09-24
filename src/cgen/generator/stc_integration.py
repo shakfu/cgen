@@ -13,6 +13,8 @@ class STCTypeMapper:
     """Maps Python container types to STC container types."""
 
     def __init__(self):
+        from ..common import log
+        self.log = log.config(self.__class__.__name__)
         self.type_mappings = {
             # Basic type mappings for STC
             "int": "int32_t",
@@ -55,6 +57,8 @@ class STCDeclarationGenerator:
     """Generates STC container declarations."""
 
     def __init__(self, type_mapper: STCTypeMapper):
+        from ..common import log
+        self.log = log.config(self.__class__.__name__)
         self.type_mapper = type_mapper
 
     def generate_includes(self) -> List[core.Element]:
@@ -108,6 +112,8 @@ class STCOperationMapper:
     """Maps Python container operations to STC operations."""
 
     def __init__(self, type_mapper: STCTypeMapper):
+        from ..common import log
+        self.log = log.config(self.__class__.__name__)
         self.type_mapper = type_mapper
 
     def map_list_operation(self, container_name: str, operation: str, *args) -> str:
