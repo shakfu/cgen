@@ -1291,3 +1291,16 @@ class VariadicMacro(Directive):
         self.fixed_params = fixed_params
         self.replacement = replacement
 
+
+class ComprehensionElement(Element):
+    """Element representing a list/dict comprehension converted to C loops.
+
+    This element contains the temporary variable name, the initialization/loop code,
+    and type information for proper code generation.
+    """
+
+    def __init__(self, temp_var: str, full_code: str, container_type: str) -> None:
+        self.temp_var = temp_var
+        self.full_code = full_code
+        self.container_type = container_type
+

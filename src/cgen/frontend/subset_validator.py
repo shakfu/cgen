@@ -375,10 +375,10 @@ class StaticPythonSubsetValidator:
 
         rules["comprehensions"] = FeatureRule(
             name="Comprehensions",
-            tier=SubsetTier.TIER_4_UNSUPPORTED,
-            status=FeatureStatus.NOT_SUPPORTED,
-            description="List/dict comprehensions are complex for static conversion",
-            ast_nodes=[ast.ListComp, ast.DictComp, ast.SetComp, ast.GeneratorExp],
+            tier=SubsetTier.TIER_3_ADVANCED,
+            status=FeatureStatus.FULLY_SUPPORTED,
+            description="List and dict comprehensions converted to C loops with STC containers",
+            ast_nodes=[ast.ListComp, ast.DictComp],
         )
 
         rules["lambda_functions"] = FeatureRule(

@@ -195,8 +195,8 @@ def int(x: int) -> int:  # 'int' is a C keyword
     def test_unsupported_features(self):
         """Test detection of unsupported Python features."""
         code = '''
-def use_comprehension():
-    return [x*2 for x in range(10)]  # List comprehension
+def use_generator():
+    return (x*2 for x in range(10))  # Generator expression
 '''
         checker = StaticConstraintChecker()
         report = checker.check_code(code)

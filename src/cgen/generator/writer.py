@@ -190,6 +190,7 @@ class Writer(Formatter):
             "STCOperationElement": self._write_stc_operation,
             "STCForEachElement": self._write_stc_foreach,
             "STCSliceElement": self._write_stc_slice,
+            "ComprehensionElement": self._write_comprehension,
         }
         self.last_element = ElementType.NONE
 
@@ -731,7 +732,21 @@ class Writer(Formatter):
         # Start new line for the closing brace with proper indentation
         self._start_line()
         self._write("}")
-        # Don't add _eol() here - let the statement handler manage it
+
+    def _write_comprehension(self, elem) -> None:
+        """Write comprehension as multi-line C loop code."""
+        # elem should be ComprehensionElement
+        # Split the full_code into lines and write each with proper indentation
+        lines = elem.full_code.strip().split('\n')
+
+        for i, line in enumerate(lines):
+            if line.strip():  # Skip empty lines
+                if i > 0:  # Start new line for all lines except the first
+                    self._eol()
+                    self._start_line()
+                self._write(line.strip())
+
+        # Don't add final _eol() here - let the statement handler manage it
         self.last_element = ElementType.STATEMENT
 
     def _write_struct_usage(self, elem: core.Struct) -> None:

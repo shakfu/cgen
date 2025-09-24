@@ -25,7 +25,7 @@ from typing import Any, Dict, List, Optional, Union
 
 from . import core
 from .factory import CFactory
-from .core import BinaryExpression, UnaryExpression
+from .core import BinaryExpression, UnaryExpression, ComprehensionElement
 from .stc_integration import (
     analyze_container_type, stc_type_mapper, stc_declaration_generator,
     stc_operation_mapper, STCContainerElement, STCOperationElement, STCForEachElement, STCSliceElement
@@ -530,6 +530,23 @@ class PythonToCConverter:
                         decl_stmt = self.c_factory.statement(self.c_factory.declaration(variable))
                         slice_stmt = self.c_factory.statement(value_expr)
                         return [decl_stmt, slice_stmt]
+                    # Check if this is a comprehension
+                    elif isinstance(value_expr, ComprehensionElement):
+                        # Handle comprehension assignment: result: list[int] = [x * 2 for x in range(5)]
+                        decl_stmt = self.c_factory.statement(self.c_factory.declaration(variable))
+
+                        # Replace the temporary variable with our actual variable
+                        # Remove the temporary variable declaration from the comprehension code
+                        comp_code = value_expr.full_code
+                        # Remove the temp var declaration line
+                        lines = comp_code.split('\n')
+                        lines = [line for line in lines if not (value_expr.temp_var in line and ';' in line and not 'init(' in line and not 'push_back(' in line and not 'insert(' in line)]
+                        comp_code = '\n'.join(lines)
+                        # Replace temp var with actual variable name
+                        comp_code = comp_code.replace(value_expr.temp_var, var_name)
+                        comp_stmt = self.c_factory.statement(core.RawCode(comp_code))
+
+                        return [decl_stmt, comp_stmt]
                     else:
                         decl_stmt = self.c_factory.statement(self.c_factory.declaration(variable))
                         assign_stmt = self.c_factory.statement(self.c_factory.assignment(variable, value_expr))
@@ -577,8 +594,8 @@ class PythonToCConverter:
 
             variable = self.variable_context[var_name]
             value_expr = self._convert_expression(node.value)
-            assignment = self.c_factory.assignment(variable, value_expr)
 
+            assignment = self.c_factory.assignment(variable, value_expr)
             return self.c_factory.statement(assignment)
 
         elif isinstance(target, ast.Subscript):
@@ -654,6 +671,10 @@ class PythonToCConverter:
             return self._convert_subscript(node)
         elif isinstance(node, ast.Attribute):
             return self._convert_attribute_access(node)
+        elif isinstance(node, ast.ListComp):
+            return self._convert_list_comprehension(node)
+        elif isinstance(node, ast.DictComp):
+            return self._convert_dict_comprehension(node)
         else:
             raise UnsupportedFeatureError(f"Unsupported expression: {type(node).__name__}")
 
@@ -1356,6 +1377,207 @@ class PythonToCConverter:
             return self.c_factory.statement(assignment)
         else:
             raise UnsupportedFeatureError(f"Unsupported augmented assignment operator: {type(node.op).__name__}")
+
+    def _convert_list_comprehension(self, node: ast.ListComp) -> core.Element:
+        """Convert list comprehension to C loop with STC list operations.
+
+        [expr for target in iter if condition] becomes:
+        vec_type result;
+        vec_type_init(&result);
+        for (...) {
+            if (condition) {
+                vec_type_push_back(&result, expr);
+            }
+        }
+        """
+        # Generate unique temporary variable name for the result
+        temp_var = self._generate_temp_var_name("comp_result")
+
+        # Determine result element type from the expression
+        # For now, assume int32 - we'll need type inference later
+        result_element_type = "int32"  # TODO: Infer from expression
+        result_container_type = f"vec_{result_element_type}"
+
+        # Create initialization code
+        init_code = f"{result_container_type} {temp_var};\n"
+        init_code += f"{result_container_type}_init(&{temp_var});"
+
+        # Process the single generator (comprehensions can have multiple, but we'll start simple)
+        if len(node.generators) != 1:
+            raise UnsupportedFeatureError("Multiple generators in list comprehensions not yet supported")
+
+        generator = node.generators[0]
+
+        # Extract loop variable and iterable
+        if not isinstance(generator.target, ast.Name):
+            raise UnsupportedFeatureError("Only simple loop variables supported in comprehensions")
+
+        loop_var = generator.target.id
+
+        # Handle range-based iteration (most common case)
+        if (isinstance(generator.iter, ast.Call) and
+            isinstance(generator.iter.func, ast.Name) and
+            generator.iter.func.id == "range"):
+
+            # Generate range-based for loop
+            range_args = generator.iter.args
+            if len(range_args) == 1:
+                start = "0"
+                end = self._expression_to_string(self._convert_expression(range_args[0]))
+                step = "1"
+            elif len(range_args) == 2:
+                start = self._expression_to_string(self._convert_expression(range_args[0]))
+                end = self._expression_to_string(self._convert_expression(range_args[1]))
+                step = "1"
+            elif len(range_args) == 3:
+                start = self._expression_to_string(self._convert_expression(range_args[0]))
+                end = self._expression_to_string(self._convert_expression(range_args[1]))
+                step = self._expression_to_string(self._convert_expression(range_args[2]))
+            else:
+                raise UnsupportedFeatureError("Invalid range() arguments in comprehension")
+
+            loop_code = f"for (int {loop_var} = {start}; {loop_var} < {end}; {loop_var} += {step}) {{\n"
+        else:
+            # Handle container iteration (lists, etc.)
+            if isinstance(generator.iter, ast.Name):
+                container_name = generator.iter.id
+                if container_name in self.container_variables:
+                    container_info = self.container_variables[container_name]
+                    if container_info['container_type'] == 'list':
+                        # Generate container iteration loop
+                        loop_code = f"for (size_t i = 0; i < {container_name}_size(&{container_name}); i++) {{\n"
+                        loop_code += f"    {result_element_type} {loop_var} = *{container_name}_at(&{container_name}, i);\n"
+                    else:
+                        raise UnsupportedFeatureError(f"Comprehension over {container_info['container_type']} not yet supported")
+                else:
+                    raise UnsupportedFeatureError(f"Unknown container in comprehension: {container_name}")
+            else:
+                raise UnsupportedFeatureError("Complex iterables in comprehensions not yet supported")
+
+        # Handle conditions (if any)
+        condition_code = ""
+        if generator.ifs:
+            if len(generator.ifs) > 1:
+                raise UnsupportedFeatureError("Multiple conditions in comprehensions not yet supported")
+
+            condition = generator.ifs[0]
+            condition_expr = self._expression_to_string(self._convert_expression(condition))
+            condition_code = f"    if ({condition_expr}) {{\n        "
+            close_condition = "    }\n"
+        else:
+            condition_code = "    "
+            close_condition = ""
+
+        # Convert the expression
+        expr = self._convert_expression(node.elt)
+        expr_str = self._expression_to_string(expr)
+
+        # Generate append operation
+        append_code = f"{result_container_type}_push_back(&{temp_var}, {expr_str});\n"
+
+        # Combine all parts
+        full_code = init_code + "\n" + loop_code + condition_code + append_code + close_condition + "}"
+
+        # Return as a complex element that represents the temporary variable
+        return ComprehensionElement(temp_var, full_code, result_container_type)
+
+    def _convert_dict_comprehension(self, node: ast.DictComp) -> core.Element:
+        """Convert dictionary comprehension to C loop with STC hashmap operations.
+
+        {key_expr: value_expr for target in iter if condition} becomes:
+        hmap_key_value result;
+        hmap_key_value_init(&result);
+        for (...) {
+            if (condition) {
+                hmap_key_value_insert(&result, key_expr, value_expr);
+            }
+        }
+        """
+        # Generate unique temporary variable name
+        temp_var = self._generate_temp_var_name("dict_comp_result")
+
+        # Determine key and value types (simplified for now)
+        key_type = "cstr"  # TODO: Infer from key expression
+        value_type = "int32"  # TODO: Infer from value expression
+        result_container_type = f"hmap_{key_type}_{value_type}"
+
+        # Create initialization code
+        init_code = f"{result_container_type} {temp_var};\n"
+        init_code += f"{result_container_type}_init(&{temp_var});"
+
+        # Process the single generator (similar to list comprehension)
+        if len(node.generators) != 1:
+            raise UnsupportedFeatureError("Multiple generators in dict comprehensions not yet supported")
+
+        generator = node.generators[0]
+
+        # Extract loop variable and iterable
+        if not isinstance(generator.target, ast.Name):
+            raise UnsupportedFeatureError("Only simple loop variables supported in dict comprehensions")
+
+        loop_var = generator.target.id
+
+        # Handle range-based iteration
+        if (isinstance(generator.iter, ast.Call) and
+            isinstance(generator.iter.func, ast.Name) and
+            generator.iter.func.id == "range"):
+
+            range_args = generator.iter.args
+            if len(range_args) == 1:
+                start = "0"
+                end = self._expression_to_string(self._convert_expression(range_args[0]))
+                step = "1"
+            elif len(range_args) == 2:
+                start = self._expression_to_string(self._convert_expression(range_args[0]))
+                end = self._expression_to_string(self._convert_expression(range_args[1]))
+                step = "1"
+            else:
+                raise UnsupportedFeatureError("Complex range() in dict comprehensions not yet supported")
+
+            loop_code = f"for (int {loop_var} = {start}; {loop_var} < {end}; {loop_var} += {step}) {{\n"
+        else:
+            raise UnsupportedFeatureError("Non-range iterables in dict comprehensions not yet supported")
+
+        # Handle conditions
+        condition_code = ""
+        if generator.ifs:
+            if len(generator.ifs) > 1:
+                raise UnsupportedFeatureError("Multiple conditions in dict comprehensions not yet supported")
+
+            condition = generator.ifs[0]
+            condition_expr = self._expression_to_string(self._convert_expression(condition))
+            condition_code = f"    if ({condition_expr}) {{\n        "
+            close_condition = "    }\n"
+        else:
+            condition_code = "    "
+            close_condition = ""
+
+        # Convert key and value expressions
+        key_expr = self._convert_expression(node.key)
+        # Use Writer to properly convert key expression to C code
+        if isinstance(key_expr, core.Element):
+            temp_writer = Writer(StyleOptions())
+            key_str = temp_writer.write_str_elem(key_expr)
+        else:
+            key_str = self._expression_to_string(key_expr)
+
+        value_expr = self._convert_expression(node.value)
+        value_str = self._expression_to_string(value_expr)
+
+        # Generate insert operation
+        insert_code = f"{result_container_type}_insert(&{temp_var}, {key_str}, {value_str});\n"
+
+        # Combine all parts
+        full_code = init_code + "\n" + loop_code + condition_code + insert_code + close_condition + "}\n"
+
+        return ComprehensionElement(temp_var, full_code, result_container_type)
+
+    def _generate_temp_var_name(self, base: str) -> str:
+        """Generate a unique temporary variable name."""
+        if not hasattr(self, '_temp_var_counter'):
+            self._temp_var_counter = 0
+        self._temp_var_counter += 1
+        return f"{base}_{self._temp_var_counter}"
 
     def _convert_expression_statement(self, node: ast.Expr) -> core.Statement:
         """Convert expression statement (like standalone function call)."""
