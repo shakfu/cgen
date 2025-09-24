@@ -564,22 +564,32 @@ class PythonToCConverter:
                 # Add to struct
                 struct.make_member(field_name, c_type)
 
-        # Create struct declaration
-        struct_decl = self.c_factory.declaration(struct)
+        # Create typedef struct declaration (combined form)
+        # Generate the struct members as strings
+        member_lines = []
+        for member in struct.members:
+            # Extract type from member.data_type (which is a Type object)
+            if hasattr(member.data_type, 'base_type') and isinstance(member.data_type.base_type, str):
+                member_type = member.data_type.base_type
+            elif hasattr(member.data_type, 'name') and member.data_type.name is not None:
+                member_type = member.data_type.name
+            else:
+                member_type = str(member.data_type)
+            member_lines.append(f"    {member_type} {member.name};")
 
-        # Create typedef as raw code since TypeDef with Struct base_type has issues
-        typedef_code = core.RawCode(f"typedef struct {struct_name} {struct_name};")
+        members_str = "\n".join(member_lines)
+        typedef_code = core.RawCode(f"typedef struct {{\n{members_str}\n}} {struct_name};")
 
         # For dataclasses, also create constructor function
         if is_dataclass:
             constructor_elements = self._create_dataclass_constructor(struct_name, struct.members)
-            elements = [struct_decl, self.c_factory.blank(), typedef_code]
+            elements = [typedef_code, self.c_factory.blank(), self.c_factory.blank()]
             elements.extend(constructor_elements)
             elements.append(self.c_factory.blank())
             return elements
         else:
-            # For namedtuples, just the struct declaration and typedef
-            return [struct_decl, self.c_factory.blank(), typedef_code, self.c_factory.blank()]
+            # For namedtuples, just the typedef struct declaration
+            return [typedef_code, self.c_factory.blank(), self.c_factory.blank()]
 
     def _is_dataclass(self, node: ast.ClassDef) -> bool:
         """Check if class has @dataclass decorator."""
@@ -638,7 +648,7 @@ class PythonToCConverter:
 
         # Create function body - return struct literal
         initialization = f"{{{', '.join(member.name for member in members)}}}"
-        return_stmt = self.c_factory.statement(f"return ({struct_name}){initialization};")
+        return_stmt = self.c_factory.statement(f"return ({struct_name}){initialization}")
 
         # Create function block
         body = self.c_factory.block()

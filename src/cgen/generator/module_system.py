@@ -72,6 +72,10 @@ class ModuleResolver:
         }
         self.stdlib_modules['math'] = StandardLibraryModule('math', math_functions)
 
+        # Type hinting and dataclass modules (no C equivalent needed)
+        self.stdlib_modules['typing'] = StandardLibraryModule('typing', {})
+        self.stdlib_modules['dataclasses'] = StandardLibraryModule('dataclasses', {})
+
         # Future: Add more standard library modules
         # self.stdlib_modules['os'] = StandardLibraryModule('os', {...})
         # self.stdlib_modules['sys'] = StandardLibraryModule('sys', {...})
@@ -240,6 +244,7 @@ class ImportHandler:
                 # Standard library module
                 if module_name == 'math':
                     includes.append('#include <math.h>')
+                # Note: typing and dataclasses modules don't need C includes
                 # Add more standard library includes as needed
             else:
                 # Local module - will need generated header
@@ -267,6 +272,7 @@ class ImportHandler:
         if module_name in self.module_resolver.stdlib_modules:
             if module_name == 'math':
                 includes.append('#include <math.h>')
+            # Note: typing and dataclasses modules don't need C includes
         else:
             includes.append(f'#include "{module_name}.h"')
 
