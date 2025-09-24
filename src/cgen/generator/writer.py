@@ -1073,15 +1073,7 @@ class Writer(Formatter):
 
     def _write_sizeof_operator(self, elem) -> None:
         """Write sizeof operator."""
-        self._write("sizeof(")
-
-        if isinstance(elem.operand, str):
-            self._write(elem.operand)
-        else:
-            self._write_element(elem.operand)
-
-        self._write(")")
-        self.last_element = ElementType.STATEMENT
+        self._write_parenthesized_construct("sizeof", elem, "operand")
 
     def _write_address_of_operator(self, elem) -> None:
         """Write address-of operator."""
@@ -1571,42 +1563,19 @@ class Writer(Formatter):
 
     def _write_atomic_type(self, elem) -> None:
         """Write C11 atomic type (_Atomic)."""
-        self._write("_Atomic(")
-        if isinstance(elem.base_type, str):
-            self._write(elem.base_type)
-        else:
-            self._write_element(elem.base_type)
-        self._write(")")
-        self.last_element = ElementType.TYPE_DECLARATION
+        self._write_parenthesized_construct("_Atomic", elem, "base_type", ElementType.TYPE_DECLARATION)
 
     def _write_alignas_specifier(self, elem) -> None:
         """Write C11 alignment specifier (_Alignas)."""
-        self._write("_Alignas(")
-        if isinstance(elem.alignment, int):
-            self._write(str(elem.alignment))
-        else:
-            self._write(elem.alignment)
-        self._write(")")
-        self.last_element = ElementType.TYPE_DECLARATION
+        self._write_parenthesized_construct("_Alignas", elem, "alignment", ElementType.TYPE_DECLARATION, special_handling=True)
 
     def _write_alignof_operator(self, elem) -> None:
         """Write C11 alignment query operator (_Alignof)."""
-        self._write("_Alignof(")
-        if isinstance(elem.type_or_expr, str):
-            self._write(elem.type_or_expr)
-        else:
-            self._write_element(elem.type_or_expr)
-        self._write(")")
-        self.last_element = ElementType.STATEMENT
+        self._write_parenthesized_construct("_Alignof", elem, "type_or_expr")
 
     def _write_thread_local_specifier(self, elem) -> None:
         """Write C11 thread-local storage specifier (_Thread_local)."""
-        self._write("_Thread_local ")
-        if isinstance(elem.variable, str):
-            self._write(elem.variable)
-        else:
-            self._write_element(elem.variable)
-        self.last_element = ElementType.STATEMENT
+        self._write_storage_specifier("_Thread_local", elem, "variable")
 
     def _write_complex_type(self, elem) -> None:
         """Write C11 complex number type (_Complex)."""
@@ -1618,41 +1587,74 @@ class Writer(Formatter):
         self._write(elem.base_type)
         self.last_element = ElementType.TYPE_DECLARATION
 
+    def _write_storage_specifier(self, specifier: str, elem: Any, element_property: str,
+                                 element_type: ElementType = ElementType.STATEMENT,
+                                 space_before: bool = False) -> None:
+        """Generic writer for storage class specifiers and related constructs.
+
+        Args:
+            specifier: The specifier keyword (e.g., 'auto', 'register', 'inline')
+            elem: The element containing the target
+            element_property: Name of the property containing the target element
+            element_type: The ElementType to set after writing
+            space_before: If True, write specifier after element instead of before
+        """
+        element = getattr(elem, element_property)
+
+        if space_before and isinstance(element, str):
+            # Special case for restrict: "restrict variable" as one string
+            self._write(f"{specifier} {element}")
+        else:
+            # Normal case: "specifier element" with separate handling
+            self._write(f"{specifier} ")
+            if isinstance(element, str):
+                self._write(element)
+            else:
+                self._write_element(element)
+
+        self.last_element = element_type
+
+    def _write_parenthesized_construct(self, function_name: str, elem: Any, operand_property: str,
+                                       element_type: ElementType = ElementType.STATEMENT,
+                                       special_handling: bool = False) -> None:
+        """Generic writer for function-like constructs with parentheses.
+
+        Args:
+            function_name: The function/construct name (e.g., 'sizeof', '_Alignof')
+            elem: The element containing the operand
+            operand_property: Name of the property containing the operand
+            element_type: The ElementType to set after writing
+            special_handling: If True, handle integers specially for alignment
+        """
+        self._write(f"{function_name}(")
+        operand = getattr(elem, operand_property)
+
+        if special_handling and isinstance(operand, int):
+            # Special case for _Alignas with integer alignment
+            self._write(str(operand))
+        elif isinstance(operand, str):
+            self._write(operand)
+        else:
+            self._write_element(operand)
+
+        self._write(")")
+        self.last_element = element_type
+
     def _write_auto_specifier(self, elem) -> None:
         """Write C11 auto storage class specifier."""
-        self._write("auto ")
-        if isinstance(elem.variable, str):
-            self._write(elem.variable)
-        else:
-            self._write_element(elem.variable)
-        self.last_element = ElementType.STATEMENT
+        self._write_storage_specifier("auto", elem, "variable")
 
     def _write_register_specifier(self, elem) -> None:
         """Write register storage class specifier."""
-        self._write("register ")
-        if isinstance(elem.variable, str):
-            self._write(elem.variable)
-        else:
-            self._write_element(elem.variable)
-        self.last_element = ElementType.STATEMENT
+        self._write_storage_specifier("register", elem, "variable")
 
     def _write_restrict_specifier(self, elem) -> None:
         """Write C99/C11 restrict type qualifier."""
-        if isinstance(elem.pointer_variable, str):
-            self._write(f"restrict {elem.pointer_variable}")
-        else:
-            self._write("restrict ")
-            self._write_element(elem.pointer_variable)
-        self.last_element = ElementType.STATEMENT
+        self._write_storage_specifier("restrict", elem, "pointer_variable")
 
     def _write_inline_specifier(self, elem) -> None:
         """Write inline function specifier."""
-        self._write("inline ")
-        if isinstance(elem.function, str):
-            self._write(elem.function)
-        else:
-            self._write_element(elem.function)
-        self.last_element = ElementType.STATEMENT
+        self._write_storage_specifier("inline", elem, "function")
 
     def _write_flexible_array_member(self, elem) -> None:
         """Write C99/C11 flexible array member."""
@@ -1737,17 +1739,21 @@ class Writer(Formatter):
         lines = code.strip().split('\n')
 
         for i, line in enumerate(lines):
-            if i > 0:
-                self._eol()
-                self._start_line()
-
             line_stripped = line.strip()
             if not line_stripped:
                 continue
 
-            # Handle closing braces - dedent first, then write
+            if i > 0:
+                self._eol()
+
+                # Handle closing braces - dedent BEFORE starting the line
+                if line_stripped.startswith('}'):
+                    self._dedent()
+
+                self._start_line()
+
+            # Handle closing braces - just write (dedent was done above)
             if line_stripped.startswith('}'):
-                self._dedent()
                 self._write(line_stripped)
             # Handle opening braces and control structures
             elif line_stripped.endswith('{'):
