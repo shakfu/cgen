@@ -472,10 +472,10 @@ def main(argv: Optional[list] = None) -> int:
         cli = SimpleCGenCLI()
         return cli.run(argv)
     except KeyboardInterrupt:
-        self.log.error("Interrupted")
+        cli.log.error("Interrupted")
         return 1
     except Exception as e:
-        self.log.error(f"Error: {e}")
+        cli.log.error(f"Error: {e}")
         return 1
 
 

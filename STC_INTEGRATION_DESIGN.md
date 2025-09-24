@@ -4,7 +4,7 @@
 
 This document outlines the strategy for integrating STC (Smart Template Containers) library with CGen to support Python list/dict/set operations in generated C code.
 
-**Status: ✅ IMPLEMENTED (Version 0.4.0)** - Complete STC integration with full container support, iteration patterns, slicing operations, and advanced language features.
+**Status: ✅ ENHANCED (Version 0.4.2)** - Complete STC integration with full container support, iteration patterns, slicing operations, comprehensive string processing, module import system, and advanced language features.
 
 ## STC Library Features
 
@@ -144,6 +144,13 @@ size = numbers_size(&numbers);
    - `analyze_container_type()`: Container type detection function
    - Global instances for module-wide usage
 
+2. **`src/cgen/generator/module_system.py`**: ✅ Complete module import system (v0.4.2) with:
+   - `ModuleResolver`: Python module discovery and analysis framework
+   - `ImportHandler`: Import statement processing and function call resolution
+   - `StandardLibraryModule`: Extensible standard library definition system
+   - `ModuleInfo`: Module metadata and dependency tracking
+   - Built-in math module support with 12 mathematical functions
+
 ### ✅ Existing Modules Modified:
 1. **`src/cgen/generator/py2c.py`**: ✅ Enhanced with:
    - STC integration imports and container variable tracking
@@ -152,6 +159,12 @@ size = numbers_size(&numbers);
    - Updated `_convert_annotated_assignment()` for container initialization
    - Container method call support in `_convert_function_call()`
    - Built-in function support for `len()` on containers
+   - **String Operations (v0.4.2)**: Extended `_convert_string_method()` with 4 new methods:
+     - `split()`, `strip()`, `replace()`, `join()` with STC integration
+   - **Module Import System (v0.4.2)**: Added import statement processing:
+     - `_convert_import()` and `_convert_from_import()` methods
+     - Module function call resolution in `_convert_function_call()`
+     - Integration with `ModuleResolver` and `ImportHandler`
 
 2. **`src/cgen/generator/core.py`**: ✅ Added:
    - `RawCode` element for direct C code insertion
@@ -295,15 +308,50 @@ int list_operations_demo(void)
 - Container size comparisons and arithmetic
 - Mixed iteration patterns across different container types
 
-#### ✅ **String Operations**: Complete Implementation
-- Membership testing: `"substring" in string`
-- Case conversion: `string.upper()`, `string.lower()`
-- Search operations: `string.find(substring)`
-- Integration with container operations
+#### ✅ **String Operations**: Comprehensive Implementation (v0.4.2)
+**Core Methods (v0.4.0):**
+- Membership testing: `"substring" in string` → `strstr(string, substring) != NULL`
+- Case conversion: `string.upper()`, `string.lower()` → `cgen_str_upper()`, `cgen_str_lower()`
+- Search operations: `string.find(substring)` → `cgen_str_find()`
+
+**Enhanced Methods (v0.4.2):**
+- String splitting: `string.split()`, `string.split(separator)` → `cgen_str_split()` with STC `vec_cstr` integration
+- String trimming: `string.strip()`, `string.strip(chars)` → `cgen_str_strip()` with optional character specification
+- String replacement: `string.replace(old, new)` → `cgen_str_replace()` for substring replacement
+- String joining: `separator.join(iterable)` → `cgen_str_join()` with STC container support
+
+**STC Integration Benefits:**
+- Split operations return `vec_cstr` containers for seamless list integration
+- Join operations work with any STC container holding strings
+- Full integration with existing container operations and memory management
+
+#### ✅ **Module Import System**: Standard Library Integration (v0.4.2)
+**Import Statement Support:**
+- `import module` syntax → Automatic C `#include` directive generation
+- `from module import function` syntax → Function resolution and C header integration
+- Module function call resolution: `module.function()` → `function()` for standard library
+
+**Standard Library Modules:**
+- **Math Module**: Complete integration with 12 essential mathematical functions
+  - `import math` → `#include <math.h>`
+  - Function mapping: `math.sqrt()` → `sqrt()`, `math.sin()` → `sin()`, etc.
+  - Supported functions: `sqrt`, `pow`, `sin`, `cos`, `tan`, `log`, `log10`, `exp`, `floor`, `ceil`, `abs`, `fabs`
+
+**Architecture Components:**
+- `ModuleResolver`: Python module discovery and analysis framework
+- `ImportHandler`: Import statement processing and function call resolution
+- `StandardLibraryModule`: Extensible standard library definition system
+
+**Integration with STC:**
+- No direct STC dependency for standard library modules
+- Compatible with existing container operations and string processing
+- Maintains type safety and memory management consistency
 
 ### Comprehensive Real-World Example:
 
 ```python
+import math
+
 def comprehensive_demo() -> int:
     # All container types working together
     numbers: list[int] = []
@@ -332,12 +380,20 @@ def comprehensive_demo() -> int:
     for score in unique_scores:
         unique_count = unique_count + 1
 
-    # String operations
-    text: str = "Hello World"
-    has_hello: bool = "Hello" in text
-    upper_text: str = text.upper()
+    # Enhanced string operations (v0.4.2)
+    text: str = "  Hello, World!  "
+    clean_text: str = text.strip()
+    words: list[str] = clean_text.split(",")
+    processed: str = clean_text.replace("World", "Python")
+    result: str = "-".join(words)
+    upper_text: str = clean_text.upper()
+    has_hello: bool = "Hello" in clean_text
 
-    return len(numbers) + len(scores) + len(unique_scores) + total + unique_count
+    # Mathematical operations with module imports (v0.4.2)
+    distance: float = math.sqrt(float(total))
+    angle: float = math.sin(3.14159)
+
+    return len(numbers) + len(scores) + len(unique_scores) + total + unique_count + len(words)
 ```
 
 Generates efficient C code:
@@ -346,8 +402,10 @@ Generates efficient C code:
 #include "stc/vec.h"
 #include "stc/hmap.h"
 #include "stc/hset.h"
+#include <math.h>
 
 declare_vec(vec_int32, int32);
+declare_vec(vec_cstr, cstr);
 declare_hmap(hmap_cstr_int32, cstr, int32);
 declare_hset(hset_int32, int32);
 
@@ -386,13 +444,21 @@ int comprehensive_demo(void)
         unique_count = unique_count + 1;
     }
 
-    // String operations
-    char* text = "Hello World";
-    bool has_hello = strstr(text, "Hello") != NULL;
-    char* upper_text = cgen_str_upper(text);
+    // Enhanced string operations (v0.4.2)
+    char* text = "  Hello, World!  ";
+    char* clean_text = cgen_str_strip(text, NULL);
+    vec_cstr words = cgen_str_split(clean_text, ",");
+    char* processed = cgen_str_replace(clean_text, "World", "Python");
+    char* result = cgen_str_join("-", words);
+    char* upper_text = cgen_str_upper(clean_text);
+    bool has_hello = strstr(clean_text, "Hello") != NULL;
 
-    return numbers_size(&numbers) + scores_size(&scores) + unique_scores_size(&unique_scores) + total + unique_count;
+    // Mathematical operations with module imports (v0.4.2)
+    double distance = sqrt((double)total);
+    double angle = sin(3.14159);
+
+    return numbers_size(&numbers) + scores_size(&scores) + unique_scores_size(&unique_scores) + total + unique_count + words_size(&words);
 }
 ```
 
-**Achievement: Complete Python language semantics with advanced features including container iteration, slicing operations, string processing, and cross-container operations - all with optimized C performance through STC integration.**
+**Achievement: Complete Python language semantics with advanced features including container iteration, slicing operations, comprehensive string processing (7 methods), module import system with standard library integration, mathematical computations, and cross-container operations - all with optimized C performance through STC integration and professional code generation.**

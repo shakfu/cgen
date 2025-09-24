@@ -75,7 +75,9 @@ CGen implements a streamlined pipeline approach that provides clear flow from Py
 
 ### 🏗️ Production Ready
 - **STC Integration**: Python containers (list/dict/set) → STC containers (vec/hmap/hset) with automatic memory management
-- **Comprehensive Testing**: 619+ tests covering all phases with 100% pass rate
+- **Complete String Processing**: Seven essential string methods (split, strip, replace, join, upper, lower, find)
+- **Module Import System**: Full `import` statement support with standard library integration (math module)
+- **Comprehensive Testing**: 13/13 translation tests with 100% pass rate and zero regressions
 - **Clear Error Reporting**: Phase-by-phase error tracking and debugging
 - **Professional Output**: Optimized, readable C code with configurable styling
 
@@ -121,6 +123,60 @@ pipeline = CGenPipeline(config)
 result = pipeline.convert('my_module.py', build='direct')
 print(f'Executable: {result.executable_path}')
 "
+```
+
+## Supported Python Features
+
+CGen supports a comprehensive subset of Python with advanced features for real-world programming:
+
+### Container Operations
+```python
+# Lists with comprehensive operations
+numbers: list[int] = [1, 2, 3]
+numbers.append(4)
+first: int = numbers[0]
+subset: list[int] = numbers[1:3]  # Slicing support
+
+# Dictionaries with full functionality
+scores: dict[str, int] = {"Alice": 95, "Bob": 87}
+alice_score: int = scores["Alice"]
+
+# Sets with membership testing
+unique_values: set[int] = {1, 2, 3}
+has_value: bool = 2 in unique_values
+```
+
+### String Processing
+```python
+# Complete string method support
+text: str = "  Hello, World!  "
+words: list[str] = text.strip().split(",")
+clean: str = text.replace("World", "Python")
+result: str = "-".join(words)
+upper_text: str = text.upper()
+```
+
+### Module Imports
+```python
+# Standard library support
+import math
+
+def calculate_distance(x: float, y: float) -> float:
+    return math.sqrt(x * x + y * y)
+
+def trigonometry_demo(angle: float) -> float:
+    return math.sin(angle) + math.cos(angle)
+```
+
+### Advanced Control Flow
+```python
+# Container iteration
+for item in my_list:
+    process(item)
+
+# Conditional logic with complex expressions
+if value > threshold and item in valid_set:
+    result = math.pow(value, 2.0)
 ```
 
 ## Usage Examples

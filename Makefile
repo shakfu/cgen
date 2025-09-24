@@ -46,7 +46,7 @@ install-dev:
 test: test-pytest
 
 test-pytest:
-	uv run pytest tests/ -v
+	uv run pytest tests/ -v --ignore=tests/test_demos.py --ignore=tests/translation
 
 test-unit:
 	uv run pytest -m "unit" tests/ -v

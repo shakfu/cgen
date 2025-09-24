@@ -30,6 +30,7 @@ from .stc_integration import (
     analyze_container_type, stc_type_mapper, stc_declaration_generator,
     stc_operation_mapper, STCContainerElement, STCOperationElement, STCForEachElement, STCSliceElement
 )
+from .module_system import ModuleResolver, ImportHandler
 from .writer import Writer
 from .style import StyleOptions
 from ..common import log
@@ -63,6 +64,10 @@ class PythonToCConverter:
         self.current_function: Optional[core.Function] = None
         self.container_variables: Dict[str, Dict[str, Any]] = {}  # Track container variables
         self.variable_context: Dict[str, core.Variable] = {}
+
+        # Initialize module system
+        self.module_resolver = ModuleResolver()
+        self.import_handler = ImportHandler(self.module_resolver)
 
     def convert_file(self, python_file_path: str) -> core.Sequence:
         """Convert a Python file to C code sequence."""
@@ -183,11 +188,35 @@ class PythonToCConverter:
         elif isinstance(node, ast.Expr):
             # Expression statements (like function calls)
             return self._convert_expression_statement(node)
+        elif isinstance(node, ast.Import):
+            return self._convert_import(node)
+        elif isinstance(node, ast.ImportFrom):
+            return self._convert_from_import(node)
         elif isinstance(node, ast.Pass):
             # Pass statements can be ignored in C
             return None
         else:
             raise UnsupportedFeatureError(f"Unsupported statement type: {type(node).__name__}")
+
+    def _convert_import(self, node: ast.Import) -> Union[List[core.Element], None]:
+        """Convert import statement to C includes."""
+        includes = self.import_handler.process_import(node)
+        if includes:
+            elements = []
+            for include in includes:
+                elements.append(core.RawCode(include))
+            return elements
+        return None
+
+    def _convert_from_import(self, node: ast.ImportFrom) -> Union[List[core.Element], None]:
+        """Convert from...import statement to C includes."""
+        includes = self.import_handler.process_from_import(node)
+        if includes:
+            elements = []
+            for include in includes:
+                elements.append(core.RawCode(include))
+            return elements
+        return None
 
     def _convert_function_def(self, node: ast.FunctionDef) -> List[core.Element]:
         """Convert Python function definition to C function."""
@@ -734,9 +763,10 @@ class PythonToCConverter:
                     args = [self._convert_expression(arg) for arg in node.args]
                     return self.c_factory.func_call(func_name, args)
             else:
-                # Regular function call
+                # Check if this is an imported function
+                c_func_name, is_stdlib = self.import_handler.resolve_function_call(func_name)
                 args = [self._convert_expression(arg) for arg in node.args]
-                return self.c_factory.func_call(func_name, args)
+                return self.c_factory.func_call(c_func_name, args)
         elif isinstance(node.func, ast.Attribute):
             # Handle method calls (e.g., list.append, dict.get)
             if isinstance(node.func.value, ast.Name):
@@ -819,9 +849,15 @@ class PythonToCConverter:
                     if is_string:
                         return self._convert_string_method(obj_name, method_name, node.args)
                     else:
-                        raise UnsupportedFeatureError(f"Method call on non-container/non-string object: {obj_name}.{method_name}")
+                        # Check if this is a module function call (module.function())
+                        c_func_name, is_stdlib = self.import_handler.resolve_module_function_call(obj_name, method_name)
+                        args = [self._convert_expression(arg) for arg in node.args]
+                        return self.c_factory.func_call(c_func_name, args)
                 else:
-                    raise UnsupportedFeatureError(f"Method call on non-container object: {obj_name}.{method_name}")
+                    # Check if this is a module function call (module.function())
+                    c_func_name, is_stdlib = self.import_handler.resolve_module_function_call(obj_name, method_name)
+                    args = [self._convert_expression(arg) for arg in node.args]
+                    return self.c_factory.func_call(c_func_name, args)
             else:
                 raise UnsupportedFeatureError("Complex method calls not supported")
         else:
@@ -853,6 +889,73 @@ class PythonToCConverter:
             else:
                 arg_str = str(arg_expr)
             return f"cgen_str_find({obj_name}, {arg_str})"
+
+        elif method_name == "split":
+            # str.split() -> split on whitespace, str.split(separator) -> split on separator
+            if len(args) == 0:
+                # Split on whitespace
+                return f"cgen_str_split({obj_name}, NULL)"
+            elif len(args) == 1:
+                # Split on specific separator
+                arg_expr = self._convert_expression(args[0])
+                if isinstance(arg_expr, core.Element):
+                    temp_writer = Writer(StyleOptions())
+                    arg_str = temp_writer.write_str_elem(arg_expr)
+                else:
+                    arg_str = str(arg_expr)
+                return f"cgen_str_split({obj_name}, {arg_str})"
+            else:
+                raise UnsupportedFeatureError("str.split() takes at most one argument")
+
+        elif method_name == "strip":
+            # str.strip() -> strip whitespace, str.strip(chars) -> strip specific characters
+            if len(args) == 0:
+                # Strip whitespace
+                return f"cgen_str_strip({obj_name}, NULL)"
+            elif len(args) == 1:
+                # Strip specific characters
+                arg_expr = self._convert_expression(args[0])
+                if isinstance(arg_expr, core.Element):
+                    temp_writer = Writer(StyleOptions())
+                    arg_str = temp_writer.write_str_elem(arg_expr)
+                else:
+                    arg_str = str(arg_expr)
+                return f"cgen_str_strip({obj_name}, {arg_str})"
+            else:
+                raise UnsupportedFeatureError("str.strip() takes at most one argument")
+
+        elif method_name == "replace":
+            # str.replace(old, new) -> replace all occurrences of old with new
+            if len(args) != 2:
+                raise UnsupportedFeatureError("str.replace() requires exactly two arguments")
+            old_expr = self._convert_expression(args[0])
+            new_expr = self._convert_expression(args[1])
+
+            if isinstance(old_expr, core.Element):
+                temp_writer = Writer(StyleOptions())
+                old_str = temp_writer.write_str_elem(old_expr)
+            else:
+                old_str = str(old_expr)
+
+            if isinstance(new_expr, core.Element):
+                temp_writer = Writer(StyleOptions())
+                new_str = temp_writer.write_str_elem(new_expr)
+            else:
+                new_str = str(new_expr)
+
+            return f"cgen_str_replace({obj_name}, {old_str}, {new_str})"
+
+        elif method_name == "join":
+            # str.join(iterable) -> join elements of iterable with str as separator
+            if len(args) != 1:
+                raise UnsupportedFeatureError("str.join() requires exactly one argument")
+            arg_expr = self._convert_expression(args[0])
+            if isinstance(arg_expr, core.Element):
+                temp_writer = Writer(StyleOptions())
+                arg_str = temp_writer.write_str_elem(arg_expr)
+            else:
+                arg_str = str(arg_expr)
+            return f"cgen_str_join({obj_name}, {arg_str})"
 
         else:
             raise UnsupportedFeatureError(f"Unsupported string method: {method_name}")
