@@ -912,7 +912,6 @@ class Writer(Formatter):
 
         # Write else block if present
         if elem.else_block is not None:
-            # self._eol()
             self._start_line()
             self._write("else")
             if isinstance(elem.else_block, core.Block):
