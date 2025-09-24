@@ -395,7 +395,6 @@ class StaticConstraintChecker:
             ast.Yield: "Yield statements",
             ast.Try: "Try-except blocks",
             ast.With: "With statements",
-            ast.ClassDef: "Class definitions (complex)",
         }
 
         for node in ast.walk(tree):
@@ -412,6 +411,20 @@ class StaticConstraintChecker:
                         )
                     )
 
+            # Special handling for ClassDef - only allow dataclass and namedtuple
+            if isinstance(node, ast.ClassDef):
+                if not (self._is_dataclass(node) or self._is_namedtuple(node)):
+                    self.report.add_violation(
+                        ConstraintViolation(
+                            severity=ConstraintSeverity.ERROR,
+                            category=ConstraintCategory.C_COMPATIBILITY,
+                            rule_id="CC001",
+                            message="Class definitions only supported for @dataclass and NamedTuple",
+                            line_number=node.lineno,
+                            suggestion="Use @dataclass decorator or inherit from NamedTuple",
+                        )
+                    )
+
             # Check for dynamic execution functions
             if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
                 if node.func.id in ("eval", "exec", "compile", "__import__"):
@@ -425,6 +438,27 @@ class StaticConstraintChecker:
                             suggestion="Replace with static constructs",
                         )
                     )
+
+    def _is_dataclass(self, node: ast.ClassDef) -> bool:
+        """Check if class has @dataclass decorator."""
+        for decorator in node.decorator_list:
+            if isinstance(decorator, ast.Name) and decorator.id == "dataclass":
+                return True
+            elif isinstance(decorator, ast.Call) and isinstance(decorator.func, ast.Name):
+                if decorator.func.id == "dataclass":
+                    return True
+        return False
+
+    def _is_namedtuple(self, node: ast.ClassDef) -> bool:
+        """Check if class inherits from NamedTuple."""
+        for base in node.bases:
+            if isinstance(base, ast.Name) and base.id == "NamedTuple":
+                return True
+            elif isinstance(base, ast.Attribute):
+                if (isinstance(base.value, ast.Name) and
+                    base.value.id == "typing" and base.attr == "NamedTuple"):
+                    return True
+        return False
 
     def _check_name_conflicts(self, tree: ast.AST):
         """Check for naming conflicts with C keywords/stdlib."""

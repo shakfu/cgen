@@ -64,6 +64,7 @@ class PythonToCConverter:
         self.current_function: Optional[core.Function] = None
         self.container_variables: Dict[str, Dict[str, Any]] = {}  # Track container variables
         self.variable_context: Dict[str, core.Variable] = {}
+        self.defined_structs: Dict[str, core.Struct] = {}  # Track defined struct types
 
         # Initialize module system
         self.module_resolver = ModuleResolver()
@@ -88,13 +89,20 @@ class PythonToCConverter:
         """Convert Python module to C sequence."""
         sequence = core.Sequence()
 
-        # First pass - process all statements to discover container types
+        # First pass - process all statements to discover container types and assert usage
+        uses_assert = False
         for node in module.body:
             self._discover_container_types(node)
+            if self._has_assert_statements(node):
+                uses_assert = True
 
         # Add standard includes that might be needed
         sequence.append(self.c_factory.sysinclude("stdio.h"))
         sequence.append(self.c_factory.sysinclude("stdbool.h"))
+
+        # Add assert.h if assert statements are used
+        if uses_assert:
+            sequence.append(self.c_factory.sysinclude("assert.h"))
 
         # Add STC includes if we have containers
         stc_includes = stc_declaration_generator.generate_includes()
@@ -192,6 +200,10 @@ class PythonToCConverter:
             return self._convert_import(node)
         elif isinstance(node, ast.ImportFrom):
             return self._convert_from_import(node)
+        elif isinstance(node, ast.ClassDef):
+            return self._convert_class_def(node)
+        elif isinstance(node, ast.Assert):
+            return self._convert_assert(node)
         elif isinstance(node, ast.Pass):
             # Pass statements can be ignored in C
             return None
@@ -263,12 +275,174 @@ class PythonToCConverter:
 
         return [self.c_factory.declaration(function), function_block, self.c_factory.blank()]
 
+    def _convert_class_def(self, node: ast.ClassDef) -> List[core.Element]:
+        """Convert Python class definition to C struct."""
+        # Check if it's a dataclass or namedtuple
+        is_dataclass = self._is_dataclass(node)
+        is_namedtuple = self._is_namedtuple(node)
+
+        if not (is_dataclass or is_namedtuple):
+            raise UnsupportedFeatureError(f"Only dataclass and NamedTuple classes are supported")
+
+        # Create struct
+        struct_name = node.name
+        struct = core.Struct(struct_name)
+
+        # Register the struct type
+        self.defined_structs[struct_name] = struct
+
+        # Track whether this is a dataclass or namedtuple
+        if not hasattr(self, 'struct_types'):
+            self.struct_types = {}
+        self.struct_types[struct_name] = 'dataclass' if is_dataclass else 'namedtuple'
+
+        # Process fields
+        for stmt in node.body:
+            if isinstance(stmt, ast.AnnAssign) and isinstance(stmt.target, ast.Name):
+                field_name = stmt.target.id
+                field_type = self._extract_type_annotation(stmt.annotation)
+
+                # Convert container types to C equivalents
+                c_type = self._map_struct_field_type(field_type)
+
+                # Add to struct
+                struct.make_member(field_name, c_type)
+
+        # Create struct declaration
+        struct_decl = self.c_factory.declaration(struct)
+
+        # Create typedef as raw code since TypeDef with Struct base_type has issues
+        typedef_code = core.RawCode(f"typedef struct {struct_name} {struct_name};")
+
+        # For dataclasses, also create constructor function
+        if is_dataclass:
+            constructor_elements = self._create_dataclass_constructor(struct_name, struct.members)
+            elements = [struct_decl, self.c_factory.blank(), typedef_code]
+            elements.extend(constructor_elements)
+            elements.append(self.c_factory.blank())
+            return elements
+        else:
+            # For namedtuples, just the struct declaration and typedef
+            return [struct_decl, self.c_factory.blank(), typedef_code, self.c_factory.blank()]
+
+    def _is_dataclass(self, node: ast.ClassDef) -> bool:
+        """Check if class has @dataclass decorator."""
+        for decorator in node.decorator_list:
+            if isinstance(decorator, ast.Name) and decorator.id == "dataclass":
+                return True
+            elif isinstance(decorator, ast.Call) and isinstance(decorator.func, ast.Name):
+                if decorator.func.id == "dataclass":
+                    return True
+        return False
+
+    def _is_namedtuple(self, node: ast.ClassDef) -> bool:
+        """Check if class inherits from NamedTuple."""
+        for base in node.bases:
+            if isinstance(base, ast.Name) and base.id == "NamedTuple":
+                return True
+            elif isinstance(base, ast.Attribute):
+                if (isinstance(base.value, ast.Name) and
+                    base.value.id == "typing" and base.attr == "NamedTuple"):
+                    return True
+        return False
+
+    def _map_struct_field_type(self, python_type: str) -> str:
+        """Map Python type to C struct field type."""
+        # For basic types, use direct mapping
+        if python_type in self.type_mapping:
+            return self.type_mapping[python_type]
+
+        # For container types, need special handling in struct contexts
+        # For now, use the STC container types directly
+        return python_type
+
+    def _create_dataclass_constructor(self, struct_name: str, members: List[core.StructMember]) -> List[core.Element]:
+        """Create constructor function for dataclass."""
+        # Create constructor function parameters
+        params = []
+        for member in members:
+            if isinstance(member.data_type, str):
+                param_type = member.data_type
+            elif hasattr(member.data_type, 'base_type'):
+                # For Type objects, use the base_type attribute
+                param_type = member.data_type.base_type
+            elif hasattr(member.data_type, 'name'):
+                # For other DataType objects, use the name attribute
+                param_type = member.data_type.name
+            else:
+                # Fallback - this shouldn't happen with proper Type objects
+                param_type = str(member.data_type)
+
+            param = self.c_factory.variable(member.name, param_type)
+            params.append(param)
+
+        # Create constructor function
+        constructor_name = f"make_{struct_name}"
+        constructor = self.c_factory.function(constructor_name, struct_name, params=params)
+
+        # Create function body - return struct literal
+        initialization = f"{{{', '.join(member.name for member in members)}}}"
+        return_stmt = self.c_factory.statement(f"return ({struct_name}){initialization};")
+
+        # Create function block
+        body = self.c_factory.block()
+        body.append(return_stmt)
+
+        return [self.c_factory.declaration(constructor), body]
+
+    def _has_assert_statements(self, node: ast.AST) -> bool:
+        """Check if a node or its children contain assert statements."""
+        for child_node in ast.walk(node):
+            if isinstance(child_node, ast.Assert):
+                return True
+        return False
+
+    def _expression_to_string(self, expr) -> str:
+        """Convert an expression (string or Element) to a C string."""
+        if isinstance(expr, str):
+            return expr
+        elif isinstance(expr, core.BinaryExpression):
+            left_str = self._expression_to_string(expr.left)
+            right_str = self._expression_to_string(expr.right)
+            return f"{left_str} {expr.operator} {right_str}"
+        elif isinstance(expr, core.UnaryExpression):
+            operand_str = self._expression_to_string(expr.operand)
+            return f"{expr.operator}{operand_str}"
+        elif hasattr(expr, 'operation_code'):
+            # STCOperationElement
+            return expr.operation_code
+        elif hasattr(expr, '__str__'):
+            return str(expr)
+        else:
+            # Fallback - let the writer handle it later
+            return f"/* complex_expr */"
+
+    def _convert_assert(self, node: ast.Assert) -> core.Element:
+        """Convert Python assert statement to C assert() call."""
+        # Convert the test expression
+        test_expr = self._convert_expression(node.test)
+
+        # Handle optional message
+        if node.msg:
+            msg_expr = self._convert_expression(node.msg)
+            # C assert doesn't support messages, but we can use a comment
+            # For now, return a RawCode element that will be handled by the writer
+            if isinstance(msg_expr, str):
+                return core.RawCode(f"assert({self._expression_to_string(test_expr)}); // {msg_expr}")
+            else:
+                return core.RawCode(f"assert({self._expression_to_string(test_expr)});")
+        else:
+            return core.RawCode(f"assert({self._expression_to_string(test_expr)});")
+
     def _extract_type_annotation(self, annotation: ast.expr) -> str:
         """Extract C type from Python type annotation."""
         if isinstance(annotation, ast.Name):
             python_type = annotation.id
             if python_type in self.type_mapping:
                 return self.type_mapping[python_type]
+            elif python_type in self.defined_structs:
+                # Handle custom struct types
+                return python_type
             else:
                 raise TypeMappingError(f"Unsupported type: {python_type}")
         elif isinstance(annotation, ast.Constant) and annotation.value is None:
@@ -478,6 +652,8 @@ class PythonToCConverter:
             return self._convert_unary_operation(node)
         elif isinstance(node, ast.Subscript):
             return self._convert_subscript(node)
+        elif isinstance(node, ast.Attribute):
+            return self._convert_attribute_access(node)
         else:
             raise UnsupportedFeatureError(f"Unsupported expression: {type(node).__name__}")
 
@@ -724,10 +900,38 @@ class PythonToCConverter:
         else:
             raise UnsupportedFeatureError("Complex subscript expressions not supported")
 
+    def _convert_attribute_access(self, node: ast.Attribute) -> str:
+        """Convert attribute access to C struct field access."""
+        if isinstance(node.value, ast.Name):
+            object_name = node.value.id
+            field_name = node.attr
+            return f"{object_name}.{field_name}"
+        else:
+            raise UnsupportedFeatureError("Complex attribute access not supported")
+
     def _convert_function_call(self, node: ast.Call) -> core.Element:
         """Convert function call to C function call."""
         if isinstance(node.func, ast.Name):
             func_name = node.func.id
+
+            # Handle struct constructor calls
+            if func_name in self.defined_structs:
+                args = [self._convert_expression(arg) for arg in node.args]
+                args_str = ', '.join(self._expression_to_string(arg) for arg in args)
+
+                # Check if this is a dataclass or namedtuple
+                if hasattr(self, 'struct_types') and func_name in self.struct_types:
+                    if self.struct_types[func_name] == 'dataclass':
+                        # Use constructor function for dataclasses
+                        constructor_name = f"make_{func_name}"
+                        return core.RawCode(f"{constructor_name}({args_str})")
+                    else:
+                        # Use struct literal for namedtuples
+                        return core.RawCode(f"({func_name}){{{args_str}}}")
+                else:
+                    # Default to constructor function
+                    constructor_name = f"make_{func_name}"
+                    return core.RawCode(f"{constructor_name}({args_str})")
 
             # Handle built-in functions that work on containers
             if func_name == "set":

@@ -234,10 +234,10 @@ class StaticPythonSubsetValidator:
             name="Control Flow",
             tier=SubsetTier.TIER_1_FUNDAMENTAL,
             status=FeatureStatus.FULLY_SUPPORTED,
-            description="Basic control flow: if/else, while, for with range/containers",
-            ast_nodes=[ast.If, ast.While, ast.For],
+            description="Basic control flow: if/else, while, for with range/containers, assert statements",
+            ast_nodes=[ast.If, ast.While, ast.For, ast.Assert],
             validator=self._validate_control_flow,
-            c_mapping="Direct mapping to C control structures",
+            c_mapping="Direct mapping to C control structures and assert() function",
         )
 
         rules["arithmetic_operations"] = FeatureRule(
@@ -268,7 +268,7 @@ class StaticPythonSubsetValidator:
         rules["dataclasses"] = FeatureRule(
             name="Data Classes",
             tier=SubsetTier.TIER_2_STRUCTURED,
-            status=FeatureStatus.PLANNED,
+            status=FeatureStatus.FULLY_SUPPORTED,
             description="Dataclasses mapped to C structs",
             ast_nodes=[ast.ClassDef],
             validator=self._validate_dataclass,
@@ -282,6 +282,16 @@ class StaticPythonSubsetValidator:
             description="Fixed-size tuples as anonymous structs",
             ast_nodes=[ast.Tuple],
             c_mapping="Anonymous C structs",
+        )
+
+        rules["namedtuples"] = FeatureRule(
+            name="Named Tuples",
+            tier=SubsetTier.TIER_2_STRUCTURED,
+            status=FeatureStatus.FULLY_SUPPORTED,
+            description="NamedTuple classes mapped to C structs",
+            ast_nodes=[ast.ClassDef],
+            validator=self._validate_namedtuple,
+            c_mapping="C struct definitions with field access",
         )
 
         rules["lists"] = FeatureRule(
@@ -423,6 +433,10 @@ class StaticPythonSubsetValidator:
                 # Method calls that return iterables (like list.keys())
                 return True
             return False
+        elif isinstance(node, ast.Assert):
+            # Assert statements are allowed - they map to C assert()
+            # The test expression should be a valid boolean expression
+            return True
 
         return True
 
@@ -443,19 +457,93 @@ class StaticPythonSubsetValidator:
     def _validate_dataclass(self, node: ast.ClassDef) -> bool:
         """Validate dataclass constraints."""
         # Check for @dataclass decorator
+        has_dataclass_decorator = False
         for decorator in node.decorator_list:
             if isinstance(decorator, ast.Name) and decorator.id == "dataclass":
-                # Validate all fields have type annotations
-                for stmt in node.body:
-                    if isinstance(stmt, ast.AnnAssign):
-                        continue  # Type-annotated field - good
-                    elif isinstance(stmt, ast.FunctionDef):
-                        if stmt.name.startswith("__"):
-                            continue  # Magic methods are OK
-                        # Regular methods should be simple
-                        return self._validate_function_def(stmt)
-                return True
-        return True  # Not a dataclass
+                has_dataclass_decorator = True
+                break
+            elif isinstance(decorator, ast.Call) and isinstance(decorator.func, ast.Name):
+                if decorator.func.id == "dataclass":
+                    has_dataclass_decorator = True
+                    break
+
+        if not has_dataclass_decorator:
+            return True  # Not a dataclass
+
+        # Validate all fields have type annotations
+        for stmt in node.body:
+            if isinstance(stmt, ast.AnnAssign):
+                # Type-annotated field - validate type is supported
+                if not self._is_supported_type_annotation(stmt.annotation):
+                    return False
+            elif isinstance(stmt, ast.Assign):
+                # Regular assignment without type annotation - not allowed
+                return False
+            elif isinstance(stmt, ast.FunctionDef):
+                if stmt.name.startswith("__"):
+                    continue  # Magic methods are OK
+                # Regular methods should be simple
+                if not self._validate_function_def(stmt):
+                    return False
+            elif isinstance(stmt, ast.Pass):
+                continue  # Pass statements are OK
+            else:
+                return False  # Other statements not allowed
+
+        return True
+
+    def _validate_namedtuple(self, node: ast.ClassDef) -> bool:
+        """Validate namedtuple constraints."""
+        # Check if it inherits from NamedTuple
+        is_namedtuple = False
+        for base in node.bases:
+            if isinstance(base, ast.Name) and base.id == "NamedTuple":
+                is_namedtuple = True
+                break
+            elif isinstance(base, ast.Attribute):
+                if (isinstance(base.value, ast.Name) and
+                    base.value.id == "typing" and base.attr == "NamedTuple"):
+                    is_namedtuple = True
+                    break
+
+        if not is_namedtuple:
+            return True  # Not a namedtuple
+
+        # Validate all fields have type annotations and no methods
+        for stmt in node.body:
+            if isinstance(stmt, ast.AnnAssign):
+                # Type-annotated field - validate type is supported
+                if not self._is_supported_type_annotation(stmt.annotation):
+                    return False
+                # NamedTuple fields should not have default values in class body
+                if stmt.value is not None:
+                    return False
+            elif isinstance(stmt, ast.Pass):
+                continue  # Pass statements are OK
+            elif isinstance(stmt, ast.FunctionDef):
+                # Methods not allowed in NamedTuple
+                return False
+            else:
+                return False  # Other statements not allowed
+
+        return True
+
+    def _is_supported_type_annotation(self, node: ast.expr) -> bool:
+        """Check if a type annotation is supported for struct fields."""
+        if isinstance(node, ast.Name):
+            # Basic types
+            return node.id in {"int", "float", "str", "bool"}
+        elif isinstance(node, ast.Subscript):
+            # Generic types like List[int], Dict[str, int]
+            if isinstance(node.value, ast.Name):
+                container_type = node.value.id
+                # Allow basic container types
+                return container_type in {"list", "List", "dict", "Dict", "set", "Set"}
+        elif isinstance(node, ast.Attribute):
+            # Qualified names like typing.List
+            if isinstance(node.value, ast.Name) and node.value.id == "typing":
+                return node.attr in {"List", "Dict", "Set", "Optional"}
+        return False
 
     def _validate_list(self, node: ast.List) -> bool:
         """Validate list constraints."""

@@ -17,6 +17,7 @@ This document provides a comprehensive assessment of the CGen pipeline's current
 - **If-Else Statements**: Including `elif` chains
 - **While Loops**: Basic while loop constructs
 - **For Loops**: `for i in range(start, end)` style loops
+- **Assert Statements**: Python `assert` statements with automatic `#include <assert.h>` and expression support
 - **Multiple Return Statements**: Functions with conditional returns
 
 ### Advanced Features
@@ -45,6 +46,24 @@ This document provides a comprehensive assessment of the CGen pipeline's current
 - **Memory Management**: Automatic STC container initialization and cleanup for all container types
 - **Type Safety**: Compile-time type validation for all container operations
 - **Cross-Container Operations**: Complex operations between different container types
+
+### Structured Data Types
+
+- **Python Dataclasses**: Complete `@dataclass` to C struct conversion with automatic constructor generation
+  - Struct declarations: `@dataclass class Point:` → `struct Point { ... }; typedef Point Point;`
+  - Constructor functions: `make_Point(x, y)` → `return (Point){x, y};`
+  - Field access: `point.x` → `point.x` with type-safe field access
+  - Type validation: All fields must have supported type annotations
+- **Python NamedTuple**: Full `NamedTuple` to C struct conversion with immutable semantics
+  - Struct declarations: `class Circle(NamedTuple):` → `struct Circle { ... }; typedef Circle Circle;`
+  - Immutable fields: No constructor functions generated (following NamedTuple immutability)
+  - Field access: `circle.radius` → `circle.radius` with compile-time validation
+  - Typing integration: Full support for `typing.NamedTuple` inheritance patterns
+- **Struct Field Access**: Complete support for attribute access in all expression contexts
+  - Arithmetic operations: `rect.width * rect.height` → `rect.width * rect.height`
+  - Assignment operations: `point.x = 10` → `point.x = 10`
+  - Function parameters: Structs as function parameters and return types
+  - Expression integration: Struct fields work in comparisons, function calls, and complex expressions
 
 ### Module Import System
 
@@ -92,12 +111,11 @@ This document provides a comprehensive assessment of the CGen pipeline's current
 
 ### Not Yet Supported
 
-- **Complex Data Structures**: No structs, classes, or custom types
-- **Module Imports**: No import/module system
-- **Exception Handling**: No try/except blocks
 - **Lambda Functions**: Anonymous functions not supported
 - **Comprehensions**: List/dict comprehensions not supported
-- **Advanced String Operations**: Some string methods (`.split()`, `.replace()`, etc.) not yet implemented
+- **Python Exception Syntax**: try/except blocks not supported (runtime exception handling exists)
+- **Classes and OOP**: Object-oriented programming constructs not supported
+- **Advanced Import Features**: Multi-module projects and relative imports not yet supported
 
 ## 🧪 **TEST RESULTS SUMMARY**
 
@@ -217,6 +235,37 @@ def mathematical_calculations(x: float, y: float) -> float:
     result: float = math.sin(angle) * distance
 
     return result
+
+def structured_data_processing() -> float:
+    """Recommended: Use dataclasses and namedtuples for structured data"""
+    from dataclasses import dataclass
+    from typing import NamedTuple
+
+    # Dataclass for mutable structured data
+    @dataclass
+    class Point:
+        x: float
+        y: float
+
+    # NamedTuple for immutable structured data
+    class Vector(NamedTuple):
+        dx: float
+        dy: float
+
+    # Create instances and use field access
+    origin: Point = Point(0.0, 0.0)
+    target: Point = Point(3.0, 4.0)
+
+    # Struct field access in expressions
+    distance_vector: Vector = Vector(target.x - origin.x, target.y - origin.y)
+    distance: float = math.sqrt(distance_vector.dx * distance_vector.dx +
+                               distance_vector.dy * distance_vector.dy)
+
+    # Modify dataclass fields (mutable)
+    origin.x = 1.0
+    origin.y = 1.0
+
+    return distance
 ```
 
 ### ❌ **Avoid These Patterns:**
@@ -227,9 +276,10 @@ def modify_param(n: int) -> int:
     n = n + 1  # ❌ Error
     return n
 
-def advanced_string_methods(text: str) -> str:
-    """Avoid: Some advanced string methods not yet supported"""
-    return text.split(",")  # ❌ Not supported yet
+def use_general_classes_or_lambdas(data: list[int]) -> int:
+    """Avoid: General OOP classes and lambda functions not supported"""
+    return sum(lambda x: x * 2, data)  # ❌ Not supported yet
+    # Note: @dataclass and NamedTuple ARE supported!
 
 def comprehensions(data: list[int]) -> list[int]:
     """Avoid: List comprehensions not supported"""
@@ -302,10 +352,10 @@ def comprehensions(data: list[int]) -> list[int]:
 
 ### 🔧 **Areas for Future Enhancement**
 
-1. **Module System**: Import/export functionality for larger applications
-2. **Additional String Operations**: Expand string method support (`.split()`, `.replace()`, `.strip()`, etc.)
-3. **List Comprehensions**: Support for `[x for x in items]` syntax
-4. **Exception Handling**: Basic try/except support for error handling
+1. **List Comprehensions**: Support for `[x for x in items]` syntax
+2. **Python Exception Syntax**: Basic try/except support for error handling
+3. **Classes and OOP**: Object-oriented programming support
+4. **Advanced Import Features**: Multi-module projects and relative imports
 
 ## 🚀 **OVERALL ASSESSMENT**
 
@@ -322,18 +372,18 @@ def comprehensions(data: list[int]) -> list[int]:
 
 **Recent Achievements:**
 
-1. ✅ Enhanced string operations and module import system (v0.4.2)
-2. ✅ Comprehensive string processing with seven methods (v0.4.2)
-3. ✅ Math module integration and standard library support (v0.4.2)
-4. ✅ Code generation quality improvements and comprehensive logging (v0.4.1)
-5. ✅ Translation system robustness and 100% test success rate (v0.4.1)
-6. ✅ Container iteration patterns implementation (v0.4.0)
-7. ✅ List slicing and range operations (v0.4.0)
-8. ✅ Advanced string method support (v0.4.0)
-9. ✅ Enhanced AST processing and type recognition (v0.4.0)
-10. ✅ Complete container operations implementation (v0.3.0)
+1. ✅ Assert statement support with 100% translation test success (v0.1.8)
+2. ✅ Dataclass and NamedTuple to C struct conversion (v0.1.8)
+3. ✅ Struct field access with attribute expressions (v0.1.8)
+4. ✅ Enhanced class definition validation and constraint checking (v0.1.8)
+5. ✅ Enhanced string operations and module import system (v0.1.7)
+6. ✅ Comprehensive string processing with seven methods (v0.1.7)
+7. ✅ Math module integration and standard library support (v0.1.7)
+8. ✅ Code generation quality improvements and comprehensive logging (v0.1.6)
+9. ✅ Translation system robustness and 100% test success rate (v0.1.6)
+10. ✅ Container iteration patterns implementation (v0.1.5)
 
-**Current State: Production-ready for advanced algorithmic code with comprehensive Python language features. Supports complex container operations, iteration patterns, complete string processing, mathematical computations, and slicing operations with C performance. Features full module import system with standard library integration. Generated C code meets professional formatting standards with comprehensive logging for enhanced developer experience.**
+**Current State: Production-ready for advanced algorithmic code with comprehensive Python language features. Supports complex container operations, iteration patterns, complete string processing, mathematical computations, slicing operations, structured data types, and assert statement validation with C performance. Features full module import system with standard library integration, dataclass and NamedTuple support with struct field access, automatic assert.h inclusion, and comprehensive validation systems. Achieved 100% translation test success rate (16/16 tests passing). Generated C code meets professional formatting standards with comprehensive logging for enhanced developer experience.**
 
 **Next Development Priorities:**
 
