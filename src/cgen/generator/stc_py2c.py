@@ -458,7 +458,7 @@ class STCEnhancedPythonToCConverter(PythonToCConverter):
             # Initialize from list literal: [1, 2, 3]
             for element in value_node.elts:
                 element_code = self._convert_expression(element)
-                push_stmt = f"{container_type}_push(&{var_name}, {element_code});"
+                push_stmt = f"{container_type}_push(&{var_name}, {element_code})"
                 statements.append(create_raw_code(push_stmt))
 
         elif isinstance(value_node, ast.Dict):
@@ -466,14 +466,14 @@ class STCEnhancedPythonToCConverter(PythonToCConverter):
             for key, value in zip(value_node.keys, value_node.values):
                 key_code = self._convert_expression(key)
                 value_code = self._convert_expression(value)
-                insert_stmt = f"{container_type}_insert(&{var_name}, {key_code}, {value_code});"
+                insert_stmt = f"{container_type}_insert(&{var_name}, {key_code}, {value_code})"
                 statements.append(create_raw_code(insert_stmt))
 
         elif isinstance(value_node, ast.Set):
             # Initialize from set literal: {1, 2, 3}
             for element in value_node.elts:
                 element_code = self._convert_expression(element)
-                insert_stmt = f"{container_type}_insert(&{var_name}, {element_code});"
+                insert_stmt = f"{container_type}_insert(&{var_name}, {element_code})"
                 statements.append(create_raw_code(insert_stmt))
 
         return statements

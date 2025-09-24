@@ -651,9 +651,12 @@ class Writer(Formatter):
                     if hasattr(part, 'operation_code'):
                         op_code = str(part.operation_code)
                         if ' = ' in op_code and op_code.strip().endswith('}'):
-                            # This looks like a complete assignment like "var = {0}"
-                            needs_semicolon = False
-                            break
+                            # Simple initializers like "var = {0}" or "var = {1, 2, 3}" need semicolons
+                            # Only skip semicolons for complex block structures
+                            rhs = op_code.split('=')[1].strip()
+                            if not (rhs.startswith('{') and (rhs == '{0}' or ',' in rhs or len(rhs) < 20)):
+                                needs_semicolon = False
+                                break
                 # Check for RawCode that ends with a closing brace (like for-loops)
                 elif class_name == 'RawCode':
                     if hasattr(part, 'code'):
@@ -909,7 +912,9 @@ class Writer(Formatter):
 
         # Write else block if present
         if elem.else_block is not None:
-            self._write(" else")
+            # self._eol()
+            self._start_line()
+            self._write("else")
             if isinstance(elem.else_block, core.Block):
                 self._write_brace_before_block(after_control_statement=True)
                 if len(elem.else_block.elements):
