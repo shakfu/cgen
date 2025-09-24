@@ -626,6 +626,7 @@ class Writer(Formatter):
 
     def _write_statement(self, elem: core.Statement) -> None:
         assert len(elem.parts) != 0
+
         if len(elem.parts) > 1:
             for i, part in enumerate(elem.parts):
                 if i:
@@ -651,6 +652,13 @@ class Writer(Formatter):
                         op_code = str(part.operation_code)
                         if ' = ' in op_code and op_code.strip().endswith('}'):
                             # This looks like a complete assignment like "var = {0}"
+                            needs_semicolon = False
+                            break
+                # Check for RawCode that ends with a closing brace (like for-loops)
+                elif class_name == 'RawCode':
+                    if hasattr(part, 'code'):
+                        code_str = str(part.code).strip()
+                        if code_str.endswith('}') and ('for (' in code_str or 'while (' in code_str or 'if (' in code_str):
                             needs_semicolon = False
                             break
 
@@ -1720,14 +1728,80 @@ class Writer(Formatter):
         self._write(f") {elem.replacement}")
         self.last_element = ElementType.DIRECTIVE
 
+    def _write_indented_block(self, code: str) -> None:
+        """Write a block of code with proper indentation.
+
+        This generic function handles indentation for any multi-line code block
+        by analyzing control structures and braces.
+        """
+        lines = code.strip().split('\n')
+
+        for i, line in enumerate(lines):
+            if i > 0:
+                self._eol()
+                self._start_line()
+
+            line_stripped = line.strip()
+            if not line_stripped:
+                continue
+
+            # Handle closing braces - dedent first, then write
+            if line_stripped.startswith('}'):
+                self._dedent()
+                self._write(line_stripped)
+            # Handle opening braces and control structures
+            elif line_stripped.endswith('{'):
+                self._write(line_stripped)
+                self._indent()
+            # Handle control structures without opening brace on same line
+            elif any(pattern in line_stripped for pattern in ['for (', 'while (', 'if (', 'else if (', 'else']):
+                self._write(line_stripped)
+                # Don't indent here - wait for the opening brace
+            else:
+                # Regular content line
+                self._write(line_stripped)
+
     def _write_raw_code(self, elem) -> None:
         """Write raw C code."""
-        self._write(elem.code)
+        code = elem.code
+        code_stripped = code.strip()
+
+        # Check if this is multi-line code that needs proper indentation
+        if '\n' in code_stripped:
+            self._write_indented_block(code)
+        else:
+            # Single line code
+            self._write(code)
+
         # Add semicolon for declaration-style code (like STC declarations)
-        if elem.code.strip().startswith(('declare_', 'typedef')) and not elem.code.strip().endswith(';'):
+        if code_stripped.startswith(('declare_', 'typedef')) and not code_stripped.endswith(';'):
             self._write(';')
-        self._eol()
-        self.last_element = ElementType.STATEMENT
+
+        # Only add newline for standalone raw code blocks, not inline expressions
+        is_standalone = (
+            code_stripped.startswith(('declare_', 'typedef', '#', '//')) or
+            code_stripped.endswith(';') or
+            '{' in code_stripped or
+            len(code_stripped.split('\n')) > 1
+        )
+
+        # Don't add _eol for inline expressions like struct initializations or simple initializers
+        is_inline_expression = (
+            # Struct initializations: (Type){...}
+            (code_stripped.startswith('(') and code_stripped.endswith('}') and
+             '{' in code_stripped and ';' not in code_stripped) or
+            # Simple initializers: {0}, {1, 2, 3}, etc.
+            (code_stripped.startswith('{') and code_stripped.endswith('}') and
+             ';' not in code_stripped and len(code_stripped) < 100)
+        )
+
+        if is_standalone and not is_inline_expression:
+            if '\n' not in code_stripped:  # Only add _eol for single-line standalone code
+                self._eol()
+            self.last_element = ElementType.STATEMENT
+        else:
+            # For inline expressions, don't set the element type to STATEMENT
+            pass
 
     def _write_stc_container(self, elem) -> None:
         """Write STC container element."""
