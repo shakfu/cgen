@@ -30,27 +30,34 @@ class STCTypeMapper:
         """Convert Python type to STC equivalent."""
         return self.type_mappings.get(python_type, python_type)
 
-    def get_list_container_name(self, element_type: str) -> str:
+    def get_list_container_name(self, element_type: str, register_usage: bool = True) -> str:
         """Generate STC vec container name for list[element_type]."""
         stc_type = self.python_type_to_stc(element_type)
         container_name = f"vec_{stc_type.replace('_t', '')}"
-        self.used_containers.add(container_name)
+        if register_usage:
+            self.used_containers.add(container_name)
         return container_name
 
-    def get_dict_container_name(self, key_type: str, value_type: str) -> str:
+    def get_dict_container_name(self, key_type: str, value_type: str, register_usage: bool = True) -> str:
         """Generate STC hmap container name for dict[key_type, value_type]."""
         stc_key = self.python_type_to_stc(key_type)
         stc_value = self.python_type_to_stc(value_type)
         container_name = f"hmap_{stc_key}_{stc_value}".replace('_t', '')
-        self.used_containers.add(container_name)
+        if register_usage:
+            self.used_containers.add(container_name)
         return container_name
 
-    def get_set_container_name(self, element_type: str) -> str:
+    def get_set_container_name(self, element_type: str, register_usage: bool = True) -> str:
         """Generate STC hset container name for set[element_type]."""
         stc_type = self.python_type_to_stc(element_type)
         container_name = f"hset_{stc_type.replace('_t', '')}"
-        self.used_containers.add(container_name)
+        if register_usage:
+            self.used_containers.add(container_name)
         return container_name
+
+    def register_container_usage(self, container_name: str) -> None:
+        """Register that a container is actually used in generated code."""
+        self.used_containers.add(container_name)
 
 
 class STCDeclarationGenerator:
@@ -64,18 +71,24 @@ class STCDeclarationGenerator:
     def generate_includes(self) -> List[core.Element]:
         """Generate necessary STC include statements."""
         includes = []
+        include_set = set()  # Track which headers we've already added
 
-        # Always include types.h for basic STC functionality
-        includes.append(core.IncludeDirective("stc/types.h", system=False))
+        # Only include stc/types.h if we actually have containers
+        if self.type_mapper.used_containers:
+            includes.append(core.IncludeDirective("stc/types.h", system=False))
+            include_set.add("stc/types.h")
 
-        # Include specific container headers based on usage
+        # Include specific container headers based on usage (deduplicated)
         for container in self.type_mapper.used_containers:
-            if container.startswith('vec_'):
+            if container.startswith('vec_') and "stc/vec.h" not in include_set:
                 includes.append(core.IncludeDirective("stc/vec.h", system=False))
-            elif container.startswith('hmap_'):
+                include_set.add("stc/vec.h")
+            elif container.startswith('hmap_') and "stc/hmap.h" not in include_set:
                 includes.append(core.IncludeDirective("stc/hmap.h", system=False))
-            elif container.startswith('hset_'):
+                include_set.add("stc/hmap.h")
+            elif container.startswith('hset_') and "stc/hset.h" not in include_set:
                 includes.append(core.IncludeDirective("stc/hset.h", system=False))
+                include_set.add("stc/hset.h")
 
         return includes
 
@@ -118,6 +131,9 @@ class STCOperationMapper:
 
     def map_list_operation(self, container_name: str, operation: str, *args) -> str:
         """Map Python list operation to STC vec operation."""
+        # Register that this container is actually used
+        self.type_mapper.register_container_usage(container_name)
+
         if operation == "append":
             return f"{container_name}_push(&{container_name}, {args[0]})"
         elif operation == "len":
@@ -137,6 +153,9 @@ class STCOperationMapper:
 
     def map_dict_operation(self, container_name: str, operation: str, *args) -> str:
         """Map Python dict operation to STC hmap operation."""
+        # Register that this container is actually used
+        self.type_mapper.register_container_usage(container_name)
+
         if operation == "get":  # dict[key]
             return f"*{container_name}_at(&{container_name}, {args[0]})"
         elif operation == "set":  # dict[key] = value
@@ -150,6 +169,9 @@ class STCOperationMapper:
 
     def map_set_operation(self, container_name: str, operation: str, *args) -> str:
         """Map Python set operation to STC hset operation."""
+        # Register that this container is actually used
+        self.type_mapper.register_container_usage(container_name)
+
         if operation == "add":  # set.add(element)
             return f"{container_name}_insert(&{container_name}, {args[0]})"
         elif operation == "len":

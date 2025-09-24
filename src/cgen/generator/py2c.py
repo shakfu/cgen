@@ -398,11 +398,11 @@ class PythonToCConverter:
             if container_info:
                 container_type, element_types = container_info
                 if container_type == "list" and len(element_types) == 1:
-                    stc_type_mapper.get_list_container_name(element_types[0])
+                    stc_type_mapper.get_list_container_name(element_types[0], register_usage=False)
                 elif container_type == "dict" and len(element_types) == 2:
-                    stc_type_mapper.get_dict_container_name(element_types[0], element_types[1])
+                    stc_type_mapper.get_dict_container_name(element_types[0], element_types[1], register_usage=False)
                 elif container_type == "set" and len(element_types) == 1:
-                    stc_type_mapper.get_set_container_name(element_types[0])
+                    stc_type_mapper.get_set_container_name(element_types[0], register_usage=False)
 
         elif isinstance(node, ast.FunctionDef):
             # Check function parameters and return types
@@ -411,11 +411,11 @@ class PythonToCConverter:
                 if container_info:
                     container_type, element_types = container_info
                     if container_type == "list" and len(element_types) == 1:
-                        stc_type_mapper.get_list_container_name(element_types[0])
+                        stc_type_mapper.get_list_container_name(element_types[0], register_usage=False)
                     elif container_type == "dict" and len(element_types) == 2:
-                        stc_type_mapper.get_dict_container_name(element_types[0], element_types[1])
+                        stc_type_mapper.get_dict_container_name(element_types[0], element_types[1], register_usage=False)
                     elif container_type == "set" and len(element_types) == 1:
-                        stc_type_mapper.get_set_container_name(element_types[0])
+                        stc_type_mapper.get_set_container_name(element_types[0], register_usage=False)
 
             for arg in node.args.args:
                 if arg.annotation:
@@ -423,11 +423,11 @@ class PythonToCConverter:
                     if container_info:
                         container_type, element_types = container_info
                         if container_type == "list" and len(element_types) == 1:
-                            stc_type_mapper.get_list_container_name(element_types[0])
+                            stc_type_mapper.get_list_container_name(element_types[0], register_usage=True)
                         elif container_type == "dict" and len(element_types) == 2:
-                            stc_type_mapper.get_dict_container_name(element_types[0], element_types[1])
+                            stc_type_mapper.get_dict_container_name(element_types[0], element_types[1], register_usage=True)
                         elif container_type == "set" and len(element_types) == 1:
-                            stc_type_mapper.get_set_container_name(element_types[0])
+                            stc_type_mapper.get_set_container_name(element_types[0], register_usage=True)
 
         # Recursively process child nodes
         for child in ast.iter_child_nodes(node):
