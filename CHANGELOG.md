@@ -15,7 +15,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 
 ---
 
-## [0.4.2]
+## [0.1.7]
 
 ### Added
 
@@ -102,7 +102,7 @@ double result = sqrt(16.0) + sin(3.14);
 - **Code Quality**: Generated C code maintains professional formatting standards
 - **Developer Experience**: Improved error messages and debugging capabilities for import-related issues
 
-## [0.4.1]
+## [0.1.6]
 
 ### Fixed
 
@@ -170,7 +170,7 @@ vec_int32 test_list_slicing(void)
 - **Production-Ready Output**: Generated C code meets professional formatting standards
 - **Zero Functional Regressions**: All improvements maintain backward compatibility and existing functionality
 
-## [0.4.0]
+## [0.1.5]
 
 ### Added
 
@@ -260,7 +260,7 @@ int index = cgen_str_find(text, "World");
 - **Performance Optimized**: Efficient C code generation with minimal overhead
 - **Pythonic Semantics**: Maintains Python behavior while leveraging C performance
 
-## [0.3.0]
+## [0.1.4]
 
 ### Added
 
@@ -331,7 +331,7 @@ int first = *numbers_at(&numbers, 0);
 *numbers_at(&numbers, 1) = 25;
 ```
 
-## [0.2.0]
+## [0.1.3]
 
 ### Added
 
