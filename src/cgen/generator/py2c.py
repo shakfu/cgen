@@ -370,8 +370,14 @@ class PythonToCConverter:
                 # Convert docstring to C comment instead of invalid string literal
                 docstring = node.value.value
                 if docstring.strip():
-                    comment = self.c_factory.line_comment(f" {docstring.strip()}")
-                    sequence.append(comment)
+                    # Handle multi-line docstrings by splitting into multiple comment lines
+                    lines = docstring.strip().split('\n')
+                    for line in lines:
+                        if line.strip():  # Only add non-empty lines
+                            comment = self.c_factory.line_comment(f" {line.strip()}")
+                            sequence.append(comment)
+                    # Add blank line after docstring block
+                    sequence.append(self.c_factory.blank())
                 continue
 
             c_element = self._convert_statement(node)
