@@ -15,8 +15,10 @@
 
 /**
  * Bridge function: Get C string from STC cstr
- * Simple wrapper that works with STC cstr types
+ * Note: STC provides cstr_str() inline function, so we use that directly
+ * This implementation is disabled to avoid conflicts
  */
+/*
 const char* cstr_str(const void* cstr_ptr) {
     if (!cstr_ptr) return "";
     // For STC cstr, we need to access the string data
@@ -24,11 +26,14 @@ const char* cstr_str(const void* cstr_ptr) {
     const struct { const char* str; size_t size; size_t cap; } *cstr = cstr_ptr;
     return cstr && cstr->str ? cstr->str : "";
 }
+*/
 
 /**
  * Bridge function: Create simple split result as vec_cstr
  * This creates a minimal vec_cstr-compatible structure for simple test cases
+ * Note: This function is disabled to avoid type conflicts with STC templates
  */
+/*
 void cgen_create_simple_split(const char* str, const char* delimiter, cgen_string_list_t* result) {
     if (!result) return;
 
@@ -72,6 +77,7 @@ void cgen_create_simple_split(const char* str, const char* delimiter, cgen_strin
         memcpy(result, &mock_vector, sizeof(mock_vector));
     }
 }
+*/
 
 #else
 

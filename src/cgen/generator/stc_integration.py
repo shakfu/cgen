@@ -100,6 +100,16 @@ class STCDeclarationGenerator:
         if self.type_mapper.used_containers:
             includes.append(core.IncludeDirective("stc/types.h", system=False))
 
+        # Include cstr.h if we have string containers (e.g., vec_cstr)
+        has_string_containers = any(
+            'cstr' in container or
+            (container in self.type_mapper.container_metadata and
+             any('str' in elem_type for elem_type in self.type_mapper.container_metadata[container][1]))
+            for container in self.type_mapper.used_containers
+        )
+        if has_string_containers:
+            includes.append(core.IncludeDirective("stc/cstr.h", system=False))
+
         # Note: specific container headers are included after declarations using #define T
         return includes
 

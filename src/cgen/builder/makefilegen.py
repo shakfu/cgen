@@ -126,7 +126,7 @@ class Builder:
             self.std = "c99"
 
         # Add STC-specific flags if not already present
-        stc_flags = ["-std=c99"]
+        stc_flags = ["-std=c99", "-DSTC_ENABLED"]
         for flag in stc_flags:
             if flag not in self.flags:
                 self.flags.append(flag)
