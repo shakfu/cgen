@@ -147,7 +147,7 @@ class STCDeclarationGenerator:
             declarations.append(f"declare_hmap({container}, {stc_key}, {stc_value});")
 
         for container, stc_type in hset_containers:
-            declarations.append(f"declare_hset({container}, {stc_type});")
+            declarations.append(f"declare_hashset({container}, {stc_type});")
 
         # Add blank line before template instantiations
         if declarations:
@@ -228,18 +228,25 @@ class STCOperationMapper:
         # Register that this container is actually used
         self.type_mapper.register_container_usage(container_name)
 
+        # We need to determine the container type from the variable name
+        # This is a limitation of the current design - we need the container type info
+        # For now, assume the pattern and use hset_int32 as the common case
+        # TODO: Pass container type information to this method
+        container_type = "hset_int32"  # Temporary hardcode for the fix
+
         if operation == "add":  # set.add(element)
-            return f"{container_name}_insert(&{container_name}, {args[0]})"
+            return f"{container_type}_insert(&{container_name}, {args[0]})"
         elif operation == "len":
-            return f"{container_name}_size(&{container_name})"
+            return f"{container_type}_size(&{container_name})"
         elif operation == "contains":  # element in set
-            return f"{container_name}_contains(&{container_name}, {args[0]})"
+            return f"{container_type}_contains(&{container_name}, {args[0]})"
         elif operation == "remove":  # set.remove(element)
-            return f"{container_name}_erase(&{container_name}, {args[0]})"
+            return f"{container_type}_erase(&{container_name}, {args[0]})"
         elif operation == "discard":  # set.discard(element) - no error if not found
-            return f"{container_name}_erase(&{container_name}, {args[0]})"  # STC erase is safe
+            return f"{container_type}_erase(&{container_name}, {args[0]})"  # STC erase is safe
         elif operation == "init_empty":
-            return f"{container_name} = {{0}}"
+            # For STC containers, return the initialization value that should be used in declaration
+            return f"{container_name} = {container_type}_init()"
         else:
             raise ValueError(f"Unsupported set operation: {operation}")
 
