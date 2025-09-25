@@ -145,6 +145,11 @@ char* cgen_strcat_new(const char* str1, const char* str2);
  */
 char* cgen_format_string(const char* template_str, ...);
 
+// Type-specific wrapper functions for generated code compatibility
+static inline char* cgen_str_upper(const char* str) { return cgen_upper(str); }
+static inline char* cgen_str_lower(const char* str) { return cgen_lower(str); }
+static inline int cgen_str_find(const char* str, const char* substring) { return cgen_find(str, substring); }
+
 #ifdef __cplusplus
 }
 #endif

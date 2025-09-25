@@ -207,6 +207,18 @@ Build Directory Structure:
                 shutil.copytree(src_c11_headers, dest_c11_dir)
                 self.log.debug(f"Copied C11 library to: {dest_c11_dir}")
 
+        # Copy runtime string operations library
+        src_runtime_dir = Path(__file__).parent.parent / "runtime"
+        if src_runtime_dir.exists():
+            dest_base_dir = build_dir / "src"
+            string_ops_files = ["cgen_string_ops.h", "cgen_string_ops.c", "cgen_error_handling.h", "cgen_error_handling.c"]
+            for filename in string_ops_files:
+                src_file = src_runtime_dir / filename
+                if src_file.exists():
+                    dest_file = dest_base_dir / filename
+                    shutil.copy2(src_file, dest_file)
+                    self.log.debug(f"Copied runtime file: {filename}")
+
     def convert_command(self, args) -> int:
         """Execute convert command."""
         input_path = Path(args.input_file)

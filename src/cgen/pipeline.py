@@ -407,7 +407,20 @@ class CGenPipeline:
                 cmd = [self.config.compiler]
                 cmd.extend(self.config.compiler_flags)
                 cmd.extend([f"-I{inc}" for inc in self.config.include_dirs])
-                cmd.extend([str(c_file_path), "-o", str(executable_path)])
+
+                # Add main C file
+                source_files = [str(c_file_path)]
+
+                # Add runtime library files if they exist
+                output_dir_path = Path(output_dir)
+                runtime_c_files = ["cgen_string_ops.c", "cgen_error_handling.c"]
+                for runtime_file in runtime_c_files:
+                    runtime_path = output_dir_path / runtime_file
+                    if runtime_path.exists():
+                        source_files.append(str(runtime_path))
+
+                cmd.extend(source_files)
+                cmd.extend(["-o", str(executable_path)])
                 cmd.extend([f"-l{lib}" for lib in self.config.libraries])
 
                 # Execute compilation

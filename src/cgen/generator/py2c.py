@@ -339,18 +339,32 @@ class PythonToCConverter:
 
         # First pass - process all statements to discover container types and assert usage
         uses_assert = False
+        uses_string_methods = False
+        uses_string_comparison = False
         for node in module.body:
             self._discover_container_types(node)
             if self._has_assert_statements(node):
                 uses_assert = True
+            if self._has_string_method_calls(node):
+                uses_string_methods = True
+            if self._has_string_comparisons(node):
+                uses_string_comparison = True
 
         # Add standard includes that might be needed
         sequence.append(self.c_factory.sysinclude("stdio.h"))
         sequence.append(self.c_factory.sysinclude("stdbool.h"))
 
+        # Add string.h if string comparisons are used
+        if uses_string_comparison:
+            sequence.append(self.c_factory.sysinclude("string.h"))
+
         # Add assert.h if assert statements are used
         if uses_assert:
             sequence.append(self.c_factory.sysinclude("assert.h"))
+
+        # Add string operations header if string methods are used
+        if uses_string_methods:
+            sequence.append(self.c_factory.include("cgen_string_ops.h"))
 
         # Add STC includes if we have containers
         stc_includes = stc_declaration_generator.generate_includes()
@@ -684,6 +698,25 @@ class PythonToCConverter:
         for child_node in ast.walk(node):
             if isinstance(child_node, ast.Assert):
                 return True
+        return False
+
+    def _has_string_method_calls(self, node: ast.AST) -> bool:
+        """Check if a node or its children contain string method calls."""
+        string_methods = {'upper', 'lower', 'find', 'split', 'strip', 'replace', 'startswith', 'endswith'}
+        for child_node in ast.walk(node):
+            if isinstance(child_node, ast.Call) and isinstance(child_node.func, ast.Attribute):
+                method_name = child_node.func.attr
+                if method_name in string_methods:
+                    return True
+        return False
+
+    def _has_string_comparisons(self, node: ast.AST) -> bool:
+        """Check if a node or its children contain string comparisons."""
+        for child_node in ast.walk(node):
+            if isinstance(child_node, ast.Compare):
+                # Check if any comparison involves strings
+                if self._is_string_comparison(child_node.left, child_node.comparators[0]):
+                    return True
         return False
 
     def _expression_to_string(self, expr) -> str:
@@ -1041,6 +1074,11 @@ class PythonToCConverter:
 
         if type(node.ops[0]) in op_map:
             op_str = op_map[type(node.ops[0])]
+
+            # Check if this is a string comparison
+            if self._is_string_comparison(node.left, node.comparators[0]):
+                return self._convert_string_comparison(left, right, node.ops[0])
+
             return BinaryExpression(left, op_str, right)
         elif isinstance(node.ops[0], ast.In):
             # Handle membership testing: element in container
@@ -1050,6 +1088,54 @@ class PythonToCConverter:
             return self._convert_membership_test(node.left, node.comparators[0], True)
         else:
             raise UnsupportedFeatureError(f"Unsupported comparison operator: {type(node.ops[0]).__name__}")
+
+    def _is_string_comparison(self, left_node: ast.expr, right_node: ast.expr) -> bool:
+        """Check if this is a comparison between strings."""
+        # Check if either side is a string literal
+        left_is_string = isinstance(left_node, ast.Str) or isinstance(left_node, ast.Constant) and isinstance(left_node.value, str)
+        right_is_string = isinstance(right_node, ast.Str) or isinstance(right_node, ast.Constant) and isinstance(right_node.value, str)
+
+        # For now, handle cases where at least one side is a string literal
+        # TODO: Could be enhanced to detect string variables through type inference
+        return left_is_string or right_is_string
+
+    def _convert_string_comparison(self, left_expr, right_expr, op_node) -> core.Element:
+        """Convert string comparison to use strcmp()."""
+        from .writer import Writer
+        from .style import StyleOptions
+
+        # Get string representations of the expressions
+        temp_writer = Writer(StyleOptions())
+        if isinstance(left_expr, core.Element):
+            left_str = temp_writer.write_str_elem(left_expr)
+        else:
+            left_str = str(left_expr)
+
+        if isinstance(right_expr, core.Element):
+            right_str = temp_writer.write_str_elem(right_expr)
+        else:
+            right_str = str(right_expr)
+
+        # Generate appropriate strcmp comparison based on operator
+        if isinstance(op_node, ast.Eq):
+            comparison = f"strcmp({left_str}, {right_str}) == 0"
+        elif isinstance(op_node, ast.NotEq):
+            comparison = f"strcmp({left_str}, {right_str}) != 0"
+        elif isinstance(op_node, ast.Lt):
+            comparison = f"strcmp({left_str}, {right_str}) < 0"
+        elif isinstance(op_node, ast.LtE):
+            comparison = f"strcmp({left_str}, {right_str}) <= 0"
+        elif isinstance(op_node, ast.Gt):
+            comparison = f"strcmp({left_str}, {right_str}) > 0"
+        elif isinstance(op_node, ast.GtE):
+            comparison = f"strcmp({left_str}, {right_str}) >= 0"
+        else:
+            # Fallback to regular comparison
+            op_map = {ast.Eq: "==", ast.NotEq: "!=", ast.Lt: "<", ast.LtE: "<=", ast.Gt: ">", ast.GtE: ">="}
+            op_str = op_map.get(type(op_node), "==")
+            return BinaryExpression(left_expr, op_str, right_expr)
+
+        return core.RawCode(comparison)
 
     def _convert_membership_test(self, element_node: ast.expr, container_node: ast.expr, negate: bool) -> core.Element:
         """Convert membership test (element in container) to C syntax."""
