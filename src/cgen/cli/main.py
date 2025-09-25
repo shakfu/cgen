@@ -46,6 +46,7 @@ Examples:
   cgen build my_module.py -m             # Generate C code and Makefile
   cgen build my_module.py -O aggressive  # Compile with aggressive optimization
   cgen batch                             # Batch translate all files in a directory
+  cgen batch --build                     # Batch translate and build C files
   cgen batch --summary-only              # Quick batch test with summary only
   cgen clean                             # Clean build directory
 
@@ -121,6 +122,10 @@ Build Directory Structure:
             default="moderate",
             help="Optimization level (default: moderate)",
         )
+        batch_parser.add_argument(
+            "--build", action="store_true", help="Build (compile) C files after translation"
+        )
+        batch_parser.add_argument("--compiler", default="gcc", help="C compiler to use (default: gcc)")
 
         return parser
 
@@ -320,8 +325,12 @@ Build Directory Structure:
         output_dir = args.output_dir
         continue_on_error = args.continue_on_error
         summary_only = args.summary_only
+        build_after_translation = args.build
 
-        self.log.info("Starting CGen batch translation")
+        if build_after_translation:
+            self.log.info("Starting CGen batch translation with build")
+        else:
+            self.log.info("Starting CGen batch translation")
 
         # Check if source_dir directory exists
         if not os.path.exists(source_dir):
@@ -334,6 +343,12 @@ Build Directory Structure:
         except Exception as e:
             self.log.error(f"Failed to create output directory {output_dir}: {e}")
             return 1
+
+        # If building, set up build directory and copy STC library
+        if build_after_translation:
+            build_dir = Path(args.build_dir)
+            self.setup_build_directory(build_dir)
+            self.copy_stc_library(build_dir)
 
         # Find all Python files in source_dir directory
         python_files = []
@@ -353,6 +368,8 @@ Build Directory Structure:
         # Process each file
         successful_translations = 0
         failed_translations = 0
+        successful_builds = 0
+        failed_builds = 0
         translation_results = []
 
         for i, input_file in enumerate(python_files, 1):
@@ -365,30 +382,57 @@ Build Directory Structure:
 
             try:
                 # Use the pipeline to convert the file
-                config = PipelineConfig(
-                    optimization_level=self.get_optimization_level(args.optimization),
-                    output_dir=output_dir,
-                    build_mode=BuildMode.NONE,
-                )
+                if build_after_translation:
+                    # Use DIRECT build mode to compile after translation
+                    build_dir = Path(args.build_dir)
+                    config = PipelineConfig(
+                        optimization_level=self.get_optimization_level(args.optimization),
+                        output_dir=str(build_dir / "src"),
+                        build_mode=BuildMode.DIRECT,
+                        compiler=getattr(args, "compiler", "gcc"),
+                        include_dirs=[str(build_dir / "src")],  # Add STC include path
+                    )
+                else:
+                    # Translation only mode
+                    config = PipelineConfig(
+                        optimization_level=self.get_optimization_level(args.optimization),
+                        output_dir=output_dir,
+                        build_mode=BuildMode.NONE,
+                    )
 
                 pipeline = CGenPipeline(config)
                 result = pipeline.convert(Path(input_file))
 
                 if result.success:
                     successful_translations += 1
+
                     # Count lines in generated C file
+                    c_file_path = output_file if not build_after_translation else str(build_dir / "src" / output_filename)
                     try:
-                        with open(output_file) as f:
+                        with open(c_file_path) as f:
                             lines_generated = len(f.readlines())
                     except:
                         lines_generated = 0
 
-                    translation_results.append(
-                        {"input": filename, "output": output_filename, "status": "SUCCESS", "lines": lines_generated}
-                    )
+                    result_data = {"input": filename, "output": output_filename, "status": "SUCCESS", "lines": lines_generated}
+
+                    # If building, check for executable and track build success
+                    if build_after_translation:
+                        if result.executable_path:
+                            successful_builds += 1
+                            result_data["executable"] = Path(result.executable_path).name
+                            result_data["status"] = "SUCCESS (BUILT)"
+                        else:
+                            failed_builds += 1
+                            result_data["status"] = "TRANSLATED (BUILD FAILED)"
+
+                    translation_results.append(result_data)
 
                     if not summary_only:
-                        self.log.info(f"{output_filename} ({lines_generated} lines)")
+                        if build_after_translation and result.executable_path:
+                            self.log.info(f"{output_filename} ({lines_generated} lines) -> {Path(result.executable_path).name}")
+                        else:
+                            self.log.info(f"{output_filename} ({lines_generated} lines)")
                 else:
                     failed_translations += 1
                     error_msg = "; ".join(result.errors) if result.errors else "Unknown error"
@@ -425,6 +469,10 @@ Build Directory Structure:
         self.log.info(f"Total files processed: {len(translation_results)}")
         self.log.info(f"Successful translations: {successful_translations}")
         self.log.info(f"Failed translations: {failed_translations}")
+
+        if build_after_translation:
+            self.log.info(f"Successful builds: {successful_builds}")
+            self.log.info(f"Failed builds: {failed_builds}")
 
         # if failed_translations > 0:
         #     print()
