@@ -350,6 +350,7 @@ def main():
             args.continue_on_error = True
             args.summary_only = False
             args.optimization = "moderate"
+            args.build = False  # Disable build mode for this test
 
             # Mock the output files to simulate successful translation
             with patch('builtins.open', MagicMock()):
@@ -374,6 +375,7 @@ def main():
             args.continue_on_error = True
             args.summary_only = False
             args.optimization = "moderate"
+            args.build = False  # Disable build mode for this test
 
             result = self.cli.batch_command(args)
 

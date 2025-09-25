@@ -189,6 +189,16 @@ Build Directory Structure:
                 "cgen_string_ops.c",
                 "cgen_error_handling.h",
                 "cgen_error_handling.c",
+                "cgen_python_ops.h",
+                "cgen_python_ops.c",
+                "cgen_file_ops.h",
+                "cgen_file_ops.c",
+                "cgen_stc_bridge.h",
+                "cgen_stc_bridge.c",
+                "cgen_memory_ops.h",
+                "cgen_memory_ops.c",
+                "cgen_container_ops.h",
+                "cgen_container_ops.c",
             ]
             for filename in string_ops_files:
                 src_file = src_runtime_dir / filename

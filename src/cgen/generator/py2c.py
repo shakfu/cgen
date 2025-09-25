@@ -272,6 +272,7 @@ class PythonToCConverter:
         self.container_variables: Dict[str, Dict[str, Any]] = {}  # Track container variables
         self.variable_context: Dict[str, core.Variable] = {}
         self.defined_structs: Dict[str, core.Struct] = {}  # Track defined struct types
+        self.iterator_variables: Dict[str, str] = {}  # Track STC iterator variables: var_name -> container_type
 
         # Initialize module system
         self.module_resolver = ModuleResolver()
@@ -576,6 +577,7 @@ class PythonToCConverter:
 
         self.current_function = None
         self.variable_context.clear()
+        self.iterator_variables.clear()  # Clear iterator tracking when exiting function
 
         return [self.c_factory.declaration(function), function_block, self.c_factory.blank()]
 
@@ -1019,6 +1021,9 @@ class PythonToCConverter:
         if isinstance(node, ast.Constant):
             return self._convert_constant(node.value)
         elif isinstance(node, ast.Name):
+            # Check if this variable is an STC iterator that needs .ref dereferencing
+            if node.id in self.iterator_variables:
+                return f"*{node.id}.ref"
             return node.id
         elif isinstance(node, ast.BinOp):
             return self._convert_binary_operation(node)
@@ -1613,6 +1618,9 @@ class PythonToCConverter:
             # Generate STC foreach loop using raw C code
             # c_foreach (item, container_type, container_var)
             foreach_code = f"c_foreach ({loop_var}, {stc_container_type}, {container_name})"
+
+            # Track that this variable is an iterator that needs .ref dereferencing
+            self.iterator_variables[loop_var] = stc_container_type
 
             # Create a special foreach element that combines the foreach with the body
             return STCForEachElement(foreach_code, body_block)

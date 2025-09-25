@@ -46,6 +46,7 @@ from .frontend import (
     VectorizationDetector,
 )
 from .generator import PythonToCConverter, StyleOptions
+from .generator.stc_py2c import STCEnhancedPythonToCConverter
 
 
 class BuildMode(Enum):
