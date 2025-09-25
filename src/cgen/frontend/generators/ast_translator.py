@@ -1,5 +1,4 @@
-"""
-Python-to-C AST Translator
+"""Python-to-C AST Translator
 
 Converts Python AST nodes to C code using the CFile library.
 This module implements comprehensive translation of Python constructs
@@ -7,16 +6,16 @@ to their C equivalents.
 """
 
 import ast
-import math
-from typing import Dict, List, Optional, Any, Union
 from dataclasses import dataclass
+from typing import Any, Dict, List, Optional, Union
 
-from cfile import CFactory, Writer, StyleOptions
+from cfile import CFactory, StyleOptions, Writer
 
 
 @dataclass
 class TranslationContext:
     """Context for maintaining translation state."""
+
     variables: Dict[str, str] = None  # variable_name -> c_type
     functions: Dict[str, str] = None  # function_name -> return_type
     c_factory: CFactory = None
@@ -38,24 +37,24 @@ class PythonToCTranslator:
     def __init__(self):
         self.context = TranslationContext()
         self.builtin_functions = {
-            'print': self._translate_print,
-            'len': self._translate_len,
-            'range': self._translate_range,
-            'abs': self._translate_abs,
-            'min': self._translate_min,
-            'max': self._translate_max,
-            'int': self._translate_int_cast,
-            'float': self._translate_float_cast,
+            "print": self._translate_print,
+            "len": self._translate_len,
+            "range": self._translate_range,
+            "abs": self._translate_abs,
+            "min": self._translate_min,
+            "max": self._translate_max,
+            "int": self._translate_int_cast,
+            "float": self._translate_float_cast,
         }
         self.math_functions = {
-            'sin': 'sin',
-            'cos': 'cos',
-            'tan': 'tan',
-            'sqrt': 'sqrt',
-            'log': 'log',
-            'exp': 'exp',
-            'pow': 'pow',
-            'abs': 'fabs',
+            "sin": "sin",
+            "cos": "cos",
+            "tan": "tan",
+            "sqrt": "sqrt",
+            "log": "log",
+            "exp": "exp",
+            "pow": "pow",
+            "abs": "fabs",
         }
 
     def translate_module(self, module_node: ast.Module) -> str:
@@ -213,14 +212,14 @@ class PythonToCTranslator:
 
         # Map Python operators to C operators
         op_map = {
-            ast.Add: '+',
-            ast.Sub: '-',
-            ast.Mult: '*',
-            ast.Div: '/',
-            ast.Mod: '%',
+            ast.Add: "+",
+            ast.Sub: "-",
+            ast.Mult: "*",
+            ast.Div: "/",
+            ast.Mod: "%",
         }
 
-        op = op_map.get(type(aug_assign_node.op), '+')
+        op = op_map.get(type(aug_assign_node.op), "+")
         combined_expr = C.binary_op(target_expr, op, value_expr)
 
         return C.assign(target_expr, combined_expr)
@@ -281,10 +280,11 @@ class PythonToCTranslator:
         statements = []
 
         # Simple for i in range() loops
-        if (isinstance(for_node.iter, ast.Call) and
-            isinstance(for_node.iter.func, ast.Name) and
-            for_node.iter.func.id == 'range'):
-
+        if (
+            isinstance(for_node.iter, ast.Call)
+            and isinstance(for_node.iter.func, ast.Name)
+            and for_node.iter.func.id == "range"
+        ):
             loop_var = for_node.target.id
             range_args = for_node.iter.args
 
@@ -323,14 +323,11 @@ class PythonToCTranslator:
                         body_stmts.append(c_stmt)
 
             # Add increment to body
-            body_stmts.append(C.assign(
-                C.variable_ref(loop_var),
-                C.binary_op(C.variable_ref(loop_var), '+', step)
-            ))
+            body_stmts.append(C.assign(C.variable_ref(loop_var), C.binary_op(C.variable_ref(loop_var), "+", step)))
 
             # Create for loop
             init = C.assign(C.variable_ref(loop_var), start)
-            condition = C.binary_op(C.variable_ref(loop_var), '<', end)
+            condition = C.binary_op(C.variable_ref(loop_var), "<", end)
 
             statements.append(C.variable("int", loop_var, start))
             statements.append(C.while_(condition, body_stmts))
@@ -390,20 +387,20 @@ class PythonToCTranslator:
         right = self._translate_expression(binop.right)
 
         op_map = {
-            ast.Add: '+',
-            ast.Sub: '-',
-            ast.Mult: '*',
-            ast.Div: '/',
-            ast.Mod: '%',
-            ast.Pow: '**',  # Will need special handling
-            ast.FloorDiv: '/',  # Approximation
+            ast.Add: "+",
+            ast.Sub: "-",
+            ast.Mult: "*",
+            ast.Div: "/",
+            ast.Mod: "%",
+            ast.Pow: "**",  # Will need special handling
+            ast.FloorDiv: "/",  # Approximation
         }
 
         if isinstance(binop.op, ast.Pow):
             # Use pow function for exponentiation
             return C.func_call("pow", [left, right])
 
-        op = op_map.get(type(binop.op), '+')
+        op = op_map.get(type(binop.op), "+")
         return C.binary_op(left, op, right)
 
     def _translate_unary_op(self, unaryop: ast.UnaryOp) -> Any:
@@ -415,9 +412,9 @@ class PythonToCTranslator:
         if isinstance(unaryop.op, ast.UAdd):
             return operand
         elif isinstance(unaryop.op, ast.USub):
-            return C.unary_op('-', operand)
+            return C.unary_op("-", operand)
         elif isinstance(unaryop.op, ast.Not):
-            return C.unary_op('!', operand)
+            return C.unary_op("!", operand)
         else:
             return operand
 
@@ -433,15 +430,15 @@ class PythonToCTranslator:
             right = self._translate_expression(compare.comparators[0])
 
             op_map = {
-                ast.Eq: '==',
-                ast.NotEq: '!=',
-                ast.Lt: '<',
-                ast.LtE: '<=',
-                ast.Gt: '>',
-                ast.GtE: '>=',
+                ast.Eq: "==",
+                ast.NotEq: "!=",
+                ast.Lt: "<",
+                ast.LtE: "<=",
+                ast.Gt: ">",
+                ast.GtE: ">=",
             }
 
-            c_op = op_map.get(type(op), '==')
+            c_op = op_map.get(type(op), "==")
             return C.binary_op(left, c_op, right)
 
         # For complex comparisons, create compound conditions
@@ -452,22 +449,22 @@ class PythonToCTranslator:
             right = self._translate_expression(comparator)
 
             op_map = {
-                ast.Eq: '==',
-                ast.NotEq: '!=',
-                ast.Lt: '<',
-                ast.LtE: '<=',
-                ast.Gt: '>',
-                ast.GtE: '>=',
+                ast.Eq: "==",
+                ast.NotEq: "!=",
+                ast.Lt: "<",
+                ast.LtE: "<=",
+                ast.Gt: ">",
+                ast.GtE: ">=",
             }
 
-            c_op = op_map.get(type(op), '==')
+            c_op = op_map.get(type(op), "==")
             conditions.append(C.binary_op(current_left, c_op, right))
             current_left = right
 
         # Combine with && if multiple conditions
         result = conditions[0]
         for condition in conditions[1:]:
-            result = C.binary_op(result, '&&', condition)
+            result = C.binary_op(result, "&&", condition)
 
         return result
 
@@ -478,11 +475,11 @@ class PythonToCTranslator:
         values = [self._translate_expression(val) for val in boolop.values]
 
         if isinstance(boolop.op, ast.And):
-            op = '&&'
+            op = "&&"
         elif isinstance(boolop.op, ast.Or):
-            op = '||'
+            op = "||"
         else:
-            op = '&&'
+            op = "&&"
 
         result = values[0]
         for value in values[1:]:
@@ -599,7 +596,7 @@ class PythonToCTranslator:
             # Use ternary operator for two arguments
             a = self._translate_expression(call.args[0])
             b = self._translate_expression(call.args[1])
-            condition = C.binary_op(a, '<', b)
+            condition = C.binary_op(a, "<", b)
             return C.ternary(condition, a, b)
 
         return C.literal("0")
@@ -612,7 +609,7 @@ class PythonToCTranslator:
             # Use ternary operator for two arguments
             a = self._translate_expression(call.args[0])
             b = self._translate_expression(call.args[1])
-            condition = C.binary_op(a, '>', b)
+            condition = C.binary_op(a, ">", b)
             return C.ternary(condition, a, b)
 
         return C.literal("0")
@@ -712,12 +709,12 @@ class PythonToCTranslator:
         """Convert Python type annotation to C type."""
         if isinstance(annotation, ast.Name):
             type_map = {
-                'int': 'int',
-                'float': 'double',
-                'str': 'char*',
-                'bool': 'int',
+                "int": "int",
+                "float": "double",
+                "str": "char*",
+                "bool": "int",
             }
-            return type_map.get(annotation.id, 'int')
+            return type_map.get(annotation.id, "int")
         elif isinstance(annotation, ast.Constant):
             if isinstance(annotation.value, str):
                 return annotation.value  # Direct C type

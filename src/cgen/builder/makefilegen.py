@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""
-CGen Makefile Generator
+"""CGen Makefile Generator
 
 Makefile generator and direct compilation tool for CGen projects,
 adapted from makefilegen by shakfu: https://github.com/shakfu/makefilegen
@@ -10,15 +9,11 @@ high-performance C code generation projects.
 """
 
 import argparse
-import os
 import platform
-import re
-import shutil
 import subprocess
 import sys
-import sysconfig
 from pathlib import Path
-from typing import Any, Callable, Optional, TypeAlias, List, Dict
+from typing import Callable, List, Optional, TypeAlias
 
 from ..common import log
 
@@ -30,12 +25,7 @@ TestFunc: TypeAlias = Callable[[str], bool]
 PLATFORM = platform.system()
 
 try:
-    VERSION = float(
-        subprocess.check_output(["make", "-v"])
-        .decode()
-        .split("\n")[0]
-        .replace("GNU Make ", "")
-    )
+    VERSION = float(subprocess.check_output(["make", "-v"]).decode().split("\n")[0].replace("GNU Make ", ""))
 except (subprocess.CalledProcessError, FileNotFoundError):
     VERSION = 4.0  # Default fallback version
 
@@ -97,14 +87,15 @@ class Builder:
         """Auto-detect STC include path."""
         try:
             # Try to import CGen's STC module
-            import sys
             import os
+            import sys
 
             # Add current directory to path for imports
             current_dir = Path(__file__).parent
             sys.path.insert(0, str(current_dir))
 
             from ext.stc import get_stc_include_path
+
             return get_stc_include_path()
         except ImportError:
             # Look for STC in common locations
@@ -277,14 +268,15 @@ class MakefileGenerator:
         """Auto-detect STC include path."""
         try:
             # Try to import CGen's STC module
-            import sys
             import os
+            import sys
 
             # Add current directory to path for imports
             current_dir = Path(__file__).parent
             sys.path.insert(0, str(current_dir))
 
             from ext.stc import get_stc_include_path
+
             return get_stc_include_path()
         except ImportError:
             # Look for STC in common locations
@@ -433,10 +425,7 @@ class MakefileGenerator:
         self.target("all", [self.name], phony=True)
 
         # Build directory creation
-        self.target(
-            "$(BUILDDIR)",
-            commands=["@mkdir -p $(BUILDDIR)"]
-        )
+        self.target("$(BUILDDIR)", commands=["@mkdir -p $(BUILDDIR)"])
 
         # Object file compilation
         compile_cmd = ["$(CC) $(STD) $(CFLAGS) $(CPPFLAGS)"]
@@ -446,11 +435,7 @@ class MakefileGenerator:
             compile_cmd.append("$(STC_FLAGS)")
         compile_cmd.extend(["-c $< -o $@"])
 
-        self.pattern_rule(
-            "$(BUILDDIR)/%.o",
-            "$(SRCDIR)/%.c",
-            [" ".join(compile_cmd)]
-        )
+        self.pattern_rule("$(BUILDDIR)/%.o", "$(SRCDIR)/%.c", [" ".join(compile_cmd)])
 
         # Main target
         link_cmd = ["$(CC)"]
@@ -463,21 +448,10 @@ class MakefileGenerator:
             link_cmd.append("$(LIBS)")
         link_cmd.extend(["-o $@"])
 
-        self.target(
-            self.name,
-            ["$(BUILDDIR)", "$(OBJECTS)"],
-            [" ".join(link_cmd)]
-        )
+        self.target(self.name, ["$(BUILDDIR)", "$(OBJECTS)"], [" ".join(link_cmd)])
 
         # Clean target
-        self.target(
-            "clean",
-            commands=[
-                "@rm -rf $(BUILDDIR)",
-                f"@rm -f {self.name}"
-            ],
-            phony=True
-        )
+        self.target("clean", commands=["@rm -rf $(BUILDDIR)", f"@rm -f {self.name}"], phony=True)
 
         # Help target
         help_commands = [
@@ -549,7 +523,6 @@ class CGenMakefileGenerator:
         makefile_dir: Optional[str] = None,
     ) -> MakefileGenerator:
         """Create a Makefile for generated C code."""
-
         c_path = Path(c_file)
         if not c_path.exists():
             raise FileNotFoundError(f"C file not found: {c_file}")
@@ -581,7 +554,7 @@ class CGenMakefileGenerator:
             include_dirs=includes,
             use_stc=use_stc,
             compiler="gcc",
-            std="c99"
+            std="c99",
         )
 
         return generator
@@ -595,7 +568,6 @@ class CGenMakefileGenerator:
         additional_includes: Optional[List[str]] = None,
     ) -> Builder:
         """Create a Builder for direct compilation of generated C code."""
-
         c_path = Path(c_file)
         if not c_path.exists():
             raise FileNotFoundError(f"C file not found: {c_file}")
@@ -617,7 +589,7 @@ class CGenMakefileGenerator:
             include_dirs=includes,
             use_stc=use_stc,
             compiler="gcc",
-            std="c99"
+            std="c99",
         )
 
         return builder
@@ -626,8 +598,7 @@ class CGenMakefileGenerator:
 def main():
     """Command-line interface for CGen Makefile generator."""
     parser = argparse.ArgumentParser(
-        description="CGen Makefile Generator with STC support",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+        description="CGen Makefile Generator with STC support", formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
 
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
@@ -677,7 +648,7 @@ def main():
             libraries=args.lib or [],
             flags=additional_flags,
             compiler=args.compiler,
-            use_stc=not args.no_stc
+            use_stc=not args.no_stc,
         )
 
         success = builder.build(verbose=args.verbose)
@@ -702,7 +673,7 @@ def main():
             libraries=args.lib or [],
             flags=additional_flags,
             compiler=args.compiler,
-            use_stc=not args.no_stc
+            use_stc=not args.no_stc,
         )
 
         success = generator.write_makefile(args.output)

@@ -1,5 +1,4 @@
-"""
-Memory Safety and Bounds Verification
+"""Memory Safety and Bounds Verification
 
 This module provides formal verification of memory safety properties,
 including bounds checking, buffer overflow prevention, and pointer safety.
@@ -7,22 +6,24 @@ including bounds checking, buffer overflow prevention, and pointer safety.
 
 import ast
 import time
-from typing import Dict, List, Optional, Set, Union, Any, Tuple
 from dataclasses import dataclass
 from enum import Enum
+from typing import Dict, List, Optional, Union
 
 try:
     import z3
+
     Z3_AVAILABLE = True
 except ImportError:
     Z3_AVAILABLE = False
 
-from ..base import AnalysisContext, AnalysisResult
-from .theorem_prover import TheoremProver, ProofProperty, ProofResult, PropertyType, ProofStatus
+from ..base import AnalysisContext
+from .theorem_prover import ProofProperty, ProofResult, ProofStatus, PropertyType, TheoremProver
 
 
 class MemorySafetyType(Enum):
     """Types of memory safety properties."""
+
     BUFFER_OVERFLOW = "buffer_overflow"
     BOUNDS_VIOLATION = "bounds_violation"
     NULL_POINTER_DEREFERENCE = "null_pointer_dereference"
@@ -36,6 +37,7 @@ class MemorySafetyType(Enum):
 @dataclass
 class MemoryRegion:
     """Represents a memory region with bounds and properties."""
+
     name: str
     base_address: Union[str, int]
     size: Union[str, int]
@@ -49,6 +51,7 @@ class MemoryRegion:
 @dataclass
 class MemoryAccess:
     """Represents a memory access operation."""
+
     region: MemoryRegion
     access_type: str  # "read", "write", "address"
     offset: Union[str, int]
@@ -60,6 +63,7 @@ class MemoryAccess:
 @dataclass
 class MemorySafetyProof:
     """Result of memory safety verification."""
+
     function_name: str
     safety_type: MemorySafetyType
     is_safe: bool
@@ -142,7 +146,9 @@ class BoundsProver:
 
         verification_time = time.time() - start_time
 
-        function_name = list(context.analysis_result.functions.keys())[0] if context.analysis_result.functions else "unknown"
+        function_name = (
+            list(context.analysis_result.functions.keys())[0] if context.analysis_result.functions else "unknown"
+        )
 
         return MemorySafetyProof(
             function_name=function_name,
@@ -152,7 +158,7 @@ class BoundsProver:
             unsafe_accesses=unsafe_accesses,
             recommendations=recommendations,
             verification_time=verification_time,
-            confidence=confidence
+            confidence=confidence,
         )
 
     def _verify_bounds_safety(self) -> List[ProofResult]:
@@ -218,7 +224,7 @@ class BoundsProver:
                 name=f"bounds_check_{region.name}",
                 property_type=PropertyType.BOUNDS_CHECKING,
                 description=f"Access to {region.name} at offset {access.offset} is within bounds",
-                z3_formula="mock_formula"
+                z3_formula="mock_formula",
             )
 
         # Create Z3 variables
@@ -232,20 +238,14 @@ class BoundsProver:
             size = z3.IntVal(region.size)
 
         # Bounds property: 0 <= offset < size
-        bounds_formula = z3.And(
-            offset >= 0,
-            offset < size
-        )
+        bounds_formula = z3.And(offset >= 0, offset < size)
 
         return ProofProperty(
             name=f"bounds_check_{region.name}_{access.line_number}",
             property_type=PropertyType.BOUNDS_CHECKING,
             description=f"Access to {region.name} at offset {access.offset} is within bounds",
             z3_formula=bounds_formula,
-            context={
-                'access': access,
-                'region': region
-            }
+            context={"access": access, "region": region},
         )
 
     def _create_null_pointer_property(self, region: MemoryRegion) -> ProofProperty:
@@ -255,7 +255,7 @@ class BoundsProver:
                 name=f"null_check_{region.name}",
                 property_type=PropertyType.NULL_POINTER_SAFETY,
                 description=f"Region {region.name} is not null",
-                z3_formula="mock_formula"
+                z3_formula="mock_formula",
             )
 
         # Create Z3 variable for base address
@@ -269,7 +269,7 @@ class BoundsProver:
             property_type=PropertyType.NULL_POINTER_SAFETY,
             description=f"Region {region.name} is not null",
             z3_formula=null_safety_formula,
-            context={'region': region}
+            context={"region": region},
         )
 
     def _create_buffer_overflow_property(self, access: MemoryAccess) -> ProofProperty:
@@ -281,7 +281,7 @@ class BoundsProver:
                 name=f"overflow_check_{region.name}",
                 property_type=PropertyType.MEMORY_SAFETY,
                 description=f"Write to {region.name} does not cause buffer overflow",
-                z3_formula="mock_formula"
+                z3_formula="mock_formula",
             )
 
         # Create Z3 variables
@@ -303,10 +303,7 @@ class BoundsProver:
             property_type=PropertyType.MEMORY_SAFETY,
             description=f"Write to {region.name} does not cause buffer overflow",
             z3_formula=overflow_formula,
-            context={
-                'access': access,
-                'region': region
-            }
+            context={"access": access, "region": region},
         )
 
     def _calculate_confidence(self, proof_results: List[ProofResult]) -> float:
@@ -322,7 +319,9 @@ class BoundsProver:
         confidence = (proved_count + unknown_count * 0.5) / total_count
         return min(confidence, 1.0)
 
-    def _generate_recommendations(self, unsafe_accesses: List[MemoryAccess], proof_results: List[ProofResult]) -> List[str]:
+    def _generate_recommendations(
+        self, unsafe_accesses: List[MemoryAccess], proof_results: List[ProofResult]
+    ) -> List[str]:
         """Generate recommendations for improving memory safety."""
         recommendations = []
 
@@ -373,7 +372,7 @@ class MemoryOperationExtractor(ast.NodeVisitor):
                     base_address=f"&{var_name}",
                     size=size,
                     element_type=element_type,
-                    initialization_status="initialized"
+                    initialization_status="initialized",
                 )
                 self.memory_regions[var_name] = region
 
@@ -388,7 +387,7 @@ class MemoryOperationExtractor(ast.NodeVisitor):
                             base_address=f"&{var_name}",
                             size=size,
                             element_type="unknown",
-                            initialization_status="uninitialized"
+                            initialization_status="uninitialized",
                         )
                         self.memory_regions[var_name] = region
 
@@ -403,10 +402,7 @@ class MemoryOperationExtractor(ast.NodeVisitor):
             if array_name not in self.memory_regions:
                 # Create unknown region
                 self.memory_regions[array_name] = MemoryRegion(
-                    name=array_name,
-                    base_address=f"&{array_name}",
-                    size="unknown",
-                    element_type="unknown"
+                    name=array_name, base_address=f"&{array_name}", size="unknown", element_type="unknown"
                 )
 
             region = self.memory_regions[array_name]
@@ -424,7 +420,7 @@ class MemoryOperationExtractor(ast.NodeVisitor):
                 access_type=access_type,
                 offset=offset,
                 size=1,  # Assume single element access
-                line_number=node.lineno
+                line_number=node.lineno,
             )
             self.memory_accesses.append(access)
 

@@ -23,18 +23,23 @@ Limitations:
 import ast
 from typing import Any, Dict, List, Optional, Union
 
-from . import core
-from .factory import CFactory
-from .core import BinaryExpression, UnaryExpression, ComprehensionElement
-from .stc_integration import (
-    analyze_container_type, stc_type_mapper, stc_declaration_generator,
-    stc_operation_mapper, STCContainerElement, STCOperationElement, STCForEachElement, STCSliceElement
-)
-from .module_system import ModuleResolver, ImportHandler
-from .writer import Writer
-from ..frontend.type_inference import TypeInferenceEngine
-from .style import StyleOptions
 from ..common import log
+from ..frontend.type_inference import TypeInferenceEngine
+from . import core
+from .core import BinaryExpression, ComprehensionElement, UnaryExpression
+from .factory import CFactory
+from .module_system import ImportHandler, ModuleResolver
+from .stc_integration import (
+    STCForEachElement,
+    STCOperationElement,
+    STCSliceElement,
+    analyze_container_type,
+    stc_declaration_generator,
+    stc_operation_mapper,
+    stc_type_mapper,
+)
+from .style import StyleOptions
+from .writer import Writer
 
 
 class UnsupportedFeatureError(Exception):
@@ -55,6 +60,7 @@ class FunctionCallConverter:
     def __init__(self, converter):
         """Initialize with reference to main PythonToCConverter."""
         from ..common import log
+
         self.log = log.config(self.__class__.__name__)
         self.converter = converter
         # Provide easy access to converter's attributes
@@ -63,7 +69,7 @@ class FunctionCallConverter:
         self.variable_context = converter.variable_context
         self.import_handler = converter.import_handler
         self.c_factory = converter.c_factory
-        if hasattr(converter, 'struct_types'):
+        if hasattr(converter, "struct_types"):
             self.struct_types = converter.struct_types
         else:
             self.struct_types = {}
@@ -97,11 +103,11 @@ class FunctionCallConverter:
     def _convert_constructor_call(self, func_name: str, args: List[ast.expr]) -> core.Element:
         """Convert struct constructor calls."""
         converted_args = [self.converter._convert_expression(arg) for arg in args]
-        args_str = ', '.join(self.converter._expression_to_string(arg) for arg in converted_args)
+        args_str = ", ".join(self.converter._expression_to_string(arg) for arg in converted_args)
 
         # Check if this is a dataclass or namedtuple
         if func_name in self.struct_types:
-            if self.struct_types[func_name] == 'dataclass':
+            if self.struct_types[func_name] == "dataclass":
                 # Use constructor function for dataclasses
                 constructor_name = f"make_{func_name}"
                 return core.RawCode(f"{constructor_name}({args_str})")
@@ -143,16 +149,16 @@ class FunctionCallConverter:
             # For now, we'll convert isinstance(value, type) to a simple true
             # In real C code, type checking is done at compile time
             # This is a simplified approach since C is statically typed
-            self.log.debug(f"Converting isinstance() call - type checking handled at compile time in C")
+            self.log.debug("Converting isinstance() call - type checking handled at compile time in C")
             return core.RawCode("true")  # C boolean true
 
     def _convert_len_for_container(self, container_name: str) -> core.Element:
         """Convert len() call for STC containers."""
         container_info = self.container_variables[container_name]
-        container_type = container_info['container_type']
+        container_type = container_info["container_type"]
 
         if container_type == "list":
-            stc_type = container_info['stc_type']
+            stc_type = container_info["stc_type"]
             operation_code = stc_operation_mapper.map_list_operation(stc_type, "len", variable_name=container_name)
         elif container_type == "dict":
             operation_code = stc_operation_mapper.map_dict_operation(container_name, "len")
@@ -189,7 +195,7 @@ class FunctionCallConverter:
     def _convert_container_method(self, obj_name: str, method_name: str, args: List[ast.expr]) -> core.Element:
         """Convert container method calls (list.append, set.add, etc.)."""
         container_info = self.container_variables[obj_name]
-        container_type = container_info['container_type']
+        container_type = container_info["container_type"]
 
         if container_type == "list":
             return self._convert_list_method(obj_name, method_name, args)
@@ -204,13 +210,15 @@ class FunctionCallConverter:
         """Convert list method calls."""
         # Get the STC type name for this container variable
         container_info = self.container_variables[obj_name]
-        stc_type = container_info['stc_type']
+        stc_type = container_info["stc_type"]
 
         if method_name == "append":
             if len(args) != 1:
                 raise UnsupportedFeatureError("list.append() requires exactly one argument")
             arg_str = self._convert_arg_to_string(args[0])
-            operation_code = stc_operation_mapper.map_list_operation(stc_type, "append", arg_str, variable_name=obj_name)
+            operation_code = stc_operation_mapper.map_list_operation(
+                stc_type, "append", arg_str, variable_name=obj_name
+            )
             return STCOperationElement(operation_code)
         else:
             raise UnsupportedFeatureError(f"Unsupported list method: {method_name}")
@@ -230,8 +238,9 @@ class FunctionCallConverter:
         """Convert argument to string representation for STC operations."""
         converted_arg = self.converter._convert_expression(arg)
         if isinstance(converted_arg, core.Element):
-            from .writer import Writer
             from .style import StyleOptions
+            from .writer import Writer
+
             temp_writer = Writer(StyleOptions())
             return temp_writer.write_str_elem(converted_arg)
         else:
@@ -240,9 +249,9 @@ class FunctionCallConverter:
     def _is_string_variable(self, variable) -> bool:
         """Check if variable is a string type."""
         return (
-            (hasattr(variable.data_type, 'base_type') and variable.data_type.base_type == "char*") or
-            (isinstance(variable.data_type, str) and variable.data_type == "char*") or
-            str(variable.data_type) == "char*"
+            (hasattr(variable.data_type, "base_type") and variable.data_type.base_type == "char*")
+            or (isinstance(variable.data_type, str) and variable.data_type == "char*")
+            or str(variable.data_type) == "char*"
         )
 
 
@@ -279,12 +288,12 @@ class PythonToCConverter:
             for var_name, var_obj in self.variable_context.items():
                 # Create a basic TypeInfo (we'd need to import it properly)
                 # For now, just use the C type directly
-                if hasattr(var_obj, 'data_type') and isinstance(var_obj.data_type, str):
+                if hasattr(var_obj, "data_type") and isinstance(var_obj.data_type, str):
                     context[var_name] = {"c_equivalent": var_obj.data_type}
 
             # Try to infer the type using the inference engine
             result = self.type_inference.infer_expression_type(expr, context)
-            if result.type_info and hasattr(result.type_info, 'c_equivalent'):
+            if result.type_info and hasattr(result.type_info, "c_equivalent"):
                 c_type = result.type_info.c_equivalent
                 # Map to STC-compatible types
                 if c_type == "int":
@@ -394,7 +403,7 @@ class PythonToCConverter:
                 docstring = node.value.value
                 if docstring.strip():
                     # Handle multi-line docstrings by splitting into multiple comment lines
-                    lines = docstring.strip().split('\n')
+                    lines = docstring.strip().split("\n")
                     for line in lines:
                         if line.strip():  # Only add non-empty lines
                             comment = self.c_factory.line_comment(f" {line.strip()}")
@@ -456,7 +465,9 @@ class PythonToCConverter:
                         if container_type == "list" and len(element_types) == 1:
                             stc_type_mapper.get_list_container_name(element_types[0], register_usage=True)
                         elif container_type == "dict" and len(element_types) == 2:
-                            stc_type_mapper.get_dict_container_name(element_types[0], element_types[1], register_usage=True)
+                            stc_type_mapper.get_dict_container_name(
+                                element_types[0], element_types[1], register_usage=True
+                            )
                         elif container_type == "set" and len(element_types) == 1:
                             stc_type_mapper.get_set_container_name(element_types[0], register_usage=True)
 
@@ -575,7 +586,7 @@ class PythonToCConverter:
         is_namedtuple = self._is_namedtuple(node)
 
         if not (is_dataclass or is_namedtuple):
-            raise UnsupportedFeatureError(f"Only dataclass and NamedTuple classes are supported")
+            raise UnsupportedFeatureError("Only dataclass and NamedTuple classes are supported")
 
         # Create struct
         struct_name = node.name
@@ -585,9 +596,9 @@ class PythonToCConverter:
         self.defined_structs[struct_name] = struct
 
         # Track whether this is a dataclass or namedtuple
-        if not hasattr(self, 'struct_types'):
+        if not hasattr(self, "struct_types"):
             self.struct_types = {}
-        self.struct_types[struct_name] = 'dataclass' if is_dataclass else 'namedtuple'
+        self.struct_types[struct_name] = "dataclass" if is_dataclass else "namedtuple"
 
         # Process fields
         for stmt in node.body:
@@ -606,9 +617,9 @@ class PythonToCConverter:
         member_lines = []
         for member in struct.members:
             # Extract type from member.data_type (which is a Type object)
-            if hasattr(member.data_type, 'base_type') and isinstance(member.data_type.base_type, str):
+            if hasattr(member.data_type, "base_type") and isinstance(member.data_type.base_type, str):
                 member_type = member.data_type.base_type
-            elif hasattr(member.data_type, 'name') and member.data_type.name is not None:
+            elif hasattr(member.data_type, "name") and member.data_type.name is not None:
                 member_type = member.data_type.name
             else:
                 member_type = str(member.data_type)
@@ -644,8 +655,7 @@ class PythonToCConverter:
             if isinstance(base, ast.Name) and base.id == "NamedTuple":
                 return True
             elif isinstance(base, ast.Attribute):
-                if (isinstance(base.value, ast.Name) and
-                    base.value.id == "typing" and base.attr == "NamedTuple"):
+                if isinstance(base.value, ast.Name) and base.value.id == "typing" and base.attr == "NamedTuple":
                     return True
         return False
 
@@ -666,10 +676,10 @@ class PythonToCConverter:
         for member in members:
             if isinstance(member.data_type, str):
                 param_type = member.data_type
-            elif hasattr(member.data_type, 'base_type'):
+            elif hasattr(member.data_type, "base_type"):
                 # For Type objects, use the base_type attribute
                 param_type = member.data_type.base_type
-            elif hasattr(member.data_type, 'name'):
+            elif hasattr(member.data_type, "name"):
                 # For other DataType objects, use the name attribute
                 param_type = member.data_type.name
             else:
@@ -702,7 +712,7 @@ class PythonToCConverter:
 
     def _has_string_method_calls(self, node: ast.AST) -> bool:
         """Check if a node or its children contain string method calls."""
-        string_methods = {'upper', 'lower', 'find', 'split', 'strip', 'replace', 'startswith', 'endswith'}
+        string_methods = {"upper", "lower", "find", "split", "strip", "replace", "startswith", "endswith"}
         for child_node in ast.walk(node):
             if isinstance(child_node, ast.Call) and isinstance(child_node.func, ast.Attribute):
                 method_name = child_node.func.attr
@@ -732,20 +742,20 @@ class PythonToCConverter:
             return f"{expr.operator}{operand_str}"
         elif isinstance(expr, core.FunctionCall):
             # Handle function calls properly
-            args_str = ', '.join(self._expression_to_string(arg) for arg in expr.args)
+            args_str = ", ".join(self._expression_to_string(arg) for arg in expr.args)
             return f"{expr.name}({args_str})"
-        elif hasattr(expr, 'operation_code'):
+        elif hasattr(expr, "operation_code"):
             # STCOperationElement
             return expr.operation_code
         elif isinstance(expr, core.Element):
             # Use Writer to properly convert Element to string
             temp_writer = Writer(StyleOptions())
             return temp_writer.write_str_elem(expr)
-        elif hasattr(expr, '__str__'):
+        elif hasattr(expr, "__str__"):
             return str(expr)
         else:
             # Fallback - let the writer handle it later
-            return f"/* complex_expr */"
+            return "/* complex_expr */"
 
     def _convert_assert(self, node: ast.Assert) -> core.Element:
         """Convert Python assert statement to C assert() call."""
@@ -788,17 +798,19 @@ class PythonToCConverter:
                     if len(element_types) == 1:
                         return stc_type_mapper.get_list_container_name(element_types[0], register_usage=register_usage)
                     else:
-                        raise TypeMappingError(f"list must have exactly one type parameter")
+                        raise TypeMappingError("list must have exactly one type parameter")
                 elif container_type == "dict":
                     if len(element_types) == 2:
-                        return stc_type_mapper.get_dict_container_name(element_types[0], element_types[1], register_usage=register_usage)
+                        return stc_type_mapper.get_dict_container_name(
+                            element_types[0], element_types[1], register_usage=register_usage
+                        )
                     else:
-                        raise TypeMappingError(f"dict must have exactly two type parameters")
+                        raise TypeMappingError("dict must have exactly two type parameters")
                 elif container_type == "set":
                     if len(element_types) == 1:
                         return stc_type_mapper.get_set_container_name(element_types[0], register_usage=register_usage)
                     else:
-                        raise TypeMappingError(f"set must have exactly one type parameter")
+                        raise TypeMappingError("set must have exactly one type parameter")
                 else:
                     raise TypeMappingError(f"Unsupported container type: {container_type}")
             else:
@@ -821,9 +833,9 @@ class PythonToCConverter:
 
             # Track container variable
             self.container_variables[var_name] = {
-                'container_type': container_type,
-                'element_types': element_types,
-                'stc_type': var_type
+                "container_type": container_type,
+                "element_types": element_types,
+                "stc_type": var_type,
             }
 
             # Create variable
@@ -833,12 +845,16 @@ class PythonToCConverter:
             # For containers, handle initialization specially
             if node.value:
                 # Check if initializing with empty list/dict/set
-                if (isinstance(node.value, ast.List) and len(node.value.elts) == 0) or \
-                   (isinstance(node.value, ast.Dict) and len(node.value.keys) == 0) or \
-                   (isinstance(node.value, ast.Set) and len(node.value.elts) == 0):
+                if (
+                    (isinstance(node.value, ast.List) and len(node.value.elts) == 0)
+                    or (isinstance(node.value, ast.Dict) and len(node.value.keys) == 0)
+                    or (isinstance(node.value, ast.Set) and len(node.value.elts) == 0)
+                ):
                     # Empty container initialization using STC - create declaration with initialization
                     if container_type == "list":
-                        init_value = stc_operation_mapper.map_list_operation(var_type, "init_empty", variable_name=var_name)
+                        init_value = stc_operation_mapper.map_list_operation(
+                            var_type, "init_empty", variable_name=var_name
+                        )
                     elif container_type == "dict":
                         init_value = stc_operation_mapper.map_dict_operation(var_name, "init_empty")
                     elif container_type == "set":
@@ -871,9 +887,19 @@ class PythonToCConverter:
                         # Remove the temporary variable declaration from the comprehension code
                         comp_code = value_expr.full_code
                         # Remove the temp var declaration line
-                        lines = comp_code.split('\n')
-                        lines = [line for line in lines if not (value_expr.temp_var in line and ';' in line and not 'init(' in line and not 'push_back(' in line and not 'insert(' in line)]
-                        comp_code = '\n'.join(lines)
+                        lines = comp_code.split("\n")
+                        lines = [
+                            line
+                            for line in lines
+                            if not (
+                                value_expr.temp_var in line
+                                and ";" in line
+                                and "init(" not in line
+                                and "push_back(" not in line
+                                and "insert(" not in line
+                            )
+                        ]
+                        comp_code = "\n".join(lines)
                         # Replace temp var with actual variable name
                         comp_code = comp_code.replace(value_expr.temp_var, var_name)
                         comp_stmt = self.c_factory.statement(core.RawCode(comp_code))
@@ -938,7 +964,7 @@ class PythonToCConverter:
                 # Check if this is a known container variable
                 if container_name in self.container_variables:
                     container_info = self.container_variables[container_name]
-                    container_type = container_info['container_type']
+                    container_type = container_info["container_type"]
 
                     # Convert key and value expressions
                     key_expr = self._convert_expression(target.slice)
@@ -959,12 +985,16 @@ class PythonToCConverter:
 
                     if container_type == "list":
                         # List element assignment: lst[i] = x
-                        stc_type = container_info['stc_type']
-                        operation_code = stc_operation_mapper.map_list_operation(stc_type, "set", key_str, value_str, variable_name=container_name)
+                        stc_type = container_info["stc_type"]
+                        operation_code = stc_operation_mapper.map_list_operation(
+                            stc_type, "set", key_str, value_str, variable_name=container_name
+                        )
                         return self.c_factory.statement(STCOperationElement(operation_code))
                     elif container_type == "dict":
                         # Dict element assignment: dict[key] = value
-                        operation_code = stc_operation_mapper.map_dict_operation(container_name, "set", key_str, value_str)
+                        operation_code = stc_operation_mapper.map_dict_operation(
+                            container_name, "set", key_str, value_str
+                        )
                         return self.c_factory.statement(STCOperationElement(operation_code))
                     else:
                         raise UnsupportedFeatureError(f"Subscript assignment not supported for {container_type}")
@@ -1092,8 +1122,8 @@ class PythonToCConverter:
     def _is_string_comparison(self, left_node: ast.expr, right_node: ast.expr) -> bool:
         """Check if this is a comparison between strings."""
         # Check if either side is a string literal
-        left_is_string = isinstance(left_node, ast.Str) or isinstance(left_node, ast.Constant) and isinstance(left_node.value, str)
-        right_is_string = isinstance(right_node, ast.Str) or isinstance(right_node, ast.Constant) and isinstance(right_node.value, str)
+        left_is_string = isinstance(left_node, ast.Constant) and isinstance(left_node.value, str)
+        right_is_string = isinstance(right_node, ast.Constant) and isinstance(right_node.value, str)
 
         # For now, handle cases where at least one side is a string literal
         # TODO: Could be enhanced to detect string variables through type inference
@@ -1101,8 +1131,8 @@ class PythonToCConverter:
 
     def _convert_string_comparison(self, left_expr, right_expr, op_node) -> core.Element:
         """Convert string comparison to use strcmp()."""
-        from .writer import Writer
         from .style import StyleOptions
+        from .writer import Writer
 
         # Get string representations of the expressions
         temp_writer = Writer(StyleOptions())
@@ -1145,7 +1175,7 @@ class PythonToCConverter:
             # Check if this is a known container variable
             if container_name in self.container_variables:
                 container_info = self.container_variables[container_name]
-                container_type = container_info['container_type']
+                container_type = container_info["container_type"]
 
                 # Convert the element expression
                 element_expr = self._convert_expression(element_node)
@@ -1175,9 +1205,9 @@ class PythonToCConverter:
                 variable = self.variable_context[container_name]
                 # Check if this is a string type (char* or equivalent)
                 is_string = (
-                    (hasattr(variable.data_type, 'base_type') and variable.data_type.base_type == "char*") or
-                    (isinstance(variable.data_type, str) and variable.data_type == "char*") or
-                    str(variable.data_type) == "char*"
+                    (hasattr(variable.data_type, "base_type") and variable.data_type.base_type == "char*")
+                    or (isinstance(variable.data_type, str) and variable.data_type == "char*")
+                    or str(variable.data_type) == "char*"
                 )
                 if is_string:
                     # Convert the element expression
@@ -1201,7 +1231,9 @@ class PythonToCConverter:
                         # in: strstr(string, substring) != NULL
                         return contains_expr
                 else:
-                    raise UnsupportedFeatureError(f"Membership test on non-container/non-string variable: {container_name} (type: {variable.data_type})")
+                    raise UnsupportedFeatureError(
+                        f"Membership test on non-container/non-string variable: {container_name} (type: {variable.data_type})"
+                    )
             else:
                 raise UnsupportedFeatureError(f"Membership test on non-container variable: {container_name}")
         else:
@@ -1239,10 +1271,10 @@ class PythonToCConverter:
         operand = self._convert_expression(node.operand)
 
         op_map = {
-            ast.UAdd: "+",      # Unary plus
-            ast.USub: "-",      # Unary minus
-            ast.Not: "!",       # Logical NOT
-            ast.Invert: "~",    # Bitwise NOT
+            ast.UAdd: "+",  # Unary plus
+            ast.USub: "-",  # Unary minus
+            ast.Not: "!",  # Logical NOT
+            ast.Invert: "~",  # Bitwise NOT
         }
 
         if type(node.op) in op_map:
@@ -1260,7 +1292,7 @@ class PythonToCConverter:
             # Check if this is a known container variable
             if container_name in self.container_variables:
                 container_info = self.container_variables[container_name]
-                container_type = container_info['container_type']
+                container_type = container_info["container_type"]
 
                 # Check if this is a slice operation
                 if isinstance(node.slice, ast.Slice):
@@ -1273,16 +1305,24 @@ class PythonToCConverter:
                     if node.slice.lower is not None:
                         start_elem = self._convert_expression(node.slice.lower)
                         temp_writer = Writer(StyleOptions())
-                        start_expr = temp_writer.write_str_elem(start_elem) if isinstance(start_elem, core.Element) else str(start_elem)
+                        start_expr = (
+                            temp_writer.write_str_elem(start_elem)
+                            if isinstance(start_elem, core.Element)
+                            else str(start_elem)
+                        )
 
                     end_expr = f"{container_name}_size(&{container_name})"  # Default end (full size)
                     if node.slice.upper is not None:
                         end_elem = self._convert_expression(node.slice.upper)
                         temp_writer = Writer(StyleOptions())
-                        end_expr = temp_writer.write_str_elem(end_elem) if isinstance(end_elem, core.Element) else str(end_elem)
+                        end_expr = (
+                            temp_writer.write_str_elem(end_elem)
+                            if isinstance(end_elem, core.Element)
+                            else str(end_elem)
+                        )
 
                     # Return a slice element that can be handled by assignment context
-                    stc_type = container_info['stc_type']
+                    stc_type = container_info["stc_type"]
                     return STCSliceElement(container_name, stc_type, start_expr, end_expr, "")
 
                 else:
@@ -1298,8 +1338,10 @@ class PythonToCConverter:
 
                     if container_type == "list":
                         # List indexing: lst[i] -> *lst_at(&lst, i)
-                        stc_type = container_info['stc_type']
-                        operation_code = stc_operation_mapper.map_list_operation(stc_type, "get", key_str, variable_name=container_name)
+                        stc_type = container_info["stc_type"]
+                        operation_code = stc_operation_mapper.map_list_operation(
+                            stc_type, "get", key_str, variable_name=container_name
+                        )
                         return STCOperationElement(operation_code)
                     elif container_type == "dict":
                         # Dict access: dict[key] -> *dict_at(&dict, key)
@@ -1469,10 +1511,7 @@ class PythonToCConverter:
     def _convert_for(self, node: ast.For) -> core.Element:
         """Convert for loop to C for loop."""
         # Handle range-based for loops: for i in range(start, end, step)
-        if (isinstance(node.iter, ast.Call) and
-            isinstance(node.iter.func, ast.Name) and
-            node.iter.func.id == "range"):
-
+        if isinstance(node.iter, ast.Call) and isinstance(node.iter.func, ast.Name) and node.iter.func.id == "range":
             # Extract loop variable
             if isinstance(node.target, ast.Name):
                 loop_var = node.target.id
@@ -1514,8 +1553,9 @@ class PythonToCConverter:
                 condition_expr = BinaryExpression(loop_var, "<", end)
 
             # For now, use a simpler approach and convert complex expressions to strings
-            from .writer import Writer
             from .style import StyleOptions
+            from .writer import Writer
+
             temp_writer = Writer(StyleOptions())
 
             def expr_to_str(expr):
@@ -1547,12 +1587,10 @@ class PythonToCConverter:
             return self.c_factory.for_loop(init, condition, increment, body_block)
 
         # Handle container iteration: for item in container
-        elif (isinstance(node.iter, ast.Name) and
-              node.iter.id in self.container_variables):
-
+        elif isinstance(node.iter, ast.Name) and node.iter.id in self.container_variables:
             container_name = node.iter.id
             container_info = self.container_variables[container_name]
-            container_type = container_info['container_type']
+            container_type = container_info["container_type"]
 
             # Extract loop variable
             if isinstance(node.target, ast.Name):
@@ -1561,7 +1599,7 @@ class PythonToCConverter:
                 raise UnsupportedFeatureError("Only simple loop variables supported in container iteration")
 
             # Get the STC container type for the foreach macro
-            stc_container_type = container_info['stc_type']
+            stc_container_type = container_info["stc_type"]
 
             # Convert body statements
             body_statements = []
@@ -1653,10 +1691,11 @@ class PythonToCConverter:
         loop_var = generator.target.id
 
         # Handle range-based iteration (most common case)
-        if (isinstance(generator.iter, ast.Call) and
-            isinstance(generator.iter.func, ast.Name) and
-            generator.iter.func.id == "range"):
-
+        if (
+            isinstance(generator.iter, ast.Call)
+            and isinstance(generator.iter.func, ast.Name)
+            and generator.iter.func.id == "range"
+        ):
             # Generate range-based for loop
             range_args = generator.iter.args
             if len(range_args) == 1:
@@ -1681,12 +1720,16 @@ class PythonToCConverter:
                 container_name = generator.iter.id
                 if container_name in self.container_variables:
                     container_info = self.container_variables[container_name]
-                    if container_info['container_type'] == 'list':
+                    if container_info["container_type"] == "list":
                         # Generate container iteration loop
                         loop_code = f"for (size_t i = 0; i < {container_name}_size(&{container_name}); i++) {{\n"
-                        loop_code += f"    {result_element_type} {loop_var} = *{container_name}_at(&{container_name}, i);\n"
+                        loop_code += (
+                            f"    {result_element_type} {loop_var} = *{container_name}_at(&{container_name}, i);\n"
+                        )
                     else:
-                        raise UnsupportedFeatureError(f"Comprehension over {container_info['container_type']} not yet supported")
+                        raise UnsupportedFeatureError(
+                            f"Comprehension over {container_info['container_type']} not yet supported"
+                        )
                 else:
                     raise UnsupportedFeatureError(f"Unknown container in comprehension: {container_name}")
             else:
@@ -1756,10 +1799,11 @@ class PythonToCConverter:
         loop_var = generator.target.id
 
         # Handle range-based iteration
-        if (isinstance(generator.iter, ast.Call) and
-            isinstance(generator.iter.func, ast.Name) and
-            generator.iter.func.id == "range"):
-
+        if (
+            isinstance(generator.iter, ast.Call)
+            and isinstance(generator.iter.func, ast.Name)
+            and generator.iter.func.id == "range"
+        ):
             range_args = generator.iter.args
             if len(range_args) == 1:
                 start = "0"
@@ -1846,10 +1890,11 @@ class PythonToCConverter:
         loop_var = generator.target.id
 
         # Handle range-based iteration
-        if (isinstance(generator.iter, ast.Call) and
-            isinstance(generator.iter.func, ast.Name) and
-            generator.iter.func.id == "range"):
-
+        if (
+            isinstance(generator.iter, ast.Call)
+            and isinstance(generator.iter.func, ast.Name)
+            and generator.iter.func.id == "range"
+        ):
             range_args = generator.iter.args
             if len(range_args) == 1:
                 start = "0"
@@ -1895,7 +1940,7 @@ class PythonToCConverter:
 
     def _generate_temp_var_name(self, base: str) -> str:
         """Generate a unique temporary variable name."""
-        if not hasattr(self, '_temp_var_counter'):
+        if not hasattr(self, "_temp_var_counter"):
             self._temp_var_counter = 0
         self._temp_var_counter += 1
         return f"{base}_{self._temp_var_counter}"

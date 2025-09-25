@@ -1,5 +1,4 @@
-"""
-Memory Allocator System for STC Integration
+"""Memory Allocator System for STC Integration
 
 This module provides advanced memory allocation strategies including arena allocators,
 pool allocators, and stack allocators for high-performance memory management.
@@ -12,14 +11,14 @@ Features:
 - Integration with STC containers and smart pointers
 """
 
-from typing import Dict, List, Optional, Set, Tuple, Any
 from dataclasses import dataclass
 from enum import Enum
-import ast
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 
 class AllocatorType(Enum):
     """Types of memory allocators supported."""
+
     ARENA = "arena"
     POOL = "pool"
     STACK = "stack"
@@ -30,8 +29,9 @@ class AllocatorType(Enum):
 @dataclass
 class AllocatorSpec:
     """Specification for a memory allocator type."""
-    stc_name: str           # STC implementation name
-    header_file: str        # Header to include
+
+    stc_name: str  # STC implementation name
+    header_file: str  # Header to include
     allocator_type: AllocatorType
     description: str
     supports_alignment: bool = True
@@ -50,9 +50,8 @@ ALLOCATOR_SPECS = {
         supports_alignment=True,
         supports_custom_size=True,
         thread_safe=False,
-        suitable_for_containers=True
+        suitable_for_containers=True,
     ),
-
     AllocatorType.POOL: AllocatorSpec(
         stc_name="pool_alloc",
         header_file="stc/pool_alloc.h",
@@ -61,9 +60,8 @@ ALLOCATOR_SPECS = {
         supports_alignment=True,
         supports_custom_size=False,  # Fixed size
         thread_safe=True,
-        suitable_for_containers=True
+        suitable_for_containers=True,
     ),
-
     AllocatorType.STACK: AllocatorSpec(
         stc_name="stack_alloc",
         header_file="stc/stack_alloc.h",
@@ -72,9 +70,8 @@ ALLOCATOR_SPECS = {
         supports_alignment=True,
         supports_custom_size=True,
         thread_safe=False,
-        suitable_for_containers=False  # Scope-limited
+        suitable_for_containers=False,  # Scope-limited
     ),
-
     AllocatorType.FREE_LIST: AllocatorSpec(
         stc_name="free_list_alloc",
         header_file="stc/free_list_alloc.h",
@@ -83,9 +80,8 @@ ALLOCATOR_SPECS = {
         supports_alignment=True,
         supports_custom_size=True,
         thread_safe=True,
-        suitable_for_containers=True
+        suitable_for_containers=True,
     ),
-
     AllocatorType.SYSTEM: AllocatorSpec(
         stc_name="system_alloc",
         header_file="stdlib.h",
@@ -94,14 +90,15 @@ ALLOCATOR_SPECS = {
         supports_alignment=False,
         supports_custom_size=True,
         thread_safe=True,
-        suitable_for_containers=True
-    )
+        suitable_for_containers=True,
+    ),
 }
 
 
 @dataclass
 class AllocatorInstance:
     """Represents an allocator instance."""
+
     name: str
     allocator_type: AllocatorType
     block_size: Optional[int] = None
@@ -114,6 +111,7 @@ class AllocatorInstance:
 @dataclass
 class AllocationInfo:
     """Tracks an allocation made with a specific allocator."""
+
     variable_name: str
     allocator_name: str
     size: Optional[int]
@@ -123,8 +121,7 @@ class AllocationInfo:
 
 
 class MemoryAllocatorManager:
-    """
-    Manages memory allocators and their integration with STC containers.
+    """Manages memory allocators and their integration with STC containers.
 
     Provides:
     - Allocator instance management
@@ -149,12 +146,16 @@ class MemoryAllocatorManager:
         # Generated type definitions
         self.generated_types: Set[str] = set()
 
-    def register_allocator(self, name: str, allocator_type: AllocatorType,
-                         block_size: Optional[int] = None,
-                         pool_size: Optional[int] = None,
-                         alignment: int = 8,
-                         thread_safe: bool = False,
-                         line_number: int = 0) -> AllocatorInstance:
+    def register_allocator(
+        self,
+        name: str,
+        allocator_type: AllocatorType,
+        block_size: Optional[int] = None,
+        pool_size: Optional[int] = None,
+        alignment: int = 8,
+        thread_safe: bool = False,
+        line_number: int = 0,
+    ) -> AllocatorInstance:
         """Register a new allocator instance."""
         instance = AllocatorInstance(
             name=name,
@@ -163,16 +164,16 @@ class MemoryAllocatorManager:
             pool_size=pool_size,
             alignment=alignment,
             thread_safe=thread_safe,
-            line_number=line_number
+            line_number=line_number,
         )
 
         self.allocators[name] = instance
         self.allocations[name] = []
         self.allocation_stats[name] = {
-            'total_allocations': 0,
-            'total_size': 0,
-            'peak_usage': 0,
-            'fragmentation_events': 0
+            "total_allocations": 0,
+            "total_size": 0,
+            "peak_usage": 0,
+            "fragmentation_events": 0,
         }
 
         return instance
@@ -202,8 +203,9 @@ class MemoryAllocatorManager:
         if allocator_name in self.allocators:
             self.container_allocators[container_name] = allocator_name
 
-    def generate_container_with_allocator(self, container_name: str, container_type: str,
-                                        element_type: str) -> Tuple[str, str]:
+    def generate_container_with_allocator(
+        self, container_name: str, container_type: str, element_type: str
+    ) -> Tuple[str, str]:
         """Generate container definition with custom allocator."""
         if container_name not in self.container_allocators:
             return "", ""
@@ -227,9 +229,15 @@ class MemoryAllocatorManager:
         include = f"#include <{spec.header_file}>"
         return type_def, include
 
-    def track_allocation(self, variable_name: str, allocator_name: str,
-                        size: Optional[int], element_type: str,
-                        is_array: bool = False, line_number: int = 0):
+    def track_allocation(
+        self,
+        variable_name: str,
+        allocator_name: str,
+        size: Optional[int],
+        element_type: str,
+        is_array: bool = False,
+        line_number: int = 0,
+    ):
         """Track an allocation made with a specific allocator."""
         if allocator_name not in self.allocators:
             return
@@ -240,19 +248,18 @@ class MemoryAllocatorManager:
             size=size,
             element_type=element_type,
             is_array=is_array,
-            line_number=line_number
+            line_number=line_number,
         )
 
         self.allocations[allocator_name].append(allocation_info)
 
         # Update statistics
         stats = self.allocation_stats[allocator_name]
-        stats['total_allocations'] += 1
+        stats["total_allocations"] += 1
         if size:
-            stats['total_size'] += size
+            stats["total_size"] += size
 
-    def generate_allocation_code(self, allocator_name: str, variable_name: str,
-                               size: str, element_type: str) -> str:
+    def generate_allocation_code(self, allocator_name: str, variable_name: str, size: str, element_type: str) -> str:
         """Generate allocation code using specific allocator."""
         if allocator_name not in self.allocators:
             return f"{element_type}* {variable_name} = malloc({size});"
@@ -320,12 +327,7 @@ class MemoryAllocatorManager:
 
     def analyze_allocation_patterns(self) -> Dict[str, Any]:
         """Analyze allocation patterns for optimization suggestions."""
-        analysis = {
-            'allocators': {},
-            'recommendations': [],
-            'total_allocations': 0,
-            'total_memory': 0
-        }
+        analysis = {"allocators": {}, "recommendations": [], "total_allocations": 0, "total_memory": 0}
 
         for allocator_name, allocations in self.allocations.items():
             if not allocations:
@@ -335,20 +337,20 @@ class MemoryAllocatorManager:
             stats = self.allocation_stats[allocator_name]
 
             allocator_analysis = {
-                'type': instance.allocator_type.value,
-                'allocation_count': len(allocations),
-                'total_size': stats['total_size'],
-                'average_size': stats['total_size'] / len(allocations) if allocations else 0,
-                'size_distribution': self._analyze_size_distribution(allocations),
-                'fragmentation_risk': self._assess_fragmentation_risk(allocations, instance)
+                "type": instance.allocator_type.value,
+                "allocation_count": len(allocations),
+                "total_size": stats["total_size"],
+                "average_size": stats["total_size"] / len(allocations) if allocations else 0,
+                "size_distribution": self._analyze_size_distribution(allocations),
+                "fragmentation_risk": self._assess_fragmentation_risk(allocations, instance),
             }
 
-            analysis['allocators'][allocator_name] = allocator_analysis
-            analysis['total_allocations'] += len(allocations)
-            analysis['total_memory'] += stats['total_size']
+            analysis["allocators"][allocator_name] = allocator_analysis
+            analysis["total_allocations"] += len(allocations)
+            analysis["total_memory"] += stats["total_size"]
 
         # Generate recommendations
-        analysis['recommendations'] = self._generate_optimization_recommendations(analysis)
+        analysis["recommendations"] = self._generate_optimization_recommendations(analysis)
 
         return analysis
 
@@ -385,32 +387,31 @@ class MemoryAllocatorManager:
         if instance.pool_size:
             init_params.append(str(instance.pool_size))
 
-        params_str = ', '.join(init_params) if init_params else ""
+        params_str = ", ".join(init_params) if init_params else ""
         return f"{type_name} {instance.name} = {type_name}_init({params_str});"
 
     def _analyze_size_distribution(self, allocations: List[AllocationInfo]) -> Dict[str, int]:
         """Analyze size distribution of allocations."""
         distribution = {
-            'small': 0,      # < 64 bytes
-            'medium': 0,     # 64-1024 bytes
-            'large': 0,      # > 1024 bytes
-            'unknown': 0     # No size info
+            "small": 0,  # < 64 bytes
+            "medium": 0,  # 64-1024 bytes
+            "large": 0,  # > 1024 bytes
+            "unknown": 0,  # No size info
         }
 
         for allocation in allocations:
             if allocation.size is None:
-                distribution['unknown'] += 1
+                distribution["unknown"] += 1
             elif allocation.size < 64:
-                distribution['small'] += 1
+                distribution["small"] += 1
             elif allocation.size <= 1024:
-                distribution['medium'] += 1
+                distribution["medium"] += 1
             else:
-                distribution['large'] += 1
+                distribution["large"] += 1
 
         return distribution
 
-    def _assess_fragmentation_risk(self, allocations: List[AllocationInfo],
-                                 instance: AllocatorInstance) -> str:
+    def _assess_fragmentation_risk(self, allocations: List[AllocationInfo], instance: AllocatorInstance) -> str:
         """Assess fragmentation risk for allocator."""
         if instance.allocator_type in [AllocatorType.ARENA, AllocatorType.STACK]:
             return "low"  # Linear allocators have low fragmentation
@@ -430,37 +431,35 @@ class MemoryAllocatorManager:
         """Generate optimization recommendations based on analysis."""
         recommendations = []
 
-        for allocator_name, allocator_data in analysis['allocators'].items():
-            allocator_type = allocator_data['type']
-            allocation_count = allocator_data['allocation_count']
-            fragmentation_risk = allocator_data['fragmentation_risk']
+        for allocator_name, allocator_data in analysis["allocators"].items():
+            allocator_type = allocator_data["type"]
+            allocation_count = allocator_data["allocation_count"]
+            fragmentation_risk = allocator_data["fragmentation_risk"]
 
-            if allocator_type == 'system' and allocation_count > 50:
+            if allocator_type == "system" and allocation_count > 50:
                 recommendations.append(
-                    f"Consider using a custom allocator for {allocator_name} "
-                    f"with {allocation_count} allocations"
+                    f"Consider using a custom allocator for {allocator_name} with {allocation_count} allocations"
                 )
 
-            if fragmentation_risk == 'high':
+            if fragmentation_risk == "high":
                 recommendations.append(
                     f"High fragmentation risk detected for {allocator_name}. "
                     f"Consider using a pool allocator for fixed-size allocations."
                 )
 
-            if allocator_data['size_distribution']['small'] > 80:
+            if allocator_data["size_distribution"]["small"] > 80:
                 recommendations.append(
-                    f"Many small allocations detected for {allocator_name}. "
-                    f"A pool allocator would be more efficient."
+                    f"Many small allocations detected for {allocator_name}. A pool allocator would be more efficient."
                 )
 
         return recommendations
 
 
 __all__ = [
-    'AllocatorType',
-    'AllocatorSpec',
-    'AllocatorInstance',
-    'AllocationInfo',
-    'MemoryAllocatorManager',
-    'ALLOCATOR_SPECS'
+    "AllocatorType",
+    "AllocatorSpec",
+    "AllocatorInstance",
+    "AllocationInfo",
+    "MemoryAllocatorManager",
+    "ALLOCATOR_SPECS",
 ]

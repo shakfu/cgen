@@ -5,10 +5,10 @@ from enum import Enum
 from io import StringIO
 from typing import Any, TextIO
 
+from ..common import log
 from . import core
 from . import style as c_style
 from .style import BreakBeforeBraces
-from ..common import log
 
 
 class ElementType(Enum):
@@ -183,7 +183,6 @@ class Writer(Formatter):
             "PragmaDirective": self._write_pragma_directive,
             "FunctionLikeMacro": self._write_function_like_macro,
             "VariadicMacro": self._write_variadic_macro,
-
             # Raw code and STC integration
             "RawCode": self._write_raw_code,
             "STCContainerElement": self._write_stc_container,
@@ -417,7 +416,7 @@ class Writer(Formatter):
             result += str(elem.base_type)
 
         # Handle pointers (both single and multi-level)
-        if hasattr(elem, 'pointer_level') and elem.pointer_level > 0:
+        if hasattr(elem, "pointer_level") and elem.pointer_level > 0:
             pointer_str = "*" * elem.pointer_level
             if self.style.pointer_alignment == c_style.Alignment.LEFT:
                 result += pointer_str
@@ -642,29 +641,38 @@ class Writer(Formatter):
         # Check if any part is a ComprehensionElement, ForLoop, IfStatement, WhileLoop, etc.
         needs_semicolon = True
         for part in elem.parts:
-            if hasattr(part, '__class__'):
+            if hasattr(part, "__class__"):
                 class_name = part.__class__.__name__
-                if class_name in ['ComprehensionElement', 'ForLoop', 'IfStatement', 'WhileLoop',
-                                'DoWhileLoop', 'SwitchStatement', 'STCForEachElement']:
+                if class_name in [
+                    "ComprehensionElement",
+                    "ForLoop",
+                    "IfStatement",
+                    "WhileLoop",
+                    "DoWhileLoop",
+                    "SwitchStatement",
+                    "STCForEachElement",
+                ]:
                     needs_semicolon = False
                     break
                 # Also check for STCOperationElement that contains complete assignment statements
-                elif class_name == 'STCOperationElement':
+                elif class_name == "STCOperationElement":
                     # Check if operation_code contains an assignment (=) - these are complete statements
-                    if hasattr(part, 'operation_code'):
+                    if hasattr(part, "operation_code"):
                         op_code = str(part.operation_code)
-                        if ' = ' in op_code and op_code.strip().endswith('}'):
+                        if " = " in op_code and op_code.strip().endswith("}"):
                             # Simple initializers like "var = {0}" or "var = {1, 2, 3}" need semicolons
                             # Only skip semicolons for complex block structures
-                            rhs = op_code.split('=')[1].strip()
-                            if not (rhs.startswith('{') and (rhs == '{0}' or ',' in rhs or len(rhs) < 20)):
+                            rhs = op_code.split("=")[1].strip()
+                            if not (rhs.startswith("{") and (rhs == "{0}" or "," in rhs or len(rhs) < 20)):
                                 needs_semicolon = False
                                 break
                 # Check for RawCode that ends with a closing brace (like for-loops)
-                elif class_name == 'RawCode':
-                    if hasattr(part, 'code'):
+                elif class_name == "RawCode":
+                    if hasattr(part, "code"):
                         code_str = str(part.code).strip()
-                        if code_str.endswith('}') and ('for (' in code_str or 'while (' in code_str or 'if (' in code_str):
+                        if code_str.endswith("}") and (
+                            "for (" in code_str or "while (" in code_str or "if (" in code_str
+                        ):
                             needs_semicolon = False
                             break
 
@@ -738,14 +746,20 @@ class Writer(Formatter):
 
         # Write the body statements directly without block braces
         # since we're already providing the braces for the foreach loop
-        if hasattr(elem.body_block, 'elements'):
+        if hasattr(elem.body_block, "elements"):
             for statement in elem.body_block.elements:
                 # Add proper indentation for each statement
                 self._write(self.indentation_str)
                 self._write_element(statement)
                 # Don't add semicolon for Statement elements since they already handle it internally
                 # Only add semicolon for raw expressions that aren't already statements
-                if hasattr(statement, '__class__') and statement.__class__.__name__ not in ['Block', 'IfStatement', 'WhileStatement', 'ForStatement', 'Statement']:
+                if hasattr(statement, "__class__") and statement.__class__.__name__ not in [
+                    "Block",
+                    "IfStatement",
+                    "WhileStatement",
+                    "ForStatement",
+                    "Statement",
+                ]:
                     self._write(";")
                 self._eol()
         else:
@@ -776,7 +790,9 @@ class Writer(Formatter):
 
         # Start new line for the for loop with proper indentation
         self._start_line()
-        self._write(f"for (size_t i = {elem.start_expr}; i < {elem.end_expr} && i < {elem.container_name}_size(&{elem.container_name}); ++i) {{")
+        self._write(
+            f"for (size_t i = {elem.start_expr}; i < {elem.end_expr} && i < {elem.container_name}_size(&{elem.container_name}); ++i) {{"
+        )
         self._eol()
         self._indent()
 
@@ -794,7 +810,7 @@ class Writer(Formatter):
         """Write comprehension as multi-line C loop code."""
         # elem should be ComprehensionElement
         # Split the full_code into lines and write each with proper indentation
-        lines = elem.full_code.strip().split('\n')
+        lines = elem.full_code.strip().split("\n")
 
         for i, line in enumerate(lines):
             if line.strip():  # Skip empty lines
@@ -1005,7 +1021,6 @@ class Writer(Formatter):
             self._write_ending_brace()
         self.last_element = ElementType.STATEMENT
 
-
     def _add_tier2_writers(self):
         """Add TIER 2 writer methods to this Writer instance."""
         pass  # Methods are defined below
@@ -1107,22 +1122,22 @@ class Writer(Formatter):
     def _format_array_dimensions(self, elem) -> str:
         """Format array dimensions for multi-dimensional arrays."""
         # Check for flexible array member
-        if hasattr(elem, 'is_flexible') and elem.is_flexible:
+        if hasattr(elem, "is_flexible") and elem.is_flexible:
             return "[]"
 
         # First check if the element itself has array dimensions
-        if hasattr(elem, 'array_dimensions') and elem.array_dimensions:
+        if hasattr(elem, "array_dimensions") and elem.array_dimensions:
             return "".join(f"[{dim}]" for dim in elem.array_dimensions)
-        elif hasattr(elem, 'array') and elem.array is not None:
+        elif hasattr(elem, "array") and elem.array is not None:
             if elem.array == -1:  # Flexible array marker
                 return "[]"
             return f"[{elem.array}]"
 
         # If not, check if the data_type has array dimensions (for variables with array types)
-        if hasattr(elem, 'data_type'):
-            if hasattr(elem.data_type, 'array_dimensions') and elem.data_type.array_dimensions:
+        if hasattr(elem, "data_type"):
+            if hasattr(elem.data_type, "array_dimensions") and elem.data_type.array_dimensions:
                 return "".join(f"[{dim}]" for dim in elem.data_type.array_dimensions)
-            elif hasattr(elem.data_type, 'array') and elem.data_type.array is not None:
+            elif hasattr(elem.data_type, "array") and elem.data_type.array is not None:
                 if elem.data_type.array == -1:  # Flexible array marker
                     return "[]"
                 return f"[{elem.data_type.array}]"
@@ -1198,7 +1213,7 @@ class Writer(Formatter):
     def _write_union_member(self, elem) -> None:
         """Write union member."""
         # Write type with qualifiers and pointers
-        if hasattr(elem, 'const') and elem.const:
+        if hasattr(elem, "const") and elem.const:
             self._write("const ")
 
         if isinstance(elem.data_type, str):
@@ -1207,7 +1222,7 @@ class Writer(Formatter):
             self._write_element(elem.data_type)
 
         # Handle pointer
-        if hasattr(elem, 'pointer') and elem.pointer:
+        if hasattr(elem, "pointer") and elem.pointer:
             if self.style.pointer_alignment == c_style.Alignment.LEFT:
                 self._write("* ")
             elif self.style.pointer_alignment == c_style.Alignment.RIGHT:
@@ -1419,7 +1434,7 @@ class Writer(Formatter):
                     self._write_line(statement)
                 else:
                     self._write_element(statement)
-                    if not hasattr(statement, '__class__') or statement.__class__.__name__ not in ['Block']:
+                    if not hasattr(statement, "__class__") or statement.__class__.__name__ not in ["Block"]:
                         self._write(";")
                     self._eol()
             self._dedent()
@@ -1439,7 +1454,7 @@ class Writer(Formatter):
                     self._write_line(statement)
                 else:
                     self._write_element(statement)
-                    if not hasattr(statement, '__class__') or statement.__class__.__name__ not in ['Block']:
+                    if not hasattr(statement, "__class__") or statement.__class__.__name__ not in ["Block"]:
                         self._write(";")
                     self._eol()
             self._dedent()
@@ -1574,7 +1589,9 @@ class Writer(Formatter):
 
     def _write_alignas_specifier(self, elem) -> None:
         """Write C11 alignment specifier (_Alignas)."""
-        self._write_parenthesized_construct("_Alignas", elem, "alignment", ElementType.TYPE_DECLARATION, special_handling=True)
+        self._write_parenthesized_construct(
+            "_Alignas", elem, "alignment", ElementType.TYPE_DECLARATION, special_handling=True
+        )
 
     def _write_alignof_operator(self, elem) -> None:
         """Write C11 alignment query operator (_Alignof)."""
@@ -1594,9 +1611,14 @@ class Writer(Formatter):
         self._write(elem.base_type)
         self.last_element = ElementType.TYPE_DECLARATION
 
-    def _write_storage_specifier(self, specifier: str, elem: Any, element_property: str,
-                                 element_type: ElementType = ElementType.STATEMENT,
-                                 space_before: bool = False) -> None:
+    def _write_storage_specifier(
+        self,
+        specifier: str,
+        elem: Any,
+        element_property: str,
+        element_type: ElementType = ElementType.STATEMENT,
+        space_before: bool = False,
+    ) -> None:
         """Generic writer for storage class specifiers and related constructs.
 
         Args:
@@ -1621,9 +1643,14 @@ class Writer(Formatter):
 
         self.last_element = element_type
 
-    def _write_parenthesized_construct(self, function_name: str, elem: Any, operand_property: str,
-                                       element_type: ElementType = ElementType.STATEMENT,
-                                       special_handling: bool = False) -> None:
+    def _write_parenthesized_construct(
+        self,
+        function_name: str,
+        elem: Any,
+        operand_property: str,
+        element_type: ElementType = ElementType.STATEMENT,
+        special_handling: bool = False,
+    ) -> None:
         """Generic writer for function-like constructs with parentheses.
 
         Args:
@@ -1743,7 +1770,7 @@ class Writer(Formatter):
         This generic function handles indentation for any multi-line code block
         by analyzing control structures and braces.
         """
-        lines = code.strip().split('\n')
+        lines = code.strip().split("\n")
 
         for i, line in enumerate(lines):
             line_stripped = line.strip()
@@ -1754,20 +1781,20 @@ class Writer(Formatter):
                 self._eol()
 
                 # Handle closing braces - dedent BEFORE starting the line
-                if line_stripped.startswith('}'):
+                if line_stripped.startswith("}"):
                     self._dedent()
 
                 self._start_line()
 
             # Handle closing braces - just write (dedent was done above)
-            if line_stripped.startswith('}'):
+            if line_stripped.startswith("}"):
                 self._write(line_stripped)
             # Handle opening braces and control structures
-            elif line_stripped.endswith('{'):
+            elif line_stripped.endswith("{"):
                 self._write(line_stripped)
                 self._indent()
             # Handle control structures without opening brace on same line
-            elif any(pattern in line_stripped for pattern in ['for (', 'while (', 'if (', 'else if (', 'else']):
+            elif any(pattern in line_stripped for pattern in ["for (", "while (", "if (", "else if (", "else"]):
                 self._write(line_stripped)
                 # Don't indent here - wait for the opening brace
             else:
@@ -1780,36 +1807,45 @@ class Writer(Formatter):
         code_stripped = code.strip()
 
         # Check if this is multi-line code that needs proper indentation
-        if '\n' in code_stripped:
+        if "\n" in code_stripped:
             self._write_indented_block(code)
         else:
             # Single line code
             self._write(code)
 
         # Add semicolon for declaration-style code (like STC declarations)
-        if code_stripped.startswith(('declare_', 'typedef')) and not code_stripped.endswith(';'):
-            self._write(';')
+        if code_stripped.startswith(("declare_", "typedef")) and not code_stripped.endswith(";"):
+            self._write(";")
 
         # Only add newline for standalone raw code blocks, not inline expressions
         is_standalone = (
-            code_stripped.startswith(('declare_', 'typedef', '#', '//')) or
-            code_stripped.endswith(';') or
-            '{' in code_stripped or
-            len(code_stripped.split('\n')) > 1
+            code_stripped.startswith(("declare_", "typedef", "#", "//"))
+            or code_stripped.endswith(";")
+            or "{" in code_stripped
+            or len(code_stripped.split("\n")) > 1
         )
 
         # Don't add _eol for inline expressions like struct initializations or simple initializers
         is_inline_expression = (
             # Struct initializations: (Type){...}
-            (code_stripped.startswith('(') and code_stripped.endswith('}') and
-             '{' in code_stripped and ';' not in code_stripped) or
+            (
+                code_stripped.startswith("(")
+                and code_stripped.endswith("}")
+                and "{" in code_stripped
+                and ";" not in code_stripped
+            )
+            or
             # Simple initializers: {0}, {1, 2, 3}, etc.
-            (code_stripped.startswith('{') and code_stripped.endswith('}') and
-             ';' not in code_stripped and len(code_stripped) < 100)
+            (
+                code_stripped.startswith("{")
+                and code_stripped.endswith("}")
+                and ";" not in code_stripped
+                and len(code_stripped) < 100
+            )
         )
 
         if is_standalone and not is_inline_expression:
-            if '\n' not in code_stripped:  # Only add _eol for single-line standalone code
+            if "\n" not in code_stripped:  # Only add _eol for single-line standalone code
                 self._eol()
             self.last_element = ElementType.STATEMENT
         else:
@@ -1826,4 +1862,3 @@ class Writer(Formatter):
         operation_str = str(elem.operation_code)
         self._write(operation_str)
         self.last_element = ElementType.STATEMENT
-

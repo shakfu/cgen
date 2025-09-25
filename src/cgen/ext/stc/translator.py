@@ -1,5 +1,4 @@
-"""
-STC-Enhanced Python-to-C Translator
+"""STC-Enhanced Python-to-C Translator
 
 This module extends the SimplePythonToCTranslator with STC container support,
 enabling translation of Python container operations to high-performance STC
@@ -7,9 +6,11 @@ container operations in generated C code.
 """
 
 import ast
-from typing import Dict, List, Set, Optional, Tuple
+from typing import Dict, List, Optional, Set, Tuple
+
 from .containers import STCCodeGenerator, get_stc_container_for_python_type
-from .enhanced_type_inference import EnhancedTypeInferenceEngine, InferredType
+from .enhanced_type_inference import EnhancedTypeInferenceEngine
+
 
 class STCPythonToCTranslator:
     """Enhanced Python-to-C translator with STC container support."""
@@ -22,8 +23,7 @@ class STCPythonToCTranslator:
         self.type_inference_engine = EnhancedTypeInferenceEngine()
 
     def analyze_variable_types(self, node: ast.AST) -> Dict[str, str]:
-        """
-        Enhanced variable type analysis using advanced type inference.
+        """Enhanced variable type analysis using advanced type inference.
 
         Returns:
             Dictionary mapping variable names to their Python types
@@ -59,7 +59,7 @@ class STCPythonToCTranslator:
                         # Also handle lowercase variants like list[int]
                         if isinstance(node.annotation.value, ast.Name):
                             base_type = node.annotation.value.id
-                            if base_type in ['list', 'dict', 'set']:
+                            if base_type in ["list", "dict", "set"]:
                                 type_info[var_name] = ast.unparse(node.annotation)
 
             def visit_Assign(self, node):
@@ -80,7 +80,7 @@ class STCPythonToCTranslator:
                             # Handle list(), dict(), set() constructor calls
                             if isinstance(node.value.func, ast.Name):
                                 func_name = node.value.func.id
-                                if func_name in ['list', 'dict', 'set', 'deque']:
+                                if func_name in ["list", "dict", "set", "deque"]:
                                     type_info[var_name] = func_name
 
         analyzer = TypeAnalyzer()
@@ -92,8 +92,7 @@ class STCPythonToCTranslator:
         return self.type_inference_engine.get_inference_statistics()
 
     def generate_stc_includes_and_types(self, type_info: Dict[str, str]) -> Tuple[List[str], List[str]]:
-        """
-        Generate STC include statements and type definitions.
+        """Generate STC include statements and type definitions.
 
         Args:
             type_info: Variable name to Python type mapping
@@ -108,9 +107,7 @@ class STCPythonToCTranslator:
             container = get_stc_container_for_python_type(python_type)
             if container:
                 # Generate type definition and include
-                type_def, include = self.stc_generator.generate_container_type_def(
-                    var_name, python_type
-                )
+                type_def, include = self.stc_generator.generate_container_type_def(var_name, python_type)
 
                 if include and include not in includes:
                     includes.append(include)
@@ -119,24 +116,23 @@ class STCPythonToCTranslator:
                     type_defs.append(type_def)
 
                 # Store container type for later use
-                if python_type.startswith('List['):
+                if python_type.startswith("List["):
                     self.container_variables[var_name] = f"{var_name.capitalize()}Vec"
-                elif python_type.startswith('Dict['):
+                elif python_type.startswith("Dict["):
                     self.container_variables[var_name] = f"{var_name.capitalize()}Map"
-                elif python_type.startswith('Set['):
+                elif python_type.startswith("Set["):
                     self.container_variables[var_name] = f"{var_name.capitalize()}Set"
-                elif python_type == 'list':
+                elif python_type == "list":
                     self.container_variables[var_name] = f"{var_name.capitalize()}Vec"
-                elif python_type == 'dict':
+                elif python_type == "dict":
                     self.container_variables[var_name] = f"{var_name.capitalize()}Map"
-                elif python_type == 'set':
+                elif python_type == "set":
                     self.container_variables[var_name] = f"{var_name.capitalize()}Set"
 
         return includes, type_defs
 
     def translate_container_operation(self, call_node: ast.Call) -> Optional[str]:
-        """
-        Translate Python container method calls to STC operations.
+        """Translate Python container method calls to STC operations.
 
         Args:
             call_node: AST Call node representing a method call
@@ -157,12 +153,12 @@ class STCPythonToCTranslator:
                 container_type = self.container_variables[obj_name]
 
                 # Translate common operations
-                if method_name == 'append':
+                if method_name == "append":
                     if call_node.args:
                         arg = ast.unparse(call_node.args[0])
                         return f"{container_type}_push(&{obj_name}, {arg})"
 
-                elif method_name == 'pop':
+                elif method_name == "pop":
                     if call_node.args:
                         # pop(index) - more complex, may need bounds checking
                         index = ast.unparse(call_node.args[0])
@@ -171,46 +167,46 @@ class STCPythonToCTranslator:
                         # pop() - remove last element
                         return f"{container_type}_pop(&{obj_name})"
 
-                elif method_name == 'insert':
+                elif method_name == "insert":
                     if len(call_node.args) >= 2:
                         index = ast.unparse(call_node.args[0])
                         value = ast.unparse(call_node.args[1])
                         return f"{container_type}_insert_at(&{obj_name}, {index}, {value})"
 
-                elif method_name == 'remove':
+                elif method_name == "remove":
                     if call_node.args:
                         value = ast.unparse(call_node.args[0])
                         return f"{container_type}_erase_val(&{obj_name}, {value})"
 
-                elif method_name == 'clear':
+                elif method_name == "clear":
                     return f"{container_type}_clear(&{obj_name})"
 
-                elif method_name == 'copy':
+                elif method_name == "copy":
                     return f"{container_type}_clone({obj_name})"
 
-                elif method_name == 'reverse':
+                elif method_name == "reverse":
                     return f"{container_type}_reverse(&{obj_name})"
 
-                elif method_name == 'sort':
+                elif method_name == "sort":
                     return f"{container_type}_sort(&{obj_name})"
 
-                elif method_name == 'index':
+                elif method_name == "index":
                     if call_node.args:
                         value = ast.unparse(call_node.args[0])
                         return f"{container_type}_find(&{obj_name}, {value})"
 
-                elif method_name == 'count':
+                elif method_name == "count":
                     if call_node.args:
                         value = ast.unparse(call_node.args[0])
                         return f"{container_type}_count(&{obj_name}, {value})"
 
-                elif method_name == 'extend':
+                elif method_name == "extend":
                     if call_node.args:
                         other = ast.unparse(call_node.args[0])
                         return f"{container_type}_extend(&{obj_name}, &{other})"
 
                 # Dict-specific operations
-                elif method_name == 'get':
+                elif method_name == "get":
                     if call_node.args:
                         key = ast.unparse(call_node.args[0])
                         if len(call_node.args) > 1:
@@ -219,123 +215,122 @@ class STCPythonToCTranslator:
                         else:
                             return f"{container_type}_get(&{obj_name}, {key})"
 
-                elif method_name == 'keys':
+                elif method_name == "keys":
                     return f"{container_type}_keys({obj_name})"
 
-                elif method_name == 'values':
+                elif method_name == "values":
                     return f"{container_type}_values({obj_name})"
 
-                elif method_name == 'items':
+                elif method_name == "items":
                     return f"{container_type}_items({obj_name})"
 
-                elif method_name == 'update':
+                elif method_name == "update":
                     if call_node.args:
                         other = ast.unparse(call_node.args[0])
                         return f"{container_type}_update(&{obj_name}, &{other})"
 
-                elif method_name == 'setdefault':
+                elif method_name == "setdefault":
                     if len(call_node.args) >= 2:
                         key = ast.unparse(call_node.args[0])
                         default = ast.unparse(call_node.args[1])
                         return f"{container_type}_setdefault(&{obj_name}, {key}, {default})"
 
-                elif method_name == 'popitem':
+                elif method_name == "popitem":
                     return f"{container_type}_popitem(&{obj_name})"
 
                 # Set-specific operations
-                elif method_name == 'add':
+                elif method_name == "add":
                     if call_node.args:
                         value = ast.unparse(call_node.args[0])
                         return f"{container_type}_insert(&{obj_name}, {value})"
 
-                elif method_name == 'discard':
+                elif method_name == "discard":
                     if call_node.args:
                         value = ast.unparse(call_node.args[0])
                         return f"{container_type}_erase(&{obj_name}, {value})"
 
-                elif method_name == 'union':
+                elif method_name == "union":
                     if call_node.args:
                         other = ast.unparse(call_node.args[0])
                         return f"{container_type}_union(&{obj_name}, &{other})"
 
-                elif method_name == 'intersection':
+                elif method_name == "intersection":
                     if call_node.args:
                         other = ast.unparse(call_node.args[0])
                         return f"{container_type}_intersection(&{obj_name}, &{other})"
 
-                elif method_name == 'difference':
+                elif method_name == "difference":
                     if call_node.args:
                         other = ast.unparse(call_node.args[0])
                         return f"{container_type}_difference(&{obj_name}, &{other})"
 
-                elif method_name == 'symmetric_difference':
+                elif method_name == "symmetric_difference":
                     if call_node.args:
                         other = ast.unparse(call_node.args[0])
                         return f"{container_type}_symmetric_difference(&{obj_name}, &{other})"
 
-                elif method_name == 'issubset':
+                elif method_name == "issubset":
                     if call_node.args:
                         other = ast.unparse(call_node.args[0])
                         return f"{container_type}_issubset(&{obj_name}, &{other})"
 
-                elif method_name == 'issuperset':
+                elif method_name == "issuperset":
                     if call_node.args:
                         other = ast.unparse(call_node.args[0])
                         return f"{container_type}_issuperset(&{obj_name}, &{other})"
 
-                elif method_name == 'isdisjoint':
+                elif method_name == "isdisjoint":
                     if call_node.args:
                         other = ast.unparse(call_node.args[0])
                         return f"{container_type}_isdisjoint(&{obj_name}, &{other})"
 
                 # String-specific operations
-                elif method_name == 'join':
+                elif method_name == "join":
                     if call_node.args:
                         iterable = ast.unparse(call_node.args[0])
                         return f"cstr_join(&{obj_name}, &{iterable})"
 
-                elif method_name == 'split':
+                elif method_name == "split":
                     if call_node.args:
                         delimiter = ast.unparse(call_node.args[0])
                         return f"cstr_split(&{obj_name}, {delimiter})"
                     else:
                         return f"cstr_split_whitespace(&{obj_name})"
 
-                elif method_name == 'strip':
+                elif method_name == "strip":
                     return f"cstr_strip(&{obj_name})"
 
-                elif method_name == 'replace':
+                elif method_name == "replace":
                     if len(call_node.args) >= 2:
                         old = ast.unparse(call_node.args[0])
                         new = ast.unparse(call_node.args[1])
                         return f"cstr_replace(&{obj_name}, {old}, {new})"
 
-                elif method_name == 'startswith':
+                elif method_name == "startswith":
                     if call_node.args:
                         prefix = ast.unparse(call_node.args[0])
                         return f"cstr_startswith(&{obj_name}, {prefix})"
 
-                elif method_name == 'endswith':
+                elif method_name == "endswith":
                     if call_node.args:
                         suffix = ast.unparse(call_node.args[0])
                         return f"cstr_endswith(&{obj_name}, {suffix})"
 
-                elif method_name == 'find':
+                elif method_name == "find":
                     if call_node.args:
                         substring = ast.unparse(call_node.args[0])
                         return f"cstr_find(&{obj_name}, {substring})"
 
-                elif method_name == 'upper':
+                elif method_name == "upper":
                     return f"cstr_upper(&{obj_name})"
 
-                elif method_name == 'lower':
+                elif method_name == "lower":
                     return f"cstr_lower(&{obj_name})"
 
         return None
 
     def translate_container_initialization(self, assign_node: ast.Assign) -> Optional[str]:
-        """
-        Translate container initialization to STC initialization.
+        """Translate container initialization to STC initialization.
 
         Args:
             assign_node: AST Assignment node
@@ -361,10 +356,7 @@ class STCPythonToCTranslator:
 
     def translate_len_builtin(self, call_node: ast.Call) -> Optional[str]:
         """Translate len() builtin for STC containers."""
-        if (isinstance(call_node.func, ast.Name) and
-            call_node.func.id == 'len' and
-            len(call_node.args) == 1):
-
+        if isinstance(call_node.func, ast.Name) and call_node.func.id == "len" and len(call_node.args) == 1:
             arg = call_node.args[0]
             if isinstance(arg, ast.Name) and arg.id in self.container_variables:
                 container_type = self.container_variables[arg.id]
@@ -373,8 +365,7 @@ class STCPythonToCTranslator:
         return None
 
     def translate_subscript_operation(self, subscript_node: ast.Subscript) -> Optional[str]:
-        """
-        Translate subscript operations (container[key]) to STC operations.
+        """Translate subscript operations (container[key]) to STC operations.
 
         Args:
             subscript_node: AST Subscript node
@@ -390,27 +381,26 @@ class STCPythonToCTranslator:
                 key = ast.unparse(subscript_node.slice)
 
                 # Handle different container types
-                if container_type.endswith('Vec'):
+                if container_type.endswith("Vec"):
                     # List/vector indexing: list[i] -> vec_at(&list, i)
                     return f"{container_type}_at(&{obj_name}, {key})"
 
-                elif container_type.endswith('Map'):
+                elif container_type.endswith("Map"):
                     # Dict indexing: dict[key] -> hmap_get(&dict, key)
                     return f"{container_type}_get(&{obj_name}, {key})"
 
-                elif container_type.endswith('Set'):
+                elif container_type.endswith("Set"):
                     # Set membership check: set[key] -> hset_contains(&set, key)
                     return f"{container_type}_contains(&{obj_name}, {key})"
 
-                elif container_type == 'cstr':
+                elif container_type == "cstr":
                     # String indexing: str[i] -> cstr_at(&str, i)
                     return f"cstr_at(&{obj_name}, {key})"
 
         return None
 
     def translate_membership_test(self, compare_node: ast.Compare) -> Optional[str]:
-        """
-        Translate membership tests (x in container) to STC operations.
+        """Translate membership tests (x in container) to STC operations.
 
         Args:
             compare_node: AST Compare node with 'in' operator
@@ -418,10 +408,11 @@ class STCPythonToCTranslator:
         Returns:
             STC operation string or None if not a container membership test
         """
-        if (len(compare_node.ops) == 1 and
-            isinstance(compare_node.ops[0], ast.In) and
-            len(compare_node.comparators) == 1):
-
+        if (
+            len(compare_node.ops) == 1
+            and isinstance(compare_node.ops[0], ast.In)
+            and len(compare_node.comparators) == 1
+        ):
             left = compare_node.left
             right = compare_node.comparators[0]
 
@@ -430,19 +421,18 @@ class STCPythonToCTranslator:
                 container_type = self.container_variables[right.id]
                 value = ast.unparse(left)
 
-                if container_type.endswith(('Set', 'Map')):
+                if container_type.endswith(("Set", "Map")):
                     return f"{container_type}_contains(&{right.id}, {value})"
-                elif container_type.endswith('Vec'):
+                elif container_type.endswith("Vec"):
                     # For vectors, we need to search
                     return f"{container_type}_find(&{right.id}, {value}) != {container_type}_end(&{right.id})"
-                elif container_type == 'cstr':
+                elif container_type == "cstr":
                     return f"cstr_find(&{right.id}, {value}) != cstr_npos"
 
         return None
 
     def translate_assignment_to_subscript(self, assign_node: ast.Assign) -> Optional[str]:
-        """
-        Translate assignments to subscripts (container[key] = value) to STC operations.
+        """Translate assignments to subscripts (container[key] = value) to STC operations.
 
         Args:
             assign_node: AST Assign node with subscript target
@@ -450,9 +440,7 @@ class STCPythonToCTranslator:
         Returns:
             STC operation string or None if not a container subscript assignment
         """
-        if (len(assign_node.targets) == 1 and
-            isinstance(assign_node.targets[0], ast.Subscript)):
-
+        if len(assign_node.targets) == 1 and isinstance(assign_node.targets[0], ast.Subscript):
             target = assign_node.targets[0]
 
             if isinstance(target.value, ast.Name):
@@ -463,23 +451,22 @@ class STCPythonToCTranslator:
                     key = ast.unparse(target.slice)
                     value = ast.unparse(assign_node.value)
 
-                    if container_type.endswith('Vec'):
+                    if container_type.endswith("Vec"):
                         # List assignment: list[i] = value -> vec_at(&list, i) = value
                         return f"*{container_type}_at_mut(&{obj_name}, {key}) = {value}"
 
-                    elif container_type.endswith('Map'):
+                    elif container_type.endswith("Map"):
                         # Dict assignment: dict[key] = value -> hmap_insert(&dict, key, value)
                         return f"{container_type}_insert(&{obj_name}, {key}, {value})"
 
-                    elif container_type == 'cstr':
+                    elif container_type == "cstr":
                         # String character assignment: str[i] = char -> cstr_set_at(&str, i, char)
                         return f"cstr_set_at(&{obj_name}, {key}, {value})"
 
         return None
 
     def translate_for_loop_iteration(self, for_node: ast.For) -> Optional[Tuple[str, str, str]]:
-        """
-        Translate for loop iteration over STC containers.
+        """Translate for loop iteration over STC containers.
 
         Args:
             for_node: AST For node
@@ -487,9 +474,7 @@ class STCPythonToCTranslator:
         Returns:
             Tuple of (init_code, condition_code, body_prefix) or None
         """
-        if (isinstance(for_node.iter, ast.Name) and
-            for_node.iter.id in self.container_variables):
-
+        if isinstance(for_node.iter, ast.Name) and for_node.iter.id in self.container_variables:
             container_name = for_node.iter.id
             container_type = self.container_variables[container_name]
 
@@ -497,25 +482,25 @@ class STCPythonToCTranslator:
                 target_var = for_node.target.id
                 iterator_var = f"{container_name}_it"
 
-                if container_type.endswith('Vec'):
+                if container_type.endswith("Vec"):
                     # Vector iteration
                     init_code = f"for (c_each({iterator_var}, {container_type}, {container_name}))"
                     body_prefix = f"    {target_var} = *{iterator_var}.ref;"
                     return init_code, "", body_prefix
 
-                elif container_type.endswith('Set'):
+                elif container_type.endswith("Set"):
                     # Set iteration
                     init_code = f"for (c_each({iterator_var}, {container_type}, {container_name}))"
                     body_prefix = f"    {target_var} = *{iterator_var}.ref;"
                     return init_code, "", body_prefix
 
-                elif container_type.endswith('Map'):
+                elif container_type.endswith("Map"):
                     # Map iteration (iterate over keys)
                     init_code = f"for (c_each({iterator_var}, {container_type}, {container_name}))"
                     body_prefix = f"    {target_var} = {iterator_var}.ref->first;"
                     return init_code, "", body_prefix
 
-                elif container_type == 'cstr':
+                elif container_type == "cstr":
                     # String character iteration
                     init_code = f"for (size_t i = 0; i < cstr_size(&{container_name}); i++)"
                     body_prefix = f"    {target_var} = cstr_at(&{container_name}, i);"
@@ -524,8 +509,7 @@ class STCPythonToCTranslator:
         return None
 
     def translate_builtin_functions(self, call_node: ast.Call) -> Optional[str]:
-        """
-        Translate Python builtin functions for STC containers.
+        """Translate Python builtin functions for STC containers.
 
         Args:
             call_node: AST Call node
@@ -536,37 +520,37 @@ class STCPythonToCTranslator:
         if isinstance(call_node.func, ast.Name):
             func_name = call_node.func.id
 
-            if func_name == 'len':
+            if func_name == "len":
                 return self.translate_len_builtin(call_node)
 
-            elif func_name == 'max' and len(call_node.args) == 1:
+            elif func_name == "max" and len(call_node.args) == 1:
                 arg = call_node.args[0]
                 if isinstance(arg, ast.Name) and arg.id in self.container_variables:
                     container_type = self.container_variables[arg.id]
-                    if container_type.endswith('Vec'):
+                    if container_type.endswith("Vec"):
                         return f"{container_type}_max(&{arg.id})"
 
-            elif func_name == 'min' and len(call_node.args) == 1:
+            elif func_name == "min" and len(call_node.args) == 1:
                 arg = call_node.args[0]
                 if isinstance(arg, ast.Name) and arg.id in self.container_variables:
                     container_type = self.container_variables[arg.id]
-                    if container_type.endswith('Vec'):
+                    if container_type.endswith("Vec"):
                         return f"{container_type}_min(&{arg.id})"
 
-            elif func_name == 'sum' and len(call_node.args) == 1:
+            elif func_name == "sum" and len(call_node.args) == 1:
                 arg = call_node.args[0]
                 if isinstance(arg, ast.Name) and arg.id in self.container_variables:
                     container_type = self.container_variables[arg.id]
-                    if container_type.endswith('Vec'):
+                    if container_type.endswith("Vec"):
                         return f"{container_type}_sum(&{arg.id})"
 
-            elif func_name == 'sorted' and len(call_node.args) == 1:
+            elif func_name == "sorted" and len(call_node.args) == 1:
                 arg = call_node.args[0]
                 if isinstance(arg, ast.Name) and arg.id in self.container_variables:
                     container_type = self.container_variables[arg.id]
                     return f"{container_type}_sorted(&{arg.id})"
 
-            elif func_name == 'reversed' and len(call_node.args) == 1:
+            elif func_name == "reversed" and len(call_node.args) == 1:
                 arg = call_node.args[0]
                 if isinstance(arg, ast.Name) and arg.id in self.container_variables:
                     container_type = self.container_variables[arg.id]
@@ -575,8 +559,7 @@ class STCPythonToCTranslator:
         return None
 
     def generate_iteration_code(self, for_node: ast.For) -> Optional[str]:
-        """
-        Generate STC iteration code for for loops.
+        """Generate STC iteration code for for loops.
 
         Args:
             for_node: AST For node
@@ -584,9 +567,7 @@ class STCPythonToCTranslator:
         Returns:
             STC iteration string or None
         """
-        if (isinstance(for_node.iter, ast.Name) and
-            for_node.iter.id in self.container_variables):
-
+        if isinstance(for_node.iter, ast.Name) and for_node.iter.id in self.container_variables:
             container_name = for_node.iter.id
             container_type = self.container_variables[container_name]
 
@@ -594,14 +575,12 @@ class STCPythonToCTranslator:
                 iterator_var = "it"  # Standard STC iterator name
                 target_var = for_node.target.id
 
-                iteration_code = self.stc_generator.generate_iteration(
-                    container_name, container_type, iterator_var
-                )
+                iteration_code = self.stc_generator.generate_iteration(container_name, container_type, iterator_var)
 
                 # Generate code to access the iterator value
-                if container_type.endswith('Vec') or container_type.endswith('Set'):
+                if container_type.endswith("Vec") or container_type.endswith("Set"):
                     value_access = f"*{iterator_var}.ref"
-                elif container_type.endswith('Map'):
+                elif container_type.endswith("Map"):
                     value_access = f"{iterator_var}.ref->second"  # For key-value pairs
                 else:
                     value_access = f"*{iterator_var}.ref"
@@ -610,4 +589,5 @@ class STCPythonToCTranslator:
 
         return None
 
-__all__ = ['STCPythonToCTranslator']
+
+__all__ = ["STCPythonToCTranslator"]

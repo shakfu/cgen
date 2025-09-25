@@ -1,5 +1,4 @@
-"""
-CGen Runtime Library
+"""CGen Runtime Library
 
 This module provides C runtime support for generated Python-to-C code.
 It complements STC (Smart Template Containers) rather than replacing it,
@@ -20,16 +19,12 @@ Design Philosophy:
 """
 
 __version__ = "1.0.0"
-__all__ = [
-    "get_runtime_headers",
-    "get_runtime_sources",
-    "get_include_path",
-    "RuntimeConfig"
-]
+__all__ = ["get_runtime_headers", "get_runtime_sources", "get_include_path", "RuntimeConfig"]
 
 import os
 from pathlib import Path
-from typing import List, Dict, Any
+from typing import Any, Dict, List
+
 
 class RuntimeConfig:
     """Configuration for CGen runtime library integration."""
@@ -112,15 +107,18 @@ class RuntimeConfig:
 
         return flags
 
+
 def get_runtime_headers() -> List[str]:
     """Get list of all runtime header files."""
     config = RuntimeConfig()
     return config.get_headers()
 
+
 def get_runtime_sources() -> List[str]:
     """Get list of all runtime source files."""
     config = RuntimeConfig()
     return config.get_sources()
+
 
 def get_include_path() -> str:
     """Get the include path for runtime headers."""

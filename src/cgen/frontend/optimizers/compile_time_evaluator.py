@@ -8,9 +8,9 @@ import ast
 import operator as op
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Dict, List, Optional
 
-from ..base import AnalysisContext, BaseOptimizer, OptimizationResult, OptimizationLevel
+from ..base import AnalysisContext, BaseOptimizer, OptimizationLevel, OptimizationResult
 
 
 class EvaluationResult(Enum):
@@ -84,9 +84,7 @@ class CompileTimeEvaluator(BaseOptimizer):
     def __init__(self, optimization_level: OptimizationLevel = OptimizationLevel.BASIC):
         super().__init__("CompileTimeEvaluator", optimization_level)
         self._constants: Dict[str, ConstantValue] = {}
-        self._safe_functions = {
-            'abs', 'min', 'max', 'len', 'round', 'int', 'float', 'bool', 'str'
-        }
+        self._safe_functions = {"abs", "min", "max", "len", "round", "int", "float", "bool", "str"}
         self._binary_operators = {
             ast.Add: op.add,
             ast.Sub: op.sub,
@@ -146,8 +144,8 @@ class CompileTimeEvaluator(BaseOptimizer):
                     "expressions_optimized": report.expressions_optimized,
                     "total_speedup": report.total_estimated_speedup,
                     "memory_saved": report.memory_saved,
-                    "report": report
-                }
+                    "report": report,
+                },
             )
 
         except Exception as e:
@@ -158,7 +156,7 @@ class CompileTimeEvaluator(BaseOptimizer):
                 transformations=[f"Optimization failed: {str(e)}"],
                 performance_gain_estimate=1.0,
                 safety_analysis={"compile_time_evaluation": False},
-                metadata={"error": str(e), "error_type": type(e).__name__}
+                metadata={"error": str(e), "error_type": type(e).__name__},
             )
 
     def _optimize_ast(self, node: ast.AST, report: CompileTimeReport) -> ast.AST:
@@ -210,7 +208,7 @@ class CompileTimeEvaluator(BaseOptimizer):
             return self._optimize_variable_reference(node, report)
         elif isinstance(node, ast.If):
             return self._optimize_conditional(node, report)
-        elif hasattr(node, '_fields'):
+        elif hasattr(node, "_fields"):
             # Recursively optimize child nodes
             for field_name in node._fields:
                 field_value = getattr(node, field_name)
@@ -255,7 +253,7 @@ class CompileTimeEvaluator(BaseOptimizer):
                     confidence=0.95,
                     estimated_speedup=2.0,  # Constant access vs computation
                     memory_impact=-8,  # Reduced instruction complexity
-                    safety_verified=True
+                    safety_verified=True,
                 )
                 report.optimizations.append(candidate)
 
@@ -290,7 +288,7 @@ class CompileTimeEvaluator(BaseOptimizer):
                     optimization_type="constant_folding",
                     confidence=0.95,
                     estimated_speedup=1.5,
-                    safety_verified=True
+                    safety_verified=True,
                 )
                 report.optimizations.append(candidate)
 
@@ -324,7 +322,7 @@ class CompileTimeEvaluator(BaseOptimizer):
                             optimization_type="constant_folding",
                             confidence=0.95,
                             estimated_speedup=1.8,
-                            safety_verified=True
+                            safety_verified=True,
                         )
                         report.optimizations.append(candidate)
 
@@ -400,18 +398,18 @@ class CompileTimeEvaluator(BaseOptimizer):
                 try:
                     # Evaluate safe built-in functions
                     func_name = node.func.id
-                    if func_name == 'abs' and len(arg_values) == 1:
+                    if func_name == "abs" and len(arg_values) == 1:
                         result = abs(arg_values[0])
-                    elif func_name == 'min' and len(arg_values) >= 1:
+                    elif func_name == "min" and len(arg_values) >= 1:
                         result = min(arg_values)
-                    elif func_name == 'max' and len(arg_values) >= 1:
+                    elif func_name == "max" and len(arg_values) >= 1:
                         result = max(arg_values)
-                    elif func_name == 'len' and len(arg_values) == 1:
+                    elif func_name == "len" and len(arg_values) == 1:
                         result = len(arg_values[0])
-                    elif func_name == 'round' and len(arg_values) in (1, 2):
+                    elif func_name == "round" and len(arg_values) in (1, 2):
                         result = round(*arg_values)
-                    elif func_name in ('int', 'float', 'bool', 'str') and len(arg_values) == 1:
-                        type_func = {'int': int, 'float': float, 'bool': bool, 'str': str}[func_name]
+                    elif func_name in ("int", "float", "bool", "str") and len(arg_values) == 1:
+                        type_func = {"int": int, "float": float, "bool": bool, "str": str}[func_name]
                         result = type_func(arg_values[0])
                     else:
                         raise ValueError(f"Unsupported function: {func_name}")
@@ -426,7 +424,7 @@ class CompileTimeEvaluator(BaseOptimizer):
                         optimization_type="function_evaluation",
                         confidence=0.90,
                         estimated_speedup=3.0,  # Function call elimination
-                        safety_verified=True
+                        safety_verified=True,
                     )
                     report.optimizations.append(candidate)
 
@@ -454,7 +452,7 @@ class CompileTimeEvaluator(BaseOptimizer):
                     optimization_type="constant_propagation",
                     confidence=constant.confidence,
                     estimated_speedup=1.2,
-                    safety_verified=True
+                    safety_verified=True,
                 )
                 report.optimizations.append(candidate)
 
@@ -480,7 +478,7 @@ class CompileTimeEvaluator(BaseOptimizer):
                     optimization_type="dead_branch_elimination",
                     confidence=0.95,
                     estimated_speedup=1.1,
-                    safety_verified=True
+                    safety_verified=True,
                 )
                 report.optimizations.append(candidate)
 
@@ -502,7 +500,7 @@ class CompileTimeEvaluator(BaseOptimizer):
                     optimization_type="dead_branch_elimination",
                     confidence=0.95,
                     estimated_speedup=1.1,
-                    safety_verified=True
+                    safety_verified=True,
                 )
                 report.optimizations.append(candidate)
 
@@ -528,10 +526,7 @@ class CompileTimeEvaluator(BaseOptimizer):
         try:
             if isinstance(node, ast.Constant):
                 return ConstantValue(
-                    value=node.value,
-                    type_name=type(node.value).__name__,
-                    is_safe=True,
-                    confidence=1.0
+                    value=node.value, type_name=type(node.value).__name__, is_safe=True, confidence=1.0
                 )
             elif isinstance(node, ast.Name) and node.id in self._constants:
                 return self._constants[node.id]
@@ -548,12 +543,7 @@ class CompileTimeEvaluator(BaseOptimizer):
 
         try:
             result = op_func(left, right)
-            return ConstantValue(
-                value=result,
-                type_name=type(result).__name__,
-                is_safe=True,
-                confidence=0.95
-            )
+            return ConstantValue(value=result, type_name=type(result).__name__, is_safe=True, confidence=0.95)
         except (TypeError, ValueError, ZeroDivisionError, OverflowError):
             return None
 
@@ -565,16 +555,13 @@ class CompileTimeEvaluator(BaseOptimizer):
 
         try:
             result = op_func(operand)
-            return ConstantValue(
-                value=result,
-                type_name=type(result).__name__,
-                is_safe=True,
-                confidence=0.95
-            )
+            return ConstantValue(value=result, type_name=type(result).__name__, is_safe=True, confidence=0.95)
         except (TypeError, ValueError, OverflowError):
             return None
 
-    def _apply_algebraic_simplifications(self, op_node: ast.operator, left: ast.AST, right: ast.AST, report: CompileTimeReport) -> ast.AST:
+    def _apply_algebraic_simplifications(
+        self, op_node: ast.operator, left: ast.AST, right: ast.AST, report: CompileTimeReport
+    ) -> ast.AST:
         """Apply algebraic simplifications like x + 0, x * 1, etc."""
         left_val = self._evaluate_expression(left)
         right_val = self._evaluate_expression(right)
@@ -658,7 +645,7 @@ class CompileTimeEvaluator(BaseOptimizer):
             "algebraic_simplification": True,
             "dead_branch_elimination": True,
             "function_evaluation": True,
-            "all_optimizations_safe": True
+            "all_optimizations_safe": True,
         }
 
         # Check for any unsafe optimizations

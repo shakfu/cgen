@@ -826,7 +826,7 @@ class UnionMember(Element):
         data_type: "str | Type | Struct | Union",
         const: bool = False,
         pointer: bool = False,
-        array: "int | None" = None
+        array: "int | None" = None,
     ) -> None:
         _validate_c_identifier(name, "union member name")
         self.name = name
@@ -838,6 +838,7 @@ class UnionMember(Element):
 
 # TIER 4: Advanced C11 Features
 
+
 class FunctionPointer(DataType):
     """Function pointer type for advanced programming patterns."""
 
@@ -847,7 +848,7 @@ class FunctionPointer(DataType):
         return_type: "str | Type | DataType",
         parameters: "list[Variable] | None" = None,
         const: bool = False,
-        volatile: bool = False
+        volatile: bool = False,
     ) -> None:
         _validate_c_identifier(name, "function pointer name")
         self.name = name
@@ -866,7 +867,7 @@ class VariadicFunction(DataType):
         return_type: "str | Type | DataType | None" = None,
         fixed_params: "list[Variable] | None" = None,
         static: bool = False,
-        extern: bool = False
+        extern: bool = False,
     ) -> None:
         _validate_c_identifier(name, "function name")
         self.name = name
@@ -892,10 +893,7 @@ class GenericSelection(Element):
     """Generic selection for type-generic programming (_Generic)."""
 
     def __init__(
-        self,
-        controlling_expr: str,
-        type_associations: "dict[str, str]",
-        default_expr: "str | None" = None
+        self, controlling_expr: str, type_associations: "dict[str, str]", default_expr: "str | None" = None
     ) -> None:
         if not controlling_expr.strip():
             raise ValueError("controlling expression cannot be empty")
@@ -916,7 +914,7 @@ class FunctionPointerDeclaration(Element):
         return_type: "str | Type | DataType",
         parameters: "list[Variable] | None" = None,
         const: bool = False,
-        static: bool = False
+        static: bool = False,
     ) -> None:
         _validate_c_identifier(pointer_name, "function pointer variable name")
         self.pointer_name = pointer_name
@@ -928,10 +926,13 @@ class FunctionPointerDeclaration(Element):
 
 # Additional Control Flow Elements
 
+
 class SwitchStatement(Element):
     """Switch statement for multi-way branching."""
 
-    def __init__(self, expression: Any, cases: "list[CaseStatement] | None" = None, default_case: "DefaultCase | None" = None) -> None:
+    def __init__(
+        self, expression: Any, cases: "list[CaseStatement] | None" = None, default_case: "DefaultCase | None" = None
+    ) -> None:
         if isinstance(expression, str):
             if not expression.strip():
                 raise ValueError("switch expression cannot be empty")
@@ -995,6 +996,7 @@ class Label(Element):
 
 
 # Additional Operators
+
 
 class BitwiseOperator(Element):
     """Bitwise operators (&, |, ^, ~, <<, >>)."""
@@ -1082,6 +1084,7 @@ class CompoundAssignmentOperator(Element):
 
 # C11 Advanced Features
 
+
 class AtomicType(Element):
     """C11 atomic type (_Atomic)."""
 
@@ -1128,6 +1131,7 @@ class ThreadLocalSpecifier(Element):
 
 # Complex and Fixed-width Types
 
+
 class ComplexType(Type):
     """C11 complex number types (_Complex)."""
 
@@ -1154,6 +1158,7 @@ class FixedWidthIntegerType(Type):
 
 
 # Advanced Storage Classes
+
 
 class AutoSpecifier(Element):
     """C11 auto storage class specifier."""
@@ -1183,6 +1188,7 @@ class RestrictSpecifier(Element):
 
 
 # Advanced Constructs
+
 
 class InlineSpecifier(Element):
     """Inline function specifier."""
@@ -1226,6 +1232,7 @@ class DesignatedInitializer(Element):
 
 # Complex Pointer Types
 
+
 class PointerToPointer(Type):
     """Multi-level pointer type (e.g., int**, char***)."""
 
@@ -1245,6 +1252,7 @@ class PointerToPointer(Type):
 
 
 # Advanced Preprocessor
+
 
 class PragmaDirective(Directive):
     """Pragma preprocessor directive."""
@@ -1303,4 +1311,3 @@ class ComprehensionElement(Element):
         self.temp_var = temp_var
         self.full_code = full_code
         self.container_type = container_type
-

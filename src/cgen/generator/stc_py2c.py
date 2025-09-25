@@ -1,5 +1,4 @@
-"""
-STC-Enhanced Python to C Converter
+"""STC-Enhanced Python to C Converter
 
 This module extends the basic PythonToCConverter with comprehensive STC
 (Smart Template Containers) support, enabling high-performance, memory-safe
@@ -7,27 +6,30 @@ container operations in generated C code.
 """
 
 import ast
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
 from dataclasses import dataclass
+from typing import Dict, List, Optional, Set, Tuple, Union
 
 from . import core
+
 
 # Helper function to create raw C code elements
 def create_raw_code(code: str) -> core.Statement:
     """Create a statement from raw C code."""
     return core.Statement(code)
-from .factory import CFactory
-from .py2c import PythonToCConverter, UnsupportedFeatureError, TypeMappingError
-from ..ext.stc.containers import STCContainer, STC_CONTAINERS, STCCodeGenerator
-from ..ext.stc.translator import STCPythonToCTranslator
-from ..ext.stc.memory_manager import STCMemoryManager, MemoryScope
+
+
+from ..ext.stc.containers import STC_CONTAINERS, STCCodeGenerator, STCContainer
+from ..ext.stc.memory_manager import MemoryScope, STCMemoryManager
 from ..ext.stc.template_manager import get_template_manager, reset_template_manager
-from ..runtime import RuntimeConfig, get_runtime_headers, get_runtime_sources
+from ..ext.stc.translator import STCPythonToCTranslator
+from ..runtime import RuntimeConfig
+from .py2c import PythonToCConverter, UnsupportedFeatureError
 
 
 @dataclass
 class ContainerUsagePattern:
     """Tracks how a container is used to optimize STC container selection."""
+
     has_random_access: bool = False
     has_frequent_insertion: bool = False
     has_frequent_deletion: bool = False
@@ -71,13 +73,13 @@ class STCOptimizer:
                         method_name = node.func.attr
                         pattern = self.optimizer._get_or_create_pattern(var_name)
 
-                        if method_name in ['append', 'insert', 'add']:
+                        if method_name in ["append", "insert", "add"]:
                             pattern.has_frequent_insertion = True
                             pattern.modification_count += 1
-                        elif method_name in ['remove', 'pop', 'discard']:
+                        elif method_name in ["remove", "pop", "discard"]:
                             pattern.has_frequent_deletion = True
                             pattern.modification_count += 1
-                        elif method_name in ['get', 'keys', 'values', 'items']:
+                        elif method_name in ["get", "keys", "values", "items"]:
                             pattern.has_frequent_lookup = True
                             pattern.is_key_value = True
                             pattern.access_count += 1
@@ -99,26 +101,26 @@ class STCOptimizer:
         pattern = self.usage_patterns.get(var_name, ContainerUsagePattern())
 
         # Analyze the Python type
-        if python_type.startswith('List['):
+        if python_type.startswith("List["):
             if pattern.has_frequent_insertion and pattern.has_random_access:
-                return 'deque'  # Better for random access + insertion
+                return "deque"  # Better for random access + insertion
             else:
-                return 'vec'    # Default for lists
+                return "vec"  # Default for lists
 
-        elif python_type.startswith('Dict['):
+        elif python_type.startswith("Dict["):
             if pattern.has_sorted_access:
-                return 'smap'   # Sorted map for ordered access
+                return "smap"  # Sorted map for ordered access
             else:
-                return 'hmap'   # Hash map for fast lookup
+                return "hmap"  # Hash map for fast lookup
 
-        elif python_type.startswith('Set['):
+        elif python_type.startswith("Set["):
             if pattern.has_sorted_access:
-                return 'sset'   # Sorted set
+                return "sset"  # Sorted set
             else:
-                return 'hset'   # Hash set
+                return "hset"  # Hash set
 
-        elif python_type == 'str':
-            return 'cstr'       # STC string
+        elif python_type == "str":
+            return "cstr"  # STC string
 
         # Fallback to basic mapping
         return python_type.lower()
@@ -146,19 +148,18 @@ class STCEnhancedPythonToCConverter(PythonToCConverter):
         # Enhanced type mapping with STC containers
         self.stc_type_mapping = {
             # Basic types (enhanced)
-            'int': 'int',
-            'float': 'double',
-            'bool': 'bool',
-            'str': 'cstr',      # Use STC string instead of char*
-            'None': 'void',
-
+            "int": "int",
+            "float": "double",
+            "bool": "bool",
+            "str": "cstr",  # Use STC string instead of char*
+            "None": "void",
             # Container type patterns (will be dynamically resolved)
-            'list': 'vec',
-            'dict': 'hmap',
-            'set': 'hset',
-            'deque': 'deque',
-            'queue': 'queue',
-            'stack': 'stack'
+            "list": "vec",
+            "dict": "hmap",
+            "set": "hset",
+            "deque": "deque",
+            "queue": "queue",
+            "stack": "stack",
         }
 
         # Track generated STC types to avoid duplicates
@@ -223,18 +224,14 @@ class STCEnhancedPythonToCConverter(PythonToCConverter):
             container = self._get_stc_container_for_type(python_type)
             if container:
                 # Use the improved container type registration
-                container_type_name, _ = self.stc_generator.generate_container_type_def(
-                    var_name, python_type
-                )
+                container_type_name, _ = self.stc_generator.generate_container_type_def(var_name, python_type)
 
                 # Update translator mapping
                 if container_type_name and container_type_name != "cstr":
                     self.stc_translator.container_variables[var_name] = container_type_name
 
                 # Register with memory manager and STC translator
-                self.memory_manager.register_container(
-                    var_name, container_type_name, MemoryScope.BLOCK
-                )
+                self.memory_manager.register_container(var_name, container_type_name, MemoryScope.BLOCK)
 
     def _generate_stc_setup(self, type_info: Dict[str, str]) -> Tuple[List[str], List[str]]:
         """Generate STC includes and type definitions."""
@@ -248,9 +245,7 @@ class STCEnhancedPythonToCConverter(PythonToCConverter):
                 optimized_container = self.optimizer.optimize_container_choice(python_type, var_name)
 
                 # Generate type definition and include
-                type_def, include = self._generate_container_type_def(
-                    var_name, python_type, optimized_container
-                )
+                type_def, include = self._generate_container_type_def(var_name, python_type, optimized_container)
 
                 if include and include not in includes:
                     includes.append(include)
@@ -260,20 +255,17 @@ class STCEnhancedPythonToCConverter(PythonToCConverter):
 
                 # Register with memory manager and STC translator
                 container_type_name = self._get_container_type_name(var_name, python_type)
-                self.memory_manager.register_container(
-                    var_name, container_type_name, MemoryScope.BLOCK
-                )
+                self.memory_manager.register_container(var_name, container_type_name, MemoryScope.BLOCK)
                 # Also register with STC translator for operation translation
                 self.stc_translator.container_variables[var_name] = container_type_name
 
         return includes, type_defs
 
-    def _generate_container_type_def(self, var_name: str, python_type: str,
-                                   stc_container: str) -> Tuple[str, str]:
+    def _generate_container_type_def(self, var_name: str, python_type: str, stc_container: str) -> Tuple[str, str]:
         """Generate STC container type definition."""
-        if python_type.startswith(('List[', 'list[')):
+        if python_type.startswith(("List[", "list[")):
             # Extract element type: List[int] or list[int] -> int
-            start_pos = 5 if python_type.startswith('List[') else 5
+            start_pos = 5 if python_type.startswith("List[") else 5
             element_type = python_type[start_pos:-1]
             c_element_type = self._map_python_type_to_c(element_type)
 
@@ -283,18 +275,18 @@ class STCEnhancedPythonToCConverter(PythonToCConverter):
 
             return type_def, include
 
-        elif python_type.startswith(('Dict[', 'dict[')):
+        elif python_type.startswith(("Dict[", "dict[")):
             # Extract key and value types: Dict[str, int] or dict[str, int] -> str, int
-            start_pos = 5 if python_type.startswith('Dict[') else 5
+            start_pos = 5 if python_type.startswith("Dict[") else 5
             inner = python_type[start_pos:-1]
-            key_type, value_type = [t.strip() for t in inner.split(',')]
+            key_type, value_type = [t.strip() for t in inner.split(",")]
 
             c_key_type = self._map_python_type_to_c(key_type)
             c_value_type = self._map_python_type_to_c(value_type)
 
             container_type_name = f"{var_name.capitalize()}Map"
 
-            if stc_container == 'smap':
+            if stc_container == "smap":
                 type_def = f"#define T {container_type_name}, {c_key_type}, {c_value_type}"
                 include = "#include <stc/smap.h>"
             else:  # hmap
@@ -303,15 +295,15 @@ class STCEnhancedPythonToCConverter(PythonToCConverter):
 
             return type_def, include
 
-        elif python_type.startswith(('Set[', 'set[')):
+        elif python_type.startswith(("Set[", "set[")):
             # Extract element type: Set[int] or set[int] -> int
-            start_pos = 4 if python_type.startswith('Set[') else 4
+            start_pos = 4 if python_type.startswith("Set[") else 4
             element_type = python_type[start_pos:-1]
             c_element_type = self._map_python_type_to_c(element_type)
 
             container_type_name = f"{var_name.capitalize()}Set"
 
-            if stc_container == 'sset':
+            if stc_container == "sset":
                 type_def = f"#define T {container_type_name}, {c_element_type}"
                 include = "#include <stc/sset.h>"
             else:  # hset
@@ -320,7 +312,7 @@ class STCEnhancedPythonToCConverter(PythonToCConverter):
 
             return type_def, include
 
-        elif python_type == 'str':
+        elif python_type == "str":
             # String doesn't need type definition
             return "", "#include <stc/cstr.h>"
 
@@ -328,37 +320,32 @@ class STCEnhancedPythonToCConverter(PythonToCConverter):
 
     def _get_container_type_name(self, var_name: str, python_type: str) -> str:
         """Get the C container type name for a variable."""
-        if python_type.startswith(('List[', 'list[')):
+        if python_type.startswith(("List[", "list[")):
             return f"{var_name.capitalize()}Vec"
-        elif python_type.startswith(('Dict[', 'dict[')):
+        elif python_type.startswith(("Dict[", "dict[")):
             return f"{var_name.capitalize()}Map"
-        elif python_type.startswith(('Set[', 'set[')):
+        elif python_type.startswith(("Set[", "set[")):
             return f"{var_name.capitalize()}Set"
-        elif python_type == 'str':
+        elif python_type == "str":
             return "cstr"
         return var_name
 
     def _map_python_type_to_c(self, python_type: str) -> str:
         """Map Python type to C type for STC containers."""
-        mapping = {
-            'int': 'int',
-            'float': 'double',
-            'str': 'cstr',
-            'bool': 'bool'
-        }
+        mapping = {"int": "int", "float": "double", "str": "cstr", "bool": "bool"}
         return mapping.get(python_type, python_type)
 
     def _get_stc_container_for_type(self, python_type: str) -> Optional[STCContainer]:
         """Get STC container for Python type."""
         # Handle both List[T] and list[T] formats
-        if any(python_type.startswith(prefix) for prefix in ['List[', 'list[', 'Dict[', 'dict[', 'Set[', 'set[']):
-            if python_type.startswith(('List[', 'list[')):
-                return STC_CONTAINERS.get('list')
-            elif python_type.startswith(('Dict[', 'dict[')):
-                return STC_CONTAINERS.get('dict')
-            elif python_type.startswith(('Set[', 'set[')):
-                return STC_CONTAINERS.get('set')
-        elif python_type in ['list', 'dict', 'set', 'str']:
+        if any(python_type.startswith(prefix) for prefix in ["List[", "list[", "Dict[", "dict[", "Set[", "set["]):
+            if python_type.startswith(("List[", "list[")):
+                return STC_CONTAINERS.get("list")
+            elif python_type.startswith(("Dict[", "dict[")):
+                return STC_CONTAINERS.get("dict")
+            elif python_type.startswith(("Set[", "set[")):
+                return STC_CONTAINERS.get("set")
+        elif python_type in ["list", "dict", "set", "str"]:
             return STC_CONTAINERS.get(python_type)
         return None
 
@@ -374,14 +361,14 @@ class STCEnhancedPythonToCConverter(PythonToCConverter):
             # Handle List[T], Dict[K,V], Set[T] with STC containers
             full_type = ast.unparse(annotation)
 
-            if full_type.startswith(('List[', 'list[')):
+            if full_type.startswith(("List[", "list[")):
                 # For return types, we'll return the container pointer
                 return "void*"  # STC container returned by pointer
 
-            elif full_type.startswith(('Dict[', 'dict[')):
+            elif full_type.startswith(("Dict[", "dict[")):
                 return "void*"  # STC map returned by pointer
 
-            elif full_type.startswith(('Set[', 'set[')):
+            elif full_type.startswith(("Set[", "set[")):
                 return "void*"  # STC set returned by pointer
 
             else:
@@ -400,7 +387,7 @@ class STCEnhancedPythonToCConverter(PythonToCConverter):
             raise UnsupportedFeatureError("Only simple variable assignments supported")
 
         var_name = node.target.id
-        python_type = ast.unparse(node.annotation) if node.annotation else 'int'
+        python_type = ast.unparse(node.annotation) if node.annotation else "int"
 
         # Check if this is an STC container type
         if self._is_stc_container_type(python_type):
@@ -410,28 +397,34 @@ class STCEnhancedPythonToCConverter(PythonToCConverter):
 
     def _is_stc_container_type(self, python_type: str) -> bool:
         """Check if type should use STC containers."""
-        return (python_type.startswith(('List[', 'Dict[', 'Set[', 'list[', 'dict[', 'set[')) or
-                python_type in ['list', 'dict', 'set', 'str', 'List', 'Dict', 'Set'])
+        return python_type.startswith(("List[", "Dict[", "Set[", "list[", "dict[", "set[")) or python_type in [
+            "list",
+            "dict",
+            "set",
+            "str",
+            "List",
+            "Dict",
+            "Set",
+        ]
 
-    def _convert_stc_container_assignment(self, node: ast.AnnAssign, var_name: str,
-                                        python_type: str) -> List[core.Statement]:
+    def _convert_stc_container_assignment(
+        self, node: ast.AnnAssign, var_name: str, python_type: str
+    ) -> List[core.Statement]:
         """Convert STC container assignment with improved template management."""
         statements = []
 
         # Generate container type name using template manager
-        container_type_name, _ = self.stc_generator.generate_container_type_def(
-            var_name, python_type
-        )
+        container_type_name, _ = self.stc_generator.generate_container_type_def(var_name, python_type)
 
         # Register with memory manager and STC translator
         if container_type_name and container_type_name != "cstr":
             self.memory_manager.register_container(
-                var_name, container_type_name, MemoryScope.BLOCK, getattr(node, 'lineno', 0)
+                var_name, container_type_name, MemoryScope.BLOCK, getattr(node, "lineno", 0)
             )
             self.stc_translator.container_variables[var_name] = container_type_name
 
             # Track container in current function for cleanup
-            current_function = getattr(self, '_current_function_name', 'global')
+            current_function = getattr(self, "_current_function_name", "global")
             if current_function in self.function_containers:
                 self.function_containers[current_function].append(var_name)
 
@@ -442,15 +435,14 @@ class STCEnhancedPythonToCConverter(PythonToCConverter):
 
         # Handle initialization value if present
         if node.value:
-            init_statements = self._convert_stc_container_initialization(
-                var_name, container_type_name, node.value
-            )
+            init_statements = self._convert_stc_container_initialization(var_name, container_type_name, node.value)
             statements.extend(init_statements)
 
         return statements
 
-    def _convert_stc_container_initialization(self, var_name: str, container_type: str,
-                                           value_node: ast.expr) -> List[core.Statement]:
+    def _convert_stc_container_initialization(
+        self, var_name: str, container_type: str, value_node: ast.expr
+    ) -> List[core.Statement]:
         """Convert STC container initialization from Python value."""
         statements = []
 
@@ -494,11 +486,9 @@ class STCEnhancedPythonToCConverter(PythonToCConverter):
         # Register container parameters with memory manager
         for arg in node.args.args:
             if arg.annotation:
-                param_type = ast.unparse(arg.annotation) if arg.annotation else 'int'
+                param_type = ast.unparse(arg.annotation) if arg.annotation else "int"
                 if self._is_stc_container_type(param_type):
-                    container_type_name, _ = self.stc_generator.generate_container_type_def(
-                        arg.arg, param_type
-                    )
+                    container_type_name, _ = self.stc_generator.generate_container_type_def(arg.arg, param_type)
                     if container_type_name and container_type_name != "cstr":
                         self.memory_manager.register_parameter(arg.arg, container_type_name)
                         self.stc_translator.container_variables[arg.arg] = container_type_name
@@ -508,7 +498,7 @@ class STCEnhancedPythonToCConverter(PythonToCConverter):
         result = super()._convert_function_def(node)
 
         # Generate comprehensive cleanup using template manager
-        if result and len(result) >= 2 and hasattr(result[1], 'append'):
+        if result and len(result) >= 2 and hasattr(result[1], "append"):
             # Generate cleanup statements for this function's containers
             cleanup_statements = self.template_manager.generate_cleanup_statements(function_containers)
 
@@ -543,12 +533,10 @@ class STCEnhancedPythonToCConverter(PythonToCConverter):
                     if obj_name in self.memory_manager.allocations:
                         # Generate exception-safe wrapper
                         operation_code = self._convert_expression(node.value)
-                        safe_code = self.memory_manager.generate_exception_safe_wrapper(
-                            str(operation_code), obj_name
-                        )
+                        safe_code = self.memory_manager.generate_exception_safe_wrapper(str(operation_code), obj_name)
                         if len(safe_code) > 1:
                             # Return multi-line safe code
-                            return create_raw_code('\n'.join(safe_code))
+                            return create_raw_code("\n".join(safe_code))
 
         return super()._convert_expression_statement(node)
 
@@ -591,24 +579,25 @@ class STCEnhancedPythonToCConverter(PythonToCConverter):
                 container_name = node.value.id
 
                 # Check if this is an STC container
-                if (hasattr(self, 'stc_translator') and
-                    self.stc_translator and
-                    container_name in self.stc_translator.container_variables):
-
+                if (
+                    hasattr(self, "stc_translator")
+                    and self.stc_translator
+                    and container_name in self.stc_translator.container_variables
+                ):
                     container_type = self.stc_translator.container_variables[container_name]
                     key = self._convert_expression(node.slice)
 
                     # Generate appropriate STC operation
-                    if container_type.endswith('Vec'):
+                    if container_type.endswith("Vec"):
                         # List indexing: list[i] -> *vec_at(&list, i)
                         return f"*{container_type}_at(&{container_name}, {key})"
-                    elif container_type.endswith('Map'):
+                    elif container_type.endswith("Map"):
                         # Dict lookup: dict[key] -> *hmap_get(&dict, key)
                         return f"*{container_type}_get(&{container_name}, {key})"
-                    elif container_type.endswith('Set'):
+                    elif container_type.endswith("Set"):
                         # Set membership check: set[key] -> hset_contains(&set, key)
                         return f"{container_type}_contains(&{container_name}, {key})"
-                    elif container_type == 'cstr':
+                    elif container_type == "cstr":
                         # String indexing: str[i] -> cstr_at(&str, i)
                         return f"cstr_at(&{container_name}, {key})"
 
@@ -626,10 +615,11 @@ class STCEnhancedPythonToCConverter(PythonToCConverter):
             container_name = node.iter.id
 
             # Check if this is a known STC container
-            if (hasattr(self, 'stc_translator') and
-                self.stc_translator and
-                container_name in self.stc_translator.container_variables):
-
+            if (
+                hasattr(self, "stc_translator")
+                and self.stc_translator
+                and container_name in self.stc_translator.container_variables
+            ):
                 container_type = self.stc_translator.container_variables[container_name]
 
                 if isinstance(node.target, ast.Name):
@@ -646,9 +636,9 @@ class STCEnhancedPythonToCConverter(PythonToCConverter):
                     statements.append(create_raw_code(f"{iteration_code} {{"))
 
                     # Generate code to access iterator value
-                    if container_type.endswith('Vec') or container_type.endswith('Set'):
+                    if container_type.endswith("Vec") or container_type.endswith("Set"):
                         value_access = f"*{iterator_var}.ref"
-                    elif container_type.endswith('Map'):
+                    elif container_type.endswith("Map"):
                         value_access = f"{iterator_var}.ref->first"  # For key iteration
                     else:
                         value_access = f"*{iterator_var}.ref"
@@ -686,22 +676,23 @@ class STCEnhancedPythonToCConverter(PythonToCConverter):
                 container_name = target.value.id
 
                 # Check if this is an STC container
-                if (hasattr(self, 'stc_translator') and
-                    self.stc_translator and
-                    container_name in self.stc_translator.container_variables):
-
+                if (
+                    hasattr(self, "stc_translator")
+                    and self.stc_translator
+                    and container_name in self.stc_translator.container_variables
+                ):
                     container_type = self.stc_translator.container_variables[container_name]
                     key = self._convert_expression(target.slice)
                     value = self._convert_expression(node.value)
 
                     # Generate appropriate STC operation
-                    if container_type.endswith('Vec'):
+                    if container_type.endswith("Vec"):
                         # List assignment: list[i] = value -> *vec_at_mut(&list, i) = value
                         operation = f"*{container_type}_at_mut(&{container_name}, {key}) = {value}"
-                    elif container_type.endswith('Map'):
+                    elif container_type.endswith("Map"):
                         # Dict assignment: dict[key] = value -> hmap_insert(&dict, key, value)
                         operation = f"{container_type}_insert(&{container_name}, {key}, {value})"
-                    elif container_type == 'cstr':
+                    elif container_type == "cstr":
                         # String character assignment: str[i] = char -> cstr_set_at(&str, i, char)
                         operation = f"cstr_set_at(&{container_name}, {key}, {value})"
                     else:
@@ -715,28 +706,26 @@ class STCEnhancedPythonToCConverter(PythonToCConverter):
     def _convert_comparison(self, node: ast.Compare) -> str:
         """Enhanced comparison conversion with STC container membership support."""
         # Check for membership tests (x in container)
-        if (len(node.ops) == 1 and
-            isinstance(node.ops[0], ast.In) and
-            len(node.comparators) == 1):
-
+        if len(node.ops) == 1 and isinstance(node.ops[0], ast.In) and len(node.comparators) == 1:
             left_expr = self._convert_expression(node.left)
             right = node.comparators[0]
 
             # Check if right side is an STC container
-            if (isinstance(right, ast.Name) and
-                hasattr(self, 'stc_translator') and
-                self.stc_translator and
-                right.id in self.stc_translator.container_variables):
-
+            if (
+                isinstance(right, ast.Name)
+                and hasattr(self, "stc_translator")
+                and self.stc_translator
+                and right.id in self.stc_translator.container_variables
+            ):
                 container_type = self.stc_translator.container_variables[right.id]
                 container_name = right.id
 
-                if container_type.endswith(('Set', 'Map')):
+                if container_type.endswith(("Set", "Map")):
                     return f"{container_type}_contains(&{container_name}, {left_expr})"
-                elif container_type.endswith('Vec'):
+                elif container_type.endswith("Vec"):
                     # For vectors, we need to search
                     return f"({container_type}_find(&{container_name}, {left_expr}).ref != {container_type}_end(&{container_name}).ref)"
-                elif container_type == 'cstr':
+                elif container_type == "cstr":
                     return f"(cstr_find(&{container_name}, {left_expr}) != cstr_npos)"
 
         # Fall back to parent implementation
@@ -770,7 +759,7 @@ class STCEnhancedPythonToCConverter(PythonToCConverter):
                 return create_raw_code(stc_builtin)
 
             # Special handling for len() function
-            if func_name == 'len' and len(node.args) == 1:
+            if func_name == "len" and len(node.args) == 1:
                 arg = node.args[0]
                 if isinstance(arg, ast.Name) and arg.id in self.stc_translator.container_variables:
                     container_type = self.stc_translator.container_variables[arg.id]
@@ -780,8 +769,7 @@ class STCEnhancedPythonToCConverter(PythonToCConverter):
         return super()._convert_function_call(node)
 
     def analyze_memory_safety(self, python_code: str) -> Dict[str, any]:
-        """
-        Analyze Python code for memory safety issues.
+        """Analyze Python code for memory safety issues.
 
         Returns:
             Dictionary containing memory safety analysis results
@@ -795,11 +783,11 @@ class STCEnhancedPythonToCConverter(PythonToCConverter):
                     "type": error.error_type,
                     "message": error.message,
                     "line": error.line_number,
-                    "severity": error.severity
+                    "severity": error.severity,
                 }
                 for error in memory_errors
             ],
-            "cleanup_summary": self.memory_manager.generate_cleanup_summary()
+            "cleanup_summary": self.memory_manager.generate_cleanup_summary(),
         }
 
 
@@ -816,7 +804,9 @@ def convert_python_to_c_with_stc(python_code: str, runtime_config: Optional[Runt
     return writer.write_str(c_sequence)
 
 
-def convert_python_file_to_c_with_stc(input_file: str, output_file: str, runtime_config: Optional[RuntimeConfig] = None) -> None:
+def convert_python_file_to_c_with_stc(
+    input_file: str, output_file: str, runtime_config: Optional[RuntimeConfig] = None
+) -> None:
     """Convert Python file to C with STC container support."""
     converter = STCEnhancedPythonToCConverter(runtime_config)
     c_sequence = converter.convert_file(input_file)
@@ -833,8 +823,8 @@ def get_compilation_info(runtime_config: Optional[RuntimeConfig] = None) -> Dict
     config = runtime_config or RuntimeConfig()
 
     return {
-        'headers': config.get_headers(),
-        'sources': config.get_sources(),
-        'compile_flags': config.get_compile_flags(),
-        'include_path': [str(config.runtime_dir)]
+        "headers": config.get_headers(),
+        "sources": config.get_sources(),
+        "compile_flags": config.get_compile_flags(),
+        "include_path": [str(config.runtime_dir)],
     }

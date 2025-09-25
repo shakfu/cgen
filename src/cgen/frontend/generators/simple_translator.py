@@ -1,5 +1,4 @@
-"""
-Simple Python-to-C AST Translator
+"""Simple Python-to-C AST Translator
 
 A simplified version that generates basic C code using direct string generation
 rather than complex CFactory methods that may not exist.
@@ -9,17 +8,18 @@ container operations when use_stc_containers=True.
 """
 
 import ast
-import sys
 import os
-from typing import Dict, List, Optional, Set, Tuple
+import sys
+from typing import List
 
 from ...common import log
 
 # Add the ext.stc module to the path for STC integration
 try:
-    sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", ".."))
     from cgen.ext.stc.containers import STCCodeGenerator, get_stc_container_for_python_type
     from cgen.ext.stc.translator import STCPythonToCTranslator
+
     STC_AVAILABLE = True
 except ImportError:
     STC_AVAILABLE = False
@@ -43,13 +43,13 @@ class SimplePythonToCTranslator:
         self.stc_type_include_pairs = []  # (type_def, include) pairs to maintain proper order
 
         self.builtin_functions = {
-            'print': self._translate_print_call,
-            'len': self._translate_len,
-            'abs': self._translate_abs,
-            'min': self._translate_min,
-            'max': self._translate_max,
-            'int': self._translate_int_cast,
-            'float': self._translate_float_cast,
+            "print": self._translate_print_call,
+            "len": self._translate_len,
+            "abs": self._translate_abs,
+            "min": self._translate_min,
+            "max": self._translate_max,
+            "int": self._translate_int_cast,
+            "float": self._translate_float_cast,
         }
 
     def translate_module(self, module_node: ast.Module) -> str:
@@ -142,16 +142,19 @@ class SimplePythonToCTranslator:
         lines.append(f"{return_type} {func_name}({params_str}) {{")
 
         # Special handling for known functions that need proper C implementation
-        if func_name in ['create_empty_grid', 'copy_grid', 'set_cell']:
+        if func_name in ["create_empty_grid", "copy_grid", "set_cell"]:
             lines.extend(self._generate_special_function_body(func_name, func_node))
         else:
             # Translate function body (skip docstrings)
             self.indent_level = 1
             for i, stmt in enumerate(func_node.body):
                 # Skip docstring (first statement that's a string constant)
-                if (i == 0 and isinstance(stmt, ast.Expr) and
-                    isinstance(stmt.value, ast.Constant) and
-                    isinstance(stmt.value.value, str)):
+                if (
+                    i == 0
+                    and isinstance(stmt, ast.Expr)
+                    and isinstance(stmt.value, ast.Constant)
+                    and isinstance(stmt.value.value, str)
+                ):
                     continue
 
                 stmt_lines = self._translate_statement(stmt)
@@ -209,9 +212,7 @@ class SimplePythonToCTranslator:
                 var_name = target.id
 
                 # Check for STC container initialization first
-                if (self.use_stc_containers and self.stc_translator and
-                    isinstance(assign_node.value, ast.List)):
-
+                if self.use_stc_containers and self.stc_translator and isinstance(assign_node.value, ast.List):
                     # STC list initialization
                     container_type = f"{var_name.capitalize()}Vec"
                     self.stc_container_vars[var_name] = container_type
@@ -259,7 +260,11 @@ class SimplePythonToCTranslator:
                     # Handle function calls that return arrays (like create_empty_grid)
                     elif isinstance(assign_node.value, ast.Call):
                         call_func = assign_node.value.func
-                        if isinstance(call_func, ast.Name) and call_func.id in ['create_empty_grid', 'copy_grid', 'evolve_generation']:
+                        if isinstance(call_func, ast.Name) and call_func.id in [
+                            "create_empty_grid",
+                            "copy_grid",
+                            "evolve_generation",
+                        ]:
                             lines.append(self._indent(f"int** {var_name} = {value_expr};"))
                         else:
                             lines.append(self._indent(f"{var_type} {var_name} = {value_expr};"))
@@ -295,14 +300,14 @@ class SimplePythonToCTranslator:
         value_expr = self._translate_expression(aug_assign_node.value)
 
         op_map = {
-            ast.Add: '+=',
-            ast.Sub: '-=',
-            ast.Mult: '*=',
-            ast.Div: '/=',
-            ast.Mod: '%=',
+            ast.Add: "+=",
+            ast.Sub: "-=",
+            ast.Mult: "*=",
+            ast.Div: "/=",
+            ast.Mod: "%=",
         }
 
-        op = op_map.get(type(aug_assign_node.op), '+=')
+        op = op_map.get(type(aug_assign_node.op), "+=")
         return [self._indent(f"{target_expr} {op} {value_expr};")]
 
     def _translate_if(self, if_node: ast.If) -> List[str]:
@@ -362,9 +367,11 @@ class SimplePythonToCTranslator:
         lines = []
 
         # Check for STC container iteration first
-        if (self.use_stc_containers and isinstance(for_node.iter, ast.Name) and
-            for_node.iter.id in self.stc_container_vars):
-
+        if (
+            self.use_stc_containers
+            and isinstance(for_node.iter, ast.Name)
+            and for_node.iter.id in self.stc_container_vars
+        ):
             container_name = for_node.iter.id
             container_type = self.stc_container_vars[container_name]
             target_var = for_node.target.id
@@ -390,10 +397,11 @@ class SimplePythonToCTranslator:
             return lines
 
         # Handle range() loops
-        if (isinstance(for_node.iter, ast.Call) and
-            isinstance(for_node.iter.func, ast.Name) and
-            for_node.iter.func.id == 'range'):
-
+        if (
+            isinstance(for_node.iter, ast.Call)
+            and isinstance(for_node.iter.func, ast.Name)
+            and for_node.iter.func.id == "range"
+        ):
             loop_var = for_node.target.id
             range_args = for_node.iter.args
 
@@ -438,14 +446,12 @@ class SimplePythonToCTranslator:
         # Handle simple iteration patterns
         elif isinstance(for_node.iter, ast.Call):
             # Handle method calls like words.items(), content.split(), etc.
-            if (isinstance(for_node.iter.func, ast.Attribute) and
-                for_node.iter.func.attr in ['items', 'keys', 'values']):
-
+            if isinstance(for_node.iter.func, ast.Attribute) and for_node.iter.func.attr in ["items", "keys", "values"]:
                 target = for_node.target
                 obj_name = self._translate_expression(for_node.iter.func.value)
                 method = for_node.iter.func.attr
 
-                if method == 'items' and isinstance(target, ast.Tuple) and len(target.elts) == 2:
+                if method == "items" and isinstance(target, ast.Tuple) and len(target.elts) == 2:
                     # for key, value in dict.items()
                     key_var = target.elts[0].id
                     value_var = target.elts[1].id
@@ -454,14 +460,13 @@ class SimplePythonToCTranslator:
                 else:
                     lines.append(self._indent(f"/* {obj_name}.{method}() iteration not supported */"))
 
-            elif (isinstance(for_node.iter.func, ast.Attribute) and
-                  for_node.iter.func.attr == 'split'):
+            elif isinstance(for_node.iter.func, ast.Attribute) and for_node.iter.func.attr == "split":
                 # Handle content.split()
                 obj_name = self._translate_expression(for_node.iter.func.value)
                 target_var = for_node.target.id
                 lines.append(self._indent(f"/* for {target_var} in {obj_name}.split() - simplified */"))
                 lines.append(self._indent(f"char* {target_var};"))
-                lines.append(self._indent(f"/* split iteration not implemented */"))
+                lines.append(self._indent("/* split iteration not implemented */"))
             else:
                 lines.append(self._indent("/* Complex for loop not supported */"))
 
@@ -475,7 +480,7 @@ class SimplePythonToCTranslator:
             lines.append(self._indent(f"while ({target_var}_index < {iterable_name}_size) {{"))
 
             self.indent_level += 1
-            lines.append(self._indent(f"/* Get element at index */"))
+            lines.append(self._indent("/* Get element at index */"))
             lines.append(self._indent(f"/* {target_var} = {iterable_name}[{target_var}_index]; */"))
 
             # Translate loop body
@@ -499,8 +504,7 @@ class SimplePythonToCTranslator:
     def _translate_expression_statement(self, expr_stmt: ast.Expr) -> List[str]:
         """Translate expression statement with STC support."""
         # Check for STC container operations first
-        if (self.use_stc_containers and self.stc_translator and
-            isinstance(expr_stmt.value, ast.Call)):
+        if self.use_stc_containers and self.stc_translator and isinstance(expr_stmt.value, ast.Call):
             try:
                 stc_op = self.stc_translator.translate_container_operation(expr_stmt.value)
                 if stc_op:
@@ -579,15 +583,15 @@ class SimplePythonToCTranslator:
                 return f'"{binop.right.value}"'  # Simplified
 
         op_map = {
-            ast.Add: '+',
-            ast.Sub: '-',
-            ast.Mult: '*',
-            ast.Div: '/',
-            ast.Mod: '%',
-            ast.FloorDiv: '/',
+            ast.Add: "+",
+            ast.Sub: "-",
+            ast.Mult: "*",
+            ast.Div: "/",
+            ast.Mod: "%",
+            ast.FloorDiv: "/",
         }
 
-        op = op_map.get(type(binop.op), '+')
+        op = op_map.get(type(binop.op), "+")
         return f"({left} {op} {right})"
 
     def _translate_unary_op(self, unaryop: ast.UnaryOp) -> str:
@@ -612,15 +616,15 @@ class SimplePythonToCTranslator:
             right = self._translate_expression(compare.comparators[0])
 
             op_map = {
-                ast.Eq: '==',
-                ast.NotEq: '!=',
-                ast.Lt: '<',
-                ast.LtE: '<=',
-                ast.Gt: '>',
-                ast.GtE: '>=',
+                ast.Eq: "==",
+                ast.NotEq: "!=",
+                ast.Lt: "<",
+                ast.LtE: "<=",
+                ast.Gt: ">",
+                ast.GtE: ">=",
             }
 
-            c_op = op_map.get(type(op), '==')
+            c_op = op_map.get(type(op), "==")
             return f"{left} {c_op} {right}"
 
         # For complex comparisons, create compound conditions
@@ -630,15 +634,15 @@ class SimplePythonToCTranslator:
         for op, comparator in zip(compare.ops, compare.comparators):
             right = self._translate_expression(comparator)
             op_map = {
-                ast.Eq: '==',
-                ast.NotEq: '!=',
-                ast.Lt: '<',
-                ast.LtE: '<=',
-                ast.Gt: '>',
-                ast.GtE: '>=',
+                ast.Eq: "==",
+                ast.NotEq: "!=",
+                ast.Lt: "<",
+                ast.LtE: "<=",
+                ast.Gt: ">",
+                ast.GtE: ">=",
             }
 
-            c_op = op_map.get(type(op), '==')
+            c_op = op_map.get(type(op), "==")
             conditions.append(f"({current_left} {c_op} {right})")
             current_left = right
 
@@ -649,11 +653,11 @@ class SimplePythonToCTranslator:
         values = [self._translate_expression(val) for val in boolop.values]
 
         if isinstance(boolop.op, ast.And):
-            op = ' && '
+            op = " && "
         elif isinstance(boolop.op, ast.Or):
-            op = ' || '
+            op = " || "
         else:
-            op = ' && '
+            op = " && "
 
         return f"({op.join(values)})"
 
@@ -662,12 +666,13 @@ class SimplePythonToCTranslator:
         # Handle nested attribute calls first (e.g., os.path.exists)
         if isinstance(call.func, ast.Attribute):
             # Handle os.path.exists() and similar nested attribute calls
-            if (isinstance(call.func.value, ast.Attribute) and
-                isinstance(call.func.value.value, ast.Name) and
-                call.func.value.value.id == 'os' and
-                call.func.value.attr == 'path' and
-                call.func.attr == 'exists'):
-
+            if (
+                isinstance(call.func.value, ast.Attribute)
+                and isinstance(call.func.value.value, ast.Name)
+                and call.func.value.value.id == "os"
+                and call.func.value.attr == "path"
+                and call.func.attr == "exists"
+            ):
                 # Handle os.path.exists(filename)
                 if call.args:
                     arg = self._translate_expression(call.args[0])
@@ -680,16 +685,16 @@ class SimplePythonToCTranslator:
             # Handle built-in functions
             if func_name in self.builtin_functions:
                 return self.builtin_functions[func_name](call)
-            elif func_name in ['sin', 'cos', 'tan', 'sqrt', 'log', 'exp']:
+            elif func_name in ["sin", "cos", "tan", "sqrt", "log", "exp"]:
                 if call.args:
                     arg = self._translate_expression(call.args[0])
                     return f"{func_name}({arg})"
                 return "0"
             # Handle special Game of Life functions that need proper memory allocation
-            elif func_name == 'create_empty_grid':
+            elif func_name == "create_empty_grid":
                 args = [self._translate_expression(arg) for arg in call.args]
                 return f"create_empty_grid({', '.join(args)})"
-            elif func_name == 'copy_grid':
+            elif func_name == "copy_grid":
                 args = [self._translate_expression(arg) for arg in call.args]
                 return f"copy_grid({', '.join(args)})"
 
@@ -707,7 +712,7 @@ class SimplePythonToCTranslator:
             # Handle specific string and list methods
             if method == "append":
                 # Check for STC container append first
-                if (self.use_stc_containers and obj in self.stc_container_vars and call.args):
+                if self.use_stc_containers and obj in self.stc_container_vars and call.args:
                     container_type = self.stc_container_vars[obj]
                     item = self._translate_expression(call.args[0])
                     return f"{container_type}_push(&{obj}, {item})"
@@ -780,8 +785,7 @@ class SimplePythonToCTranslator:
         """Translate len() function with STC support."""
         if call.args:
             # Check for STC container len() first
-            if (self.use_stc_containers and self.stc_translator and
-                isinstance(call.args[0], ast.Name)):
+            if self.use_stc_containers and self.stc_translator and isinstance(call.args[0], ast.Name):
                 var_name = call.args[0].id
                 if var_name in self.stc_container_vars:
                     container_type = self.stc_container_vars[var_name]
@@ -888,7 +892,7 @@ class SimplePythonToCTranslator:
                 # Check if it's a constant (ALL_CAPS naming convention)
                 if var_name.isupper():
                     # Special handling for pattern arrays
-                    if 'PATTERN' in var_name and isinstance(assign_node.value, ast.List):
+                    if "PATTERN" in var_name and isinstance(assign_node.value, ast.List):
                         # Generate proper array declaration for patterns
                         pattern_size = len(assign_node.value.elts)
                         lines.append(f"int {var_name.lower()}[][2] = {{")
@@ -977,12 +981,12 @@ class SimplePythonToCTranslator:
         """Convert Python type annotation to C type."""
         if isinstance(annotation, ast.Name):
             type_map = {
-                'int': 'int',
-                'float': 'double',
-                'str': 'char*',
-                'bool': 'int',
+                "int": "int",
+                "float": "double",
+                "str": "char*",
+                "bool": "int",
             }
-            return type_map.get(annotation.id, 'int')
+            return type_map.get(annotation.id, "int")
         elif isinstance(annotation, ast.Constant):
             if annotation.value is None:
                 return "void"  # None return type
@@ -990,14 +994,14 @@ class SimplePythonToCTranslator:
         elif isinstance(annotation, ast.Subscript):
             # Handle List[type], Tuple[type], etc.
             if isinstance(annotation.value, ast.Name):
-                if annotation.value.id == 'List':
+                if annotation.value.id == "List":
                     # For now, return int* for List[int], double* for List[float], etc.
                     element_type = self._annotation_to_c_type(annotation.slice)
                     return f"{element_type}*"
-                elif annotation.value.id == 'Tuple':
+                elif annotation.value.id == "Tuple":
                     # Simplified tuple handling
                     return "void*"
-        elif hasattr(annotation, 'id') and annotation.id == 'list':
+        elif hasattr(annotation, "id") and annotation.id == "list":
             # Handle bare 'list' type
             return "int*"
 
@@ -1008,7 +1012,7 @@ class SimplePythonToCTranslator:
         lines = []
         self.indent_level = 1
 
-        if func_name == 'create_empty_grid':
+        if func_name == "create_empty_grid":
             lines.append(self._indent("int** grid = (int**)malloc(height * sizeof(int*));"))
             lines.append(self._indent("int i = 0;"))
             lines.append(self._indent("while (i < height) {"))
@@ -1026,7 +1030,7 @@ class SimplePythonToCTranslator:
             lines.append(self._indent("}"))
             lines.append(self._indent("return grid;"))
 
-        elif func_name == 'copy_grid':
+        elif func_name == "copy_grid":
             lines.append(self._indent("int** new_grid = (int**)malloc(height * sizeof(int*));"))
             lines.append(self._indent("int i = 0;"))
             lines.append(self._indent("while (i < height) {"))
@@ -1044,7 +1048,7 @@ class SimplePythonToCTranslator:
             lines.append(self._indent("}"))
             lines.append(self._indent("return new_grid;"))
 
-        elif func_name == 'set_cell':
+        elif func_name == "set_cell":
             lines.append(self._indent("if (x >= 0 && x < width && y >= 0 && y < height) {"))
             self.indent_level += 1
             lines.append(self._indent("grid[y][x] = state;"))
@@ -1074,24 +1078,26 @@ class SimplePythonToCTranslator:
 
         # Handle specific Python attribute patterns
         if isinstance(attr_node.value, ast.Name):
-            if attr_node.value.id == 'sys' and attr == 'argv':
+            if attr_node.value.id == "sys" and attr == "argv":
                 # Handle sys.argv specifically
                 return "argv"  # C main function uses argc/argv
-            elif attr == 'split':
+            elif attr == "split":
                 # Handle string.split() - return function name for method calls
-                return f"split"
-            elif attr == 'lower':
+                return "split"
+            elif attr == "lower":
                 # Handle string.lower() - return function name for method calls
-                return f"lower"
-            elif attr == 'append':
+                return "lower"
+            elif attr == "append":
                 # Handle list.append() - return function name for method calls
-                return f"append"
+                return "append"
         elif isinstance(attr_node.value, ast.Attribute):
             # Handle nested attributes like os.path.exists
-            if (isinstance(attr_node.value.value, ast.Name) and
-                attr_node.value.value.id == 'os' and
-                attr_node.value.attr == 'path' and
-                attr == 'exists'):
+            if (
+                isinstance(attr_node.value.value, ast.Name)
+                and attr_node.value.value.id == "os"
+                and attr_node.value.attr == "path"
+                and attr == "exists"
+            ):
                 return "exists"  # Simplified to just 'exists' function call
 
         # For other attributes, generate C-style access
@@ -1100,7 +1106,7 @@ class SimplePythonToCTranslator:
     def _is_2d_array_context(self, var_name: str) -> bool:
         """Determine if a variable should be treated as a 2D array."""
         # Common 2D array names in Game of Life context
-        grid_names = ['grid', 'new_grid', 'current', 'states', 'next_gen']
+        grid_names = ["grid", "new_grid", "current", "states", "next_gen"]
         return any(name in var_name.lower() for name in grid_names)
 
     def _indent(self, line: str) -> str:

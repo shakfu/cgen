@@ -1,5 +1,4 @@
-"""
-Performance Bound Analysis and Verification
+"""Performance Bound Analysis and Verification
 
 This module provides formal analysis of algorithm performance bounds,
 complexity verification, and resource usage guarantees.
@@ -7,23 +6,24 @@ complexity verification, and resource usage guarantees.
 
 import ast
 import time
-import math
-from typing import Dict, List, Optional, Set, Union, Any, Tuple
 from dataclasses import dataclass
 from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple
 
 try:
     import z3
+
     Z3_AVAILABLE = True
 except ImportError:
     Z3_AVAILABLE = False
 
-from ..base import AnalysisContext, AnalysisResult
-from .theorem_prover import TheoremProver, ProofProperty, ProofResult, PropertyType, ProofStatus
+from ..base import AnalysisContext
+from .theorem_prover import ProofProperty, ProofResult, PropertyType, TheoremProver
 
 
 class ComplexityClass(Enum):
     """Algorithm complexity classes."""
+
     CONSTANT = "O(1)"
     LOGARITHMIC = "O(log n)"
     LINEAR = "O(n)"
@@ -38,6 +38,7 @@ class ComplexityClass(Enum):
 
 class ResourceType(Enum):
     """Types of computational resources."""
+
     TIME = "time"
     SPACE = "space"
     MEMORY = "memory"
@@ -49,6 +50,7 @@ class ResourceType(Enum):
 @dataclass
 class PerformanceBound:
     """Represents a performance bound for an algorithm."""
+
     resource_type: ResourceType
     complexity_class: ComplexityClass
     best_case: str
@@ -68,6 +70,7 @@ class PerformanceBound:
 @dataclass
 class PerformanceAnalysisResult:
     """Result of performance bound analysis."""
+
     function_name: str
     proven_bounds: Dict[ResourceType, PerformanceBound]
     complexity_proofs: List[ProofResult]
@@ -104,37 +107,31 @@ class PerformanceAnalyzer:
 
         # Complexity analysis patterns
         self.complexity_patterns = {
-            'single_loop': ComplexityClass.LINEAR,
-            'nested_loops_2': ComplexityClass.QUADRATIC,
-            'nested_loops_3': ComplexityClass.CUBIC,
-            'divide_conquer': ComplexityClass.LINEARITHMIC,
-            'binary_search': ComplexityClass.LOGARITHMIC,
-            'recursive_factorial': ComplexityClass.LINEAR,
-            'recursive_fibonacci': ComplexityClass.EXPONENTIAL,
+            "single_loop": ComplexityClass.LINEAR,
+            "nested_loops_2": ComplexityClass.QUADRATIC,
+            "nested_loops_3": ComplexityClass.CUBIC,
+            "divide_conquer": ComplexityClass.LINEARITHMIC,
+            "binary_search": ComplexityClass.LOGARITHMIC,
+            "recursive_factorial": ComplexityClass.LINEAR,
+            "recursive_fibonacci": ComplexityClass.EXPONENTIAL,
         }
 
         # Known algorithm complexities
         self.algorithm_complexities = {
-            'factorial': {
+            "factorial": {
                 ResourceType.TIME: ComplexityClass.LINEAR,
-                ResourceType.SPACE: ComplexityClass.LINEAR  # For recursive version
+                ResourceType.SPACE: ComplexityClass.LINEAR,  # For recursive version
             },
-            'fibonacci': {
-                ResourceType.TIME: ComplexityClass.EXPONENTIAL,
-                ResourceType.SPACE: ComplexityClass.LINEAR
-            },
-            'binary_search': {
+            "fibonacci": {ResourceType.TIME: ComplexityClass.EXPONENTIAL, ResourceType.SPACE: ComplexityClass.LINEAR},
+            "binary_search": {
                 ResourceType.TIME: ComplexityClass.LOGARITHMIC,
-                ResourceType.SPACE: ComplexityClass.CONSTANT
+                ResourceType.SPACE: ComplexityClass.CONSTANT,
             },
-            'merge_sort': {
-                ResourceType.TIME: ComplexityClass.LINEARITHMIC,
-                ResourceType.SPACE: ComplexityClass.LINEAR
-            },
-            'quicksort': {
+            "merge_sort": {ResourceType.TIME: ComplexityClass.LINEARITHMIC, ResourceType.SPACE: ComplexityClass.LINEAR},
+            "quicksort": {
                 ResourceType.TIME: ComplexityClass.LINEARITHMIC,  # Average case
-                ResourceType.SPACE: ComplexityClass.LOGARITHMIC
-            }
+                ResourceType.SPACE: ComplexityClass.LOGARITHMIC,
+            },
         }
 
     def analyze_performance_bounds(self, context: AnalysisContext) -> PerformanceAnalysisResult:
@@ -163,9 +160,7 @@ class PerformanceAnalyzer:
         complexity_proofs = []
 
         # Time complexity analysis
-        time_bound, time_proofs = self._analyze_time_complexity(
-            function_name, structure_extractor, complexity_analyzer
-        )
+        time_bound, time_proofs = self._analyze_time_complexity(function_name, structure_extractor, complexity_analyzer)
         if time_bound:
             proven_bounds[ResourceType.TIME] = time_bound
             complexity_proofs.extend(time_proofs)
@@ -179,9 +174,7 @@ class PerformanceAnalyzer:
             complexity_proofs.extend(space_proofs)
 
         # Memory access analysis
-        memory_bound, memory_proofs = self._analyze_memory_complexity(
-            structure_extractor, complexity_analyzer
-        )
+        memory_bound, memory_proofs = self._analyze_memory_complexity(structure_extractor, complexity_analyzer)
         if memory_bound:
             proven_bounds[ResourceType.MEMORY] = memory_bound
             complexity_proofs.extend(memory_proofs)
@@ -210,14 +203,11 @@ class PerformanceAnalyzer:
             bottlenecks=bottlenecks,
             optimization_opportunities=optimization_opportunities,
             verification_time=verification_time,
-            confidence=confidence
+            confidence=confidence,
         )
 
     def _analyze_time_complexity(
-        self,
-        function_name: str,
-        structure: 'AlgorithmStructureExtractor',
-        complexity: 'ComplexityPatternAnalyzer'
+        self, function_name: str, structure: "AlgorithmStructureExtractor", complexity: "ComplexityPatternAnalyzer"
     ) -> Tuple[Optional[PerformanceBound], List[ProofResult]]:
         """Analyze time complexity."""
         proofs = []
@@ -228,9 +218,7 @@ class PerformanceAnalyzer:
 
             # Create proof for known complexity
             prop = self._create_complexity_property(
-                f"{function_name}_time_complexity",
-                ResourceType.TIME,
-                known_complexity
+                f"{function_name}_time_complexity", ResourceType.TIME, known_complexity
             )
             result = self.theorem_prover.verify_property(prop)
             proofs.append(result)
@@ -241,7 +229,7 @@ class PerformanceAnalyzer:
                 best_case=known_complexity.value,
                 average_case=known_complexity.value,
                 worst_case=known_complexity.value,
-                conditions=[f"Proven for {function_name} algorithm"]
+                conditions=[f"Proven for {function_name} algorithm"],
             )
             return bound, proofs
 
@@ -250,9 +238,7 @@ class PerformanceAnalyzer:
 
         if time_complexity != ComplexityClass.UNKNOWN:
             prop = self._create_complexity_property(
-                f"{function_name}_inferred_time_complexity",
-                ResourceType.TIME,
-                time_complexity
+                f"{function_name}_inferred_time_complexity", ResourceType.TIME, time_complexity
             )
             result = self.theorem_prover.verify_property(prop)
             proofs.append(result)
@@ -263,17 +249,14 @@ class PerformanceAnalyzer:
                 best_case=time_complexity.value,
                 average_case=time_complexity.value,
                 worst_case=time_complexity.value,
-                conditions=["Inferred from code patterns"]
+                conditions=["Inferred from code patterns"],
             )
             return bound, proofs
 
         return None, proofs
 
     def _analyze_space_complexity(
-        self,
-        function_name: str,
-        structure: 'AlgorithmStructureExtractor',
-        complexity: 'ComplexityPatternAnalyzer'
+        self, function_name: str, structure: "AlgorithmStructureExtractor", complexity: "ComplexityPatternAnalyzer"
     ) -> Tuple[Optional[PerformanceBound], List[ProofResult]]:
         """Analyze space complexity."""
         proofs = []
@@ -283,9 +266,7 @@ class PerformanceAnalyzer:
             known_complexity = self.algorithm_complexities[function_name][ResourceType.SPACE]
 
             prop = self._create_complexity_property(
-                f"{function_name}_space_complexity",
-                ResourceType.SPACE,
-                known_complexity
+                f"{function_name}_space_complexity", ResourceType.SPACE, known_complexity
             )
             result = self.theorem_prover.verify_property(prop)
             proofs.append(result)
@@ -296,7 +277,7 @@ class PerformanceAnalyzer:
                 best_case=known_complexity.value,
                 average_case=known_complexity.value,
                 worst_case=known_complexity.value,
-                conditions=[f"Proven for {function_name} algorithm"]
+                conditions=[f"Proven for {function_name} algorithm"],
             )
             return bound, proofs
 
@@ -305,9 +286,7 @@ class PerformanceAnalyzer:
 
         if space_complexity != ComplexityClass.UNKNOWN:
             prop = self._create_complexity_property(
-                f"{function_name}_inferred_space_complexity",
-                ResourceType.SPACE,
-                space_complexity
+                f"{function_name}_inferred_space_complexity", ResourceType.SPACE, space_complexity
             )
             result = self.theorem_prover.verify_property(prop)
             proofs.append(result)
@@ -318,16 +297,14 @@ class PerformanceAnalyzer:
                 best_case=space_complexity.value,
                 average_case=space_complexity.value,
                 worst_case=space_complexity.value,
-                conditions=["Inferred from code patterns"]
+                conditions=["Inferred from code patterns"],
             )
             return bound, proofs
 
         return None, proofs
 
     def _analyze_memory_complexity(
-        self,
-        structure: 'AlgorithmStructureExtractor',
-        complexity: 'ComplexityPatternAnalyzer'
+        self, structure: "AlgorithmStructureExtractor", complexity: "ComplexityPatternAnalyzer"
     ) -> Tuple[Optional[PerformanceBound], List[ProofResult]]:
         """Analyze memory access complexity."""
         # Simplified memory analysis
@@ -339,22 +316,20 @@ class PerformanceAnalyzer:
                 best_case="O(n)",
                 average_case="O(n)",
                 worst_case="O(n)",
-                conditions=["Based on array access patterns"]
+                conditions=["Based on array access patterns"],
             )
             return bound, []
 
         return None, []
 
     def _infer_time_complexity_from_patterns(
-        self,
-        structure: 'AlgorithmStructureExtractor',
-        complexity: 'ComplexityPatternAnalyzer'
+        self, structure: "AlgorithmStructureExtractor", complexity: "ComplexityPatternAnalyzer"
     ) -> ComplexityClass:
         """Infer time complexity from code patterns."""
         # Single loop
         if complexity.loop_depth == 1 and complexity.loops:
             loop = complexity.loops[0]
-            if loop.get('iterable') == 'range':
+            if loop.get("iterable") == "range":
                 return ComplexityClass.LINEAR
 
         # Nested loops
@@ -381,9 +356,7 @@ class PerformanceAnalyzer:
         return ComplexityClass.UNKNOWN
 
     def _infer_space_complexity_from_patterns(
-        self,
-        structure: 'AlgorithmStructureExtractor',
-        complexity: 'ComplexityPatternAnalyzer'
+        self, structure: "AlgorithmStructureExtractor", complexity: "ComplexityPatternAnalyzer"
     ) -> ComplexityClass:
         """Infer space complexity from code patterns."""
         # Recursive calls create stack frames
@@ -398,24 +371,20 @@ class PerformanceAnalyzer:
         return ComplexityClass.CONSTANT
 
     def _analyze_resource_usage(
-        self,
-        structure: 'AlgorithmStructureExtractor',
-        complexity: 'ComplexityPatternAnalyzer'
+        self, structure: "AlgorithmStructureExtractor", complexity: "ComplexityPatternAnalyzer"
     ) -> Dict[str, Any]:
         """Analyze detailed resource usage."""
         return {
-            'loop_count': len(complexity.loops),
-            'max_loop_depth': complexity.loop_depth,
-            'recursive_calls': len(structure.recursive_calls),
-            'array_accesses': len(complexity.array_accesses),
-            'function_calls': len(complexity.function_calls),
-            'memory_allocations': len(complexity.array_allocations)
+            "loop_count": len(complexity.loops),
+            "max_loop_depth": complexity.loop_depth,
+            "recursive_calls": len(structure.recursive_calls),
+            "array_accesses": len(complexity.array_accesses),
+            "function_calls": len(complexity.function_calls),
+            "memory_allocations": len(complexity.array_allocations),
         }
 
     def _identify_bottlenecks(
-        self,
-        structure: 'AlgorithmStructureExtractor',
-        complexity: 'ComplexityPatternAnalyzer'
+        self, structure: "AlgorithmStructureExtractor", complexity: "ComplexityPatternAnalyzer"
     ) -> List[str]:
         """Identify performance bottlenecks."""
         bottlenecks = []
@@ -433,9 +402,9 @@ class PerformanceAnalyzer:
 
     def _find_optimization_opportunities(
         self,
-        structure: 'AlgorithmStructureExtractor',
-        complexity: 'ComplexityPatternAnalyzer',
-        bounds: Dict[ResourceType, PerformanceBound]
+        structure: "AlgorithmStructureExtractor",
+        complexity: "ComplexityPatternAnalyzer",
+        bounds: Dict[ResourceType, PerformanceBound],
     ) -> List[str]:
         """Find optimization opportunities."""
         opportunities = []
@@ -464,10 +433,7 @@ class PerformanceAnalyzer:
         return opportunities
 
     def _create_complexity_property(
-        self,
-        name: str,
-        resource_type: ResourceType,
-        complexity_class: ComplexityClass
+        self, name: str, resource_type: ResourceType, complexity_class: ComplexityClass
     ) -> ProofProperty:
         """Create a complexity verification property."""
         if not self.z3_available:
@@ -475,7 +441,7 @@ class PerformanceAnalyzer:
                 name=name,
                 property_type=PropertyType.ALGORITHM_CORRECTNESS,
                 description=f"{resource_type.value} complexity is {complexity_class.value}",
-                z3_formula="mock_formula"
+                z3_formula="mock_formula",
             )
 
         # Create Z3 variables for complexity analysis
@@ -501,10 +467,7 @@ class PerformanceAnalyzer:
             property_type=PropertyType.ALGORITHM_CORRECTNESS,
             description=f"{resource_type.value} complexity is {complexity_class.value}",
             z3_formula=complexity_bound,
-            context={
-                'resource_type': resource_type,
-                'complexity_class': complexity_class
-            }
+            context={"resource_type": resource_type, "complexity_class": complexity_class},
         )
 
     def _calculate_performance_confidence(self, proof_results: List[ProofResult]) -> float:
@@ -539,39 +502,26 @@ class AlgorithmStructureExtractor(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_For(self, node):
-        self.loops.append({
-            'type': 'for',
-            'line': node.lineno,
-            'iterable': self._extract_iterable_info(node.iter)
-        })
+        self.loops.append({"type": "for", "line": node.lineno, "iterable": self._extract_iterable_info(node.iter)})
         self.generic_visit(node)
 
     def visit_While(self, node):
-        self.loops.append({
-            'type': 'while',
-            'line': node.lineno
-        })
+        self.loops.append({"type": "while", "line": node.lineno})
         self.generic_visit(node)
 
     def visit_Call(self, node):
         if isinstance(node.func, ast.Name):
             if node.func.id == self.current_function:
-                self.recursive_calls.append({
-                    'line': node.lineno,
-                    'function': node.func.id
-                })
+                self.recursive_calls.append({"line": node.lineno, "function": node.func.id})
             else:
-                self.function_calls.append({
-                    'line': node.lineno,
-                    'function': node.func.id
-                })
+                self.function_calls.append({"line": node.lineno, "function": node.func.id})
         self.generic_visit(node)
 
     def _extract_iterable_info(self, iter_node):
         if isinstance(iter_node, ast.Call) and isinstance(iter_node.func, ast.Name):
-            if iter_node.func.id == 'range':
-                return 'range'
-        return 'unknown'
+            if iter_node.func.id == "range":
+                return "range"
+        return "unknown"
 
 
 class ComplexityPatternAnalyzer(ast.NodeVisitor):
@@ -591,15 +541,11 @@ class ComplexityPatternAnalyzer(ast.NodeVisitor):
         self.loop_depth = max(self.loop_depth, self.current_depth)
         self.max_loop_depth = max(self.max_loop_depth, self.current_depth)
 
-        loop_info = {
-            'type': 'for',
-            'depth': self.current_depth,
-            'line': node.lineno
-        }
+        loop_info = {"type": "for", "depth": self.current_depth, "line": node.lineno}
 
         if isinstance(node.iter, ast.Call) and isinstance(node.iter.func, ast.Name):
-            if node.iter.func.id == 'range':
-                loop_info['iterable'] = 'range'
+            if node.iter.func.id == "range":
+                loop_info["iterable"] = "range"
 
         self.loops.append(loop_info)
         self.generic_visit(node)
@@ -610,40 +556,26 @@ class ComplexityPatternAnalyzer(ast.NodeVisitor):
         self.loop_depth = max(self.loop_depth, self.current_depth)
         self.max_loop_depth = max(self.max_loop_depth, self.current_depth)
 
-        self.loops.append({
-            'type': 'while',
-            'depth': self.current_depth,
-            'line': node.lineno
-        })
+        self.loops.append({"type": "while", "depth": self.current_depth, "line": node.lineno})
 
         self.generic_visit(node)
         self.current_depth -= 1
 
     def visit_Subscript(self, node):
         if isinstance(node.value, ast.Name):
-            self.array_accesses.append({
-                'array': node.value.id,
-                'line': node.lineno,
-                'depth': self.current_depth
-            })
+            self.array_accesses.append({"array": node.value.id, "line": node.lineno, "depth": self.current_depth})
         self.generic_visit(node)
 
     def visit_Assign(self, node):
         # Check for array/list allocations
         if isinstance(node.value, ast.List):
             if len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
-                self.array_allocations.append({
-                    'variable': node.targets[0].id,
-                    'size': len(node.value.elts),
-                    'line': node.lineno
-                })
+                self.array_allocations.append(
+                    {"variable": node.targets[0].id, "size": len(node.value.elts), "line": node.lineno}
+                )
         self.generic_visit(node)
 
     def visit_Call(self, node):
         if isinstance(node.func, ast.Name):
-            self.function_calls.append({
-                'function': node.func.id,
-                'line': node.lineno,
-                'depth': self.current_depth
-            })
+            self.function_calls.append({"function": node.func.id, "line": node.lineno, "depth": self.current_depth})
         self.generic_visit(node)

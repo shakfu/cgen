@@ -1,19 +1,17 @@
-"""
-STC-Enhanced Python-to-C AST Translator
+"""STC-Enhanced Python-to-C AST Translator
 
 Extends the SimplePythonToCTranslator with STC (Smart Template Containers) support
 for high-performance, type-safe container operations in generated C code.
 """
 
 import ast
-from typing import Dict, List, Optional, Set, Tuple
-import sys
 import os
+import sys
+from typing import List
 
 # Add the ext.stc module to the path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 
-from cgen.ext.stc.containers import STCCodeGenerator, get_stc_container_for_python_type, STC_CONTAINERS
 from cgen.ext.stc.translator import STCPythonToCTranslator
 
 
@@ -35,13 +33,13 @@ class STCEnhancedTranslator:
         self.stc_container_vars = {}  # var_name -> STC container type
 
         self.builtin_functions = {
-            'print': self._translate_print_call,
-            'len': self._translate_len,
-            'abs': self._translate_abs,
-            'min': self._translate_min,
-            'max': self._translate_max,
-            'int': self._translate_int_cast,
-            'float': self._translate_float_cast,
+            "print": self._translate_print_call,
+            "len": self._translate_len,
+            "abs": self._translate_abs,
+            "min": self._translate_min,
+            "max": self._translate_max,
+            "int": self._translate_int_cast,
+            "float": self._translate_float_cast,
         }
 
     def translate_module(self, module_node: ast.Module) -> str:
@@ -113,7 +111,7 @@ class STCEnhancedTranslator:
             params.append(f"{param_type} {param_name}")
 
         # Handle additional parameters for container functions
-        if func_name in ['create_empty_grid', 'copy_grid'] and self.use_stc_containers:
+        if func_name in ["create_empty_grid", "copy_grid"] and self.use_stc_containers:
             return self._translate_stc_container_function(func_node)
 
         # Infer return type
@@ -125,16 +123,19 @@ class STCEnhancedTranslator:
         lines.append(f"{return_type} {func_name}({params_str}) {{")
 
         # Special handling for known functions
-        if func_name in ['create_empty_grid', 'copy_grid', 'set_cell']:
+        if func_name in ["create_empty_grid", "copy_grid", "set_cell"]:
             lines.extend(self._generate_special_function_body(func_name, func_node))
         else:
             # Translate function body
             self.indent_level = 1
             for i, stmt in enumerate(func_node.body):
                 # Skip docstring
-                if (i == 0 and isinstance(stmt, ast.Expr) and
-                    isinstance(stmt.value, ast.Constant) and
-                    isinstance(stmt.value.value, str)):
+                if (
+                    i == 0
+                    and isinstance(stmt, ast.Expr)
+                    and isinstance(stmt.value, ast.Constant)
+                    and isinstance(stmt.value.value, str)
+                ):
                     continue
 
                 stmt_lines = self._translate_statement(stmt)
@@ -152,7 +153,7 @@ class STCEnhancedTranslator:
         lines = []
         func_name = func_node.name
 
-        if func_name == 'create_empty_grid':
+        if func_name == "create_empty_grid":
             # Generate function that returns STC 2D vector
             lines.append("// STC-enhanced 2D grid creation")
             lines.append("#define T IntVec, int")
@@ -171,7 +172,7 @@ class STCEnhancedTranslator:
             lines.append("}")
             return lines
 
-        elif func_name == 'copy_grid':
+        elif func_name == "copy_grid":
             lines.append("IntMatrix copy_grid(IntMatrix* source) {")
             lines.append("    return IntMatrix_clone(*source);")
             lines.append("}")
@@ -261,10 +262,12 @@ class STCEnhancedTranslator:
         lines = []
 
         # Check for STC container iteration
-        if (self.use_stc_containers and self.stc_translator and
-            isinstance(for_stmt.iter, ast.Name) and
-            for_stmt.iter.id in self.stc_container_vars):
-
+        if (
+            self.use_stc_containers
+            and self.stc_translator
+            and isinstance(for_stmt.iter, ast.Name)
+            and for_stmt.iter.id in self.stc_container_vars
+        ):
             container_name = for_stmt.iter.id
             container_type = self.stc_container_vars[container_name]
 
@@ -275,8 +278,10 @@ class STCEnhancedTranslator:
                 lines.append(f"{self._indent()}for (c_each({iterator_var}, {container_type}, {container_name})) {{")
 
                 # Generate code to access iterator value
-                if container_type.endswith('Vec'):
-                    lines.append(f"{self._indent()}    {self._infer_variable_type_simple('int')} {target_var} = *{iterator_var}.ref;")
+                if container_type.endswith("Vec"):
+                    lines.append(
+                        f"{self._indent()}    {self._infer_variable_type_simple('int')} {target_var} = *{iterator_var}.ref;"
+                    )
 
                 # Translate loop body
                 self.indent_level += 1
@@ -304,18 +309,24 @@ class STCEnhancedTranslator:
                 if len(for_stmt.iter.args) == 1:
                     # range(n)
                     end_expr = self._translate_expression(for_stmt.iter.args[0])
-                    lines.append(f"{self._indent()}for (int {target_var} = 0; {target_var} < {end_expr}; {target_var}++) {{")
+                    lines.append(
+                        f"{self._indent()}for (int {target_var} = 0; {target_var} < {end_expr}; {target_var}++) {{"
+                    )
                 elif len(for_stmt.iter.args) == 2:
                     # range(start, end)
                     start_expr = self._translate_expression(for_stmt.iter.args[0])
                     end_expr = self._translate_expression(for_stmt.iter.args[1])
-                    lines.append(f"{self._indent()}for (int {target_var} = {start_expr}; {target_var} < {end_expr}; {target_var}++) {{")
+                    lines.append(
+                        f"{self._indent()}for (int {target_var} = {start_expr}; {target_var} < {end_expr}; {target_var}++) {{"
+                    )
                 elif len(for_stmt.iter.args) == 3:
                     # range(start, end, step)
                     start_expr = self._translate_expression(for_stmt.iter.args[0])
                     end_expr = self._translate_expression(for_stmt.iter.args[1])
                     step_expr = self._translate_expression(for_stmt.iter.args[2])
-                    lines.append(f"{self._indent()}for (int {target_var} = {start_expr}; {target_var} < {end_expr}; {target_var} += {step_expr}) {{")
+                    lines.append(
+                        f"{self._indent()}for (int {target_var} = {start_expr}; {target_var} < {end_expr}; {target_var} += {step_expr}) {{"
+                    )
 
                 # Translate loop body
                 self.indent_level += 1
@@ -334,9 +345,12 @@ class STCEnhancedTranslator:
 
     def _translate_len(self, call: ast.Call) -> str:
         """Translate len() with STC support."""
-        if (self.use_stc_containers and self.stc_translator and
-            len(call.args) == 1 and isinstance(call.args[0], ast.Name)):
-
+        if (
+            self.use_stc_containers
+            and self.stc_translator
+            and len(call.args) == 1
+            and isinstance(call.args[0], ast.Name)
+        ):
             var_name = call.args[0].id
             if var_name in self.stc_container_vars:
                 container_type = self.stc_container_vars[var_name]
@@ -395,18 +409,18 @@ class STCEnhancedTranslator:
         right = self._translate_expression(binop.right)
 
         op_map = {
-            ast.Add: '+',
-            ast.Sub: '-',
-            ast.Mult: '*',
-            ast.Div: '/',
-            ast.FloorDiv: '/',  # C doesn't have floor division operator
-            ast.Mod: '%',
-            ast.Pow: '^',  # Will need pow() function for actual power
-            ast.LShift: '<<',
-            ast.RShift: '>>',
-            ast.BitOr: '|',
-            ast.BitXor: '^',
-            ast.BitAnd: '&',
+            ast.Add: "+",
+            ast.Sub: "-",
+            ast.Mult: "*",
+            ast.Div: "/",
+            ast.FloorDiv: "/",  # C doesn't have floor division operator
+            ast.Mod: "%",
+            ast.Pow: "^",  # Will need pow() function for actual power
+            ast.LShift: "<<",
+            ast.RShift: ">>",
+            ast.BitOr: "|",
+            ast.BitXor: "^",
+            ast.BitAnd: "&",
         }
 
         if type(binop.op) in op_map:
@@ -443,51 +457,51 @@ class STCEnhancedTranslator:
         """Infer parameter type from annotations or context."""
         if arg.annotation:
             if isinstance(arg.annotation, ast.Name):
-                type_map = {'int': 'int', 'float': 'double', 'str': 'char*', 'bool': 'int'}
-                return type_map.get(arg.annotation.id, 'void*')
+                type_map = {"int": "int", "float": "double", "str": "char*", "bool": "int"}
+                return type_map.get(arg.annotation.id, "void*")
             elif isinstance(arg.annotation, ast.Subscript):
                 # Handle List[int], etc.
-                return 'void*'  # Placeholder - STC will handle this
-        return 'int'  # Default
+                return "void*"  # Placeholder - STC will handle this
+        return "int"  # Default
 
     def _infer_return_type(self, func_node: ast.FunctionDef) -> str:
         """Infer return type from annotations or return statements."""
         if func_node.returns:
             if isinstance(func_node.returns, ast.Name):
-                type_map = {'int': 'int', 'float': 'double', 'str': 'char*', 'bool': 'int'}
-                return type_map.get(func_node.returns.id, 'void')
+                type_map = {"int": "int", "float": "double", "str": "char*", "bool": "int"}
+                return type_map.get(func_node.returns.id, "void")
 
         # Analyze return statements
         for stmt in ast.walk(func_node):
             if isinstance(stmt, ast.Return) and stmt.value:
                 if isinstance(stmt.value, ast.Constant):
                     if isinstance(stmt.value.value, int):
-                        return 'int'
+                        return "int"
                     elif isinstance(stmt.value.value, float):
-                        return 'double'
+                        return "double"
                     elif isinstance(stmt.value.value, str):
-                        return 'char*'
+                        return "char*"
 
-        return 'void'
+        return "void"
 
     def _infer_variable_type(self, value: ast.expr) -> str:
         """Infer variable type from assignment value."""
         if isinstance(value, ast.Constant):
             if isinstance(value.value, int):
-                return 'int'
+                return "int"
             elif isinstance(value.value, float):
-                return 'double'
+                return "double"
             elif isinstance(value.value, str):
-                return 'char*'
+                return "char*"
             elif isinstance(value.value, bool):
-                return 'int'
+                return "int"
         elif isinstance(value, ast.List):
-            return 'int*'  # Simplified
+            return "int*"  # Simplified
         elif isinstance(value, ast.Call):
             if isinstance(value.func, ast.Name):
                 if value.func.id in self.functions:
                     return self.functions[value.func.id]
-        return 'int'  # Default
+        return "int"  # Default
 
     def _infer_variable_type_simple(self, default_type: str) -> str:
         """Simple type inference helper."""
@@ -558,4 +572,4 @@ class STCEnhancedTranslator:
         return 'printf("\\n")'
 
 
-__all__ = ['STCEnhancedTranslator']
+__all__ = ["STCEnhancedTranslator"]

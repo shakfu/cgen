@@ -4,8 +4,9 @@ This module provides integration between Python container types (list, dict, set
 and STC library containers (vec, hmap, hset) for efficient C code generation.
 """
 
-from typing import Dict, List, Optional, Set, Tuple
 import ast
+from typing import Dict, List, Optional, Set, Tuple
+
 from . import core
 
 
@@ -14,6 +15,7 @@ class STCTypeMapper:
 
     def __init__(self):
         from ..common import log
+
         self.log = log.config(self.__class__.__name__)
         self.type_mappings = {
             # Basic type mappings for STC
@@ -40,6 +42,7 @@ class STCTypeMapper:
         if register_usage:
             # Debug logging to track where containers are registered
             from ..common import log
+
             logger = log.config("STCTypeMapper.get_list")
             logger.debug(f"Registering list container: {container_name} for element_type: {element_type}")
             self.used_containers.add(container_name)
@@ -50,7 +53,7 @@ class STCTypeMapper:
         """Generate STC hmap container name for dict[key_type, value_type]."""
         stc_key = self.python_type_to_stc(key_type)
         stc_value = self.python_type_to_stc(value_type)
-        container_name = f"hmap_{stc_key}_{stc_value}".replace('_t', '')
+        container_name = f"hmap_{stc_key}_{stc_value}".replace("_t", "")
         if register_usage:
             self.used_containers.add(container_name)
             self.container_metadata[container_name] = ("dict", [key_type, value_type])
@@ -63,6 +66,7 @@ class STCTypeMapper:
         if register_usage:
             # Debug logging to track where containers are registered
             from ..common import log
+
             logger = log.config("STCTypeMapper.get_set")
             logger.debug(f"Registering set container: {container_name} for element_type: {element_type}")
             self.used_containers.add(container_name)
@@ -73,6 +77,7 @@ class STCTypeMapper:
         """Register that a container is actually used in generated code."""
         # Debug logging to track where containers are registered
         from ..common import log
+
         logger = log.config("STCTypeMapper.register")
         logger.debug(f"Registering container usage: {container_name}")
         self.used_containers.add(container_name)
@@ -83,6 +88,7 @@ class STCDeclarationGenerator:
 
     def __init__(self, type_mapper: STCTypeMapper):
         from ..common import log
+
         self.log = log.config(self.__class__.__name__)
         self.type_mapper = type_mapper
 
@@ -140,17 +146,17 @@ class STCDeclarationGenerator:
         # Generate template instantiations using #define T + #include pattern
         for container, stc_type in vec_containers:
             declarations.append(f"#define T {container}, {stc_type}, (c_declared)")
-            declarations.append(f'#include "stc/vec.h"')
+            declarations.append('#include "stc/vec.h"')
             declarations.append("")  # Blank line after each instantiation
 
         for container, stc_key, stc_value in hmap_containers:
             declarations.append(f"#define T {container}, {stc_key}, {stc_value}, (c_declared)")
-            declarations.append(f'#include "stc/hmap.h"')
+            declarations.append('#include "stc/hmap.h"')
             declarations.append("")
 
         for container, stc_type in hset_containers:
             declarations.append(f"#define T {container}, {stc_type}, (c_declared)")
-            declarations.append(f'#include "stc/hset.h"')
+            declarations.append('#include "stc/hset.h"')
             declarations.append("")
 
         return declarations
@@ -161,6 +167,7 @@ class STCOperationMapper:
 
     def __init__(self, type_mapper: STCTypeMapper):
         from ..common import log
+
         self.log = log.config(self.__class__.__name__)
         self.type_mapper = type_mapper
 
@@ -258,13 +265,12 @@ class STCSliceElement(core.Element):
         self.container_name = container_name
         self.container_type = container_type  # e.g., 'vec_int32'
         self.start_expr = start_expr  # start index expression
-        self.end_expr = end_expr      # end index expression
+        self.end_expr = end_expr  # end index expression
         self.result_var = result_var  # variable name for the result
 
 
 def analyze_container_type(type_annotation) -> Optional[Tuple[str, List[str]]]:
-    """
-    Analyze a type annotation to extract container type and element types.
+    """Analyze a type annotation to extract container type and element types.
 
     Returns:
         Tuple of (container_type, element_types) or None if not a container

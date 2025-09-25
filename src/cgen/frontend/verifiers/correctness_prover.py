@@ -1,5 +1,4 @@
-"""
-Algorithm Correctness Verification
+"""Algorithm Correctness Verification
 
 This module provides formal verification of algorithm correctness using
 preconditions, postconditions, loop invariants, and functional specifications.
@@ -7,22 +6,24 @@ preconditions, postconditions, loop invariants, and functional specifications.
 
 import ast
 import time
-from typing import Dict, List, Optional, Set, Union, Any, Tuple, Callable
 from dataclasses import dataclass
 from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple
 
 try:
     import z3
+
     Z3_AVAILABLE = True
 except ImportError:
     Z3_AVAILABLE = False
 
-from ..base import AnalysisContext, AnalysisResult
-from .theorem_prover import TheoremProver, ProofProperty, ProofResult, PropertyType, ProofStatus
+from ..base import AnalysisContext
+from .theorem_prover import ProofProperty, ProofResult, ProofStatus, PropertyType, TheoremProver
 
 
 class CorrectnessPropertyType(Enum):
     """Types of correctness properties."""
+
     PRECONDITION = "precondition"
     POSTCONDITION = "postcondition"
     LOOP_INVARIANT = "loop_invariant"
@@ -36,6 +37,7 @@ class CorrectnessPropertyType(Enum):
 @dataclass
 class FormalSpecification:
     """Formal specification of a function or algorithm."""
+
     name: str
     preconditions: List[str]  # Conditions that must hold at function entry
     postconditions: List[str]  # Conditions that must hold at function exit
@@ -48,6 +50,7 @@ class FormalSpecification:
 @dataclass
 class AlgorithmProof:
     """Result of algorithm correctness verification."""
+
     function_name: str
     specification: FormalSpecification
     correctness_type: CorrectnessPropertyType
@@ -79,14 +82,16 @@ class CorrectnessProver:
 
         # Built-in algorithm specifications
         self.algorithm_specs = {
-            'factorial': self._factorial_specification,
-            'fibonacci': self._fibonacci_specification,
-            'binary_search': self._binary_search_specification,
-            'merge_sort': self._merge_sort_specification,
-            'quicksort': self._quicksort_specification,
+            "factorial": self._factorial_specification,
+            "fibonacci": self._fibonacci_specification,
+            "binary_search": self._binary_search_specification,
+            "merge_sort": self._merge_sort_specification,
+            "quicksort": self._quicksort_specification,
         }
 
-    def verify_algorithm_correctness(self, context: AnalysisContext, specification: Optional[FormalSpecification] = None) -> AlgorithmProof:
+    def verify_algorithm_correctness(
+        self, context: AnalysisContext, specification: Optional[FormalSpecification] = None
+    ) -> AlgorithmProof:
         """Verify algorithm correctness using formal methods.
 
         Args:
@@ -155,7 +160,7 @@ class CorrectnessProver:
             failed_properties=failed_properties,
             loop_analysis=loop_analysis,
             verification_time=verification_time,
-            confidence=confidence
+            confidence=confidence,
         )
 
     def _verify_preconditions(self, spec: FormalSpecification, context: AnalysisContext) -> List[ProofResult]:
@@ -180,7 +185,9 @@ class CorrectnessProver:
 
         return results
 
-    def _verify_loop_invariants(self, spec: FormalSpecification, extractor: 'AlgorithmStructureExtractor', context: AnalysisContext) -> Tuple[List[ProofResult], Dict[int, Dict[str, Any]]]:
+    def _verify_loop_invariants(
+        self, spec: FormalSpecification, extractor: "AlgorithmStructureExtractor", context: AnalysisContext
+    ) -> Tuple[List[ProofResult], Dict[int, Dict[str, Any]]]:
         """Verify loop invariants."""
         results = []
         loop_analysis = {}
@@ -193,27 +200,23 @@ class CorrectnessProver:
                 for i, invariant in enumerate(invariants):
                     # Verify invariant holds at loop entry
                     entry_prop = self._create_loop_invariant_property(
-                        f"{spec.name}_loop_{line_no}_entry_{i}",
-                        invariant,
-                        "entry",
-                        loop_info
+                        f"{spec.name}_loop_{line_no}_entry_{i}", invariant, "entry", loop_info
                     )
                     entry_result = self.theorem_prover.verify_property(entry_prop)
                     results.append(entry_result)
 
                     # Verify invariant is maintained
                     maintenance_prop = self._create_loop_invariant_property(
-                        f"{spec.name}_loop_{line_no}_maintenance_{i}",
-                        invariant,
-                        "maintenance",
-                        loop_info
+                        f"{spec.name}_loop_{line_no}_maintenance_{i}", invariant, "maintenance", loop_info
                     )
                     maintenance_result = self.theorem_prover.verify_property(maintenance_prop)
                     results.append(maintenance_result)
 
         return results, loop_analysis
 
-    def _verify_termination(self, spec: FormalSpecification, extractor: 'AlgorithmStructureExtractor', context: AnalysisContext) -> List[ProofResult]:
+    def _verify_termination(
+        self, spec: FormalSpecification, extractor: "AlgorithmStructureExtractor", context: AnalysisContext
+    ) -> List[ProofResult]:
         """Verify algorithm termination."""
         results = []
 
@@ -244,7 +247,7 @@ class CorrectnessProver:
                 name=name,
                 property_type=PropertyType.PRECONDITION_SATISFACTION,
                 description=f"Precondition: {precondition}",
-                z3_formula="mock_formula"
+                z3_formula="mock_formula",
             )
 
         # Parse precondition into Z3 formula
@@ -254,7 +257,7 @@ class CorrectnessProver:
             name=name,
             property_type=PropertyType.PRECONDITION_SATISFACTION,
             description=f"Precondition: {precondition}",
-            z3_formula=z3_formula
+            z3_formula=z3_formula,
         )
 
     def _create_postcondition_property(self, name: str, postcondition: str) -> ProofProperty:
@@ -264,7 +267,7 @@ class CorrectnessProver:
                 name=name,
                 property_type=PropertyType.POSTCONDITION_SATISFACTION,
                 description=f"Postcondition: {postcondition}",
-                z3_formula="mock_formula"
+                z3_formula="mock_formula",
             )
 
         z3_formula = self._parse_condition_to_z3(postcondition)
@@ -273,17 +276,19 @@ class CorrectnessProver:
             name=name,
             property_type=PropertyType.POSTCONDITION_SATISFACTION,
             description=f"Postcondition: {postcondition}",
-            z3_formula=z3_formula
+            z3_formula=z3_formula,
         )
 
-    def _create_loop_invariant_property(self, name: str, invariant: str, phase: str, loop_info: Dict[str, Any]) -> ProofProperty:
+    def _create_loop_invariant_property(
+        self, name: str, invariant: str, phase: str, loop_info: Dict[str, Any]
+    ) -> ProofProperty:
         """Create a loop invariant verification property."""
         if not self.z3_available:
             return ProofProperty(
                 name=name,
                 property_type=PropertyType.LOOP_INVARIANT,
                 description=f"Loop invariant ({phase}): {invariant}",
-                z3_formula="mock_formula"
+                z3_formula="mock_formula",
             )
 
         z3_formula = self._parse_condition_to_z3(invariant)
@@ -293,7 +298,7 @@ class CorrectnessProver:
             property_type=PropertyType.LOOP_INVARIANT,
             description=f"Loop invariant ({phase}): {invariant}",
             z3_formula=z3_formula,
-            context={'loop_info': loop_info, 'phase': phase}
+            context={"loop_info": loop_info, "phase": phase},
         )
 
     def _create_termination_property(self, name: str, termination_condition: str) -> ProofProperty:
@@ -303,7 +308,7 @@ class CorrectnessProver:
                 name=name,
                 property_type=PropertyType.TERMINATION,
                 description=f"Termination: {termination_condition}",
-                z3_formula="mock_formula"
+                z3_formula="mock_formula",
             )
 
         z3_formula = self._parse_condition_to_z3(termination_condition)
@@ -312,7 +317,7 @@ class CorrectnessProver:
             name=name,
             property_type=PropertyType.TERMINATION,
             description=f"Termination: {termination_condition}",
-            z3_formula=z3_formula
+            z3_formula=z3_formula,
         )
 
     def _create_ranking_function_property(self, loop_info: Dict[str, Any]) -> ProofProperty:
@@ -322,11 +327,11 @@ class CorrectnessProver:
                 name=f"ranking_function_loop_{loop_info.get('line', 'unknown')}",
                 property_type=PropertyType.TERMINATION,
                 description="Ranking function ensures loop termination",
-                z3_formula="mock_formula"
+                z3_formula="mock_formula",
             )
 
         # Create a simple ranking function based on loop variable
-        loop_var = loop_info.get('variable', 'i')
+        loop_var = loop_info.get("variable", "i")
         ranking_var = z3.Int(f"ranking_{loop_var}")
 
         # Ranking function must be non-negative and decrease each iteration
@@ -340,7 +345,7 @@ class CorrectnessProver:
             property_type=PropertyType.TERMINATION,
             description="Ranking function ensures loop termination",
             z3_formula=ranking_formula,
-            context={'loop_info': loop_info}
+            context={"loop_info": loop_info},
         )
 
     def _create_functional_correctness_property(self, name: str, functional_spec: str) -> ProofProperty:
@@ -350,7 +355,7 @@ class CorrectnessProver:
                 name=f"{name}_functional_correctness",
                 property_type=PropertyType.FUNCTIONAL_CORRECTNESS,
                 description=f"Functional correctness: {functional_spec}",
-                z3_formula="mock_formula"
+                z3_formula="mock_formula",
             )
 
         z3_formula = self._parse_condition_to_z3(functional_spec)
@@ -359,7 +364,7 @@ class CorrectnessProver:
             name=f"{name}_functional_correctness",
             property_type=PropertyType.FUNCTIONAL_CORRECTNESS,
             description=f"Functional correctness: {functional_spec}",
-            z3_formula=z3_formula
+            z3_formula=z3_formula,
         )
 
     def _parse_condition_to_z3(self, condition: str):
@@ -389,7 +394,7 @@ class CorrectnessProver:
             postconditions=["true"],  # Default: no postconditions
             loop_invariants={},
             assertions={},
-            termination_conditions=["true"]
+            termination_conditions=["true"],
         )
 
     def _calculate_correctness_confidence(self, proof_results: List[ProofResult]) -> float:
@@ -413,7 +418,7 @@ class CorrectnessProver:
             loop_invariants={},
             assertions={},
             termination_conditions=["n decreases towards 0"],
-            functional_spec="result == n! (mathematical factorial)"
+            functional_spec="result == n! (mathematical factorial)",
         )
 
     def _fibonacci_specification(self) -> FormalSpecification:
@@ -425,7 +430,7 @@ class CorrectnessProver:
             loop_invariants={},
             assertions={},
             termination_conditions=["n decreases towards base case"],
-            functional_spec="result == nth Fibonacci number"
+            functional_spec="result == nth Fibonacci number",
         )
 
     def _binary_search_specification(self) -> FormalSpecification:
@@ -439,7 +444,7 @@ class CorrectnessProver:
             },
             assertions={},
             termination_conditions=["search space decreases each iteration"],
-            functional_spec="finds target in sorted array or returns -1"
+            functional_spec="finds target in sorted array or returns -1",
         )
 
     def _merge_sort_specification(self) -> FormalSpecification:
@@ -451,7 +456,7 @@ class CorrectnessProver:
             loop_invariants={},
             assertions={},
             termination_conditions=["recursive calls reduce problem size"],
-            functional_spec="sorts array in O(n log n) time"
+            functional_spec="sorts array in O(n log n) time",
         )
 
     def _quicksort_specification(self) -> FormalSpecification:
@@ -463,7 +468,7 @@ class CorrectnessProver:
             loop_invariants={},
             assertions={},
             termination_conditions=["partition reduces problem size"],
-            functional_spec="sorts array in average O(n log n) time"
+            functional_spec="sorts array in average O(n log n) time",
         )
 
 
@@ -484,27 +489,21 @@ class AlgorithmStructureExtractor(ast.NodeVisitor):
 
     def visit_For(self, node):
         """Extract for loop information."""
-        loop_info = {
-            'type': 'for',
-            'line': node.lineno,
-            'variable': None,
-            'iterable': None,
-            'body_lines': []
-        }
+        loop_info = {"type": "for", "line": node.lineno, "variable": None, "iterable": None, "body_lines": []}
 
         # Extract loop variable
         if isinstance(node.target, ast.Name):
-            loop_info['variable'] = node.target.id
+            loop_info["variable"] = node.target.id
 
         # Extract iterable information
         if isinstance(node.iter, ast.Call) and isinstance(node.iter.func, ast.Name):
-            if node.iter.func.id == 'range':
-                loop_info['iterable'] = 'range'
-                loop_info['range_args'] = len(node.iter.args)
+            if node.iter.func.id == "range":
+                loop_info["iterable"] = "range"
+                loop_info["range_args"] = len(node.iter.args)
 
         # Extract body line numbers
         for stmt in node.body:
-            loop_info['body_lines'].append(stmt.lineno)
+            loop_info["body_lines"].append(stmt.lineno)
 
         self.loops.append(loop_info)
         self.generic_visit(node)
@@ -512,15 +511,15 @@ class AlgorithmStructureExtractor(ast.NodeVisitor):
     def visit_While(self, node):
         """Extract while loop information."""
         loop_info = {
-            'type': 'while',
-            'line': node.lineno,
-            'condition': ast.unparse(node.test) if hasattr(ast, 'unparse') else str(node.test),
-            'body_lines': []
+            "type": "while",
+            "line": node.lineno,
+            "condition": ast.unparse(node.test) if hasattr(ast, "unparse") else str(node.test),
+            "body_lines": [],
         }
 
         # Extract body line numbers
         for stmt in node.body:
-            loop_info['body_lines'].append(stmt.lineno)
+            loop_info["body_lines"].append(stmt.lineno)
 
         self.loops.append(loop_info)
         self.generic_visit(node)
@@ -530,24 +529,20 @@ class AlgorithmStructureExtractor(ast.NodeVisitor):
         if isinstance(node.func, ast.Name):
             if node.func.id == self.current_function:
                 # Recursive call
-                self.recursive_calls.append({
-                    'line': node.lineno,
-                    'function': node.func.id,
-                    'args': len(node.args)
-                })
+                self.recursive_calls.append({"line": node.lineno, "function": node.func.id, "args": len(node.args)})
 
         self.generic_visit(node)
 
     def visit_Assert(self, node):
         """Extract assertion statements."""
         assertion_info = {
-            'line': node.lineno,
-            'condition': ast.unparse(node.test) if hasattr(ast, 'unparse') else str(node.test),
-            'message': None
+            "line": node.lineno,
+            "condition": ast.unparse(node.test) if hasattr(ast, "unparse") else str(node.test),
+            "message": None,
         }
 
         if node.msg:
-            assertion_info['message'] = ast.unparse(node.msg) if hasattr(ast, 'unparse') else str(node.msg)
+            assertion_info["message"] = ast.unparse(node.msg) if hasattr(ast, "unparse") else str(node.msg)
 
         self.assertions.append(assertion_info)
         self.generic_visit(node)
@@ -560,6 +555,6 @@ class AlgorithmStructureExtractor(ast.NodeVisitor):
     def get_loop_info(self, line_no: int) -> Optional[Dict[str, Any]]:
         """Get loop information for a specific line number."""
         for loop in self.loops:
-            if loop['line'] == line_no:
+            if loop["line"] == line_no:
                 return loop
         return None

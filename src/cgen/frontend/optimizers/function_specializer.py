@@ -7,9 +7,9 @@ versions of functions based on usage patterns, type information, and call contex
 import ast
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple
 
-from ..base import AnalysisContext, BaseOptimizer, OptimizationResult, OptimizationLevel
+from ..base import AnalysisContext, BaseOptimizer, OptimizationLevel, OptimizationResult
 
 
 class SpecializationType(Enum):
@@ -182,8 +182,8 @@ class FunctionSpecializer(BaseOptimizer):
                     "functions_analyzed": len(report.function_profiles),
                     "specializations_created": len(report.specialization_results),
                     "code_size_change": report.estimated_code_size_change,
-                    "report": report
-                }
+                    "report": report,
+                },
             )
 
         except Exception as e:
@@ -194,7 +194,7 @@ class FunctionSpecializer(BaseOptimizer):
                 transformations=[f"Function specialization failed: {str(e)}"],
                 performance_gain_estimate=1.0,
                 safety_analysis={"function_specialization": False},
-                metadata={"error": str(e), "error_type": type(e).__name__}
+                metadata={"error": str(e), "error_type": type(e).__name__},
             )
 
     def _analyze_functions(self, node: ast.AST, report: SpecializationReport) -> None:
@@ -257,9 +257,7 @@ class FunctionSpecializer(BaseOptimizer):
             return  # Skip external functions
 
         call_info = CallSiteInfo(
-            function_name=func_name,
-            caller_name=self._current_function or "global",
-            line_number=node.lineno
+            function_name=func_name, caller_name=self._current_function or "global", line_number=node.lineno
         )
 
         # Analyze arguments
@@ -269,9 +267,7 @@ class FunctionSpecializer(BaseOptimizer):
             call_info.argument_types.append(arg_type)
 
         # Check if all arguments are constants
-        call_info.is_constant_call = all(
-            isinstance(arg, ast.Constant) for arg in node.args
-        )
+        call_info.is_constant_call = all(isinstance(arg, ast.Constant) for arg in node.args)
 
         # Determine call context
         call_info.context = self._determine_call_context(node)
@@ -371,37 +367,34 @@ class FunctionSpecializer(BaseOptimizer):
     def _should_create_type_specialization(self, profile: FunctionProfile) -> bool:
         """Check if type specialization would be beneficial."""
         return (
-            profile.total_calls > 3 and
-            any(len(set(param.common_values)) <= 3 for param in profile.parameters) and
-            not profile.is_recursive
+            profile.total_calls > 3
+            and any(len(set(param.common_values)) <= 3 for param in profile.parameters)
+            and not profile.is_recursive
         )
 
     def _should_create_constant_specialization(self, profile: FunctionProfile) -> bool:
         """Check if constant specialization would be beneficial."""
         return (
-            profile.constant_calls > 2 and
-            profile.constant_calls > profile.total_calls * 0.5 and
-            profile.body_size < 20
+            profile.constant_calls > 2 and profile.constant_calls > profile.total_calls * 0.5 and profile.body_size < 20
         )
 
     def _should_inline_function(self, profile: FunctionProfile) -> bool:
         """Check if function should be inlined."""
         return (
-            profile.body_size <= 5 and
-            profile.total_calls > 1 and
-            profile.total_calls < 10 and
-            not profile.is_recursive and
-            not profile.has_side_effects
+            profile.body_size <= 5
+            and profile.total_calls > 1
+            and profile.total_calls < 10
+            and not profile.is_recursive
+            and not profile.has_side_effects
         )
 
     def _should_memoize_function(self, profile: FunctionProfile) -> bool:
         """Check if function should be memoized."""
         return (
-            profile.is_pure and
-            profile.total_calls > 5 and
-            profile.complexity_score > 5 and
-            any(len(param.value_distribution) < profile.total_calls
-                for param in profile.parameters)
+            profile.is_pure
+            and profile.total_calls > 5
+            and profile.complexity_score > 5
+            and any(len(param.value_distribution) < profile.total_calls for param in profile.parameters)
         )
 
     def _create_type_specialization_candidates(self, profile: FunctionProfile) -> List[SpecializationCandidate]:
@@ -423,14 +416,11 @@ class FunctionSpecializer(BaseOptimizer):
                     base_function=profile.name,
                     specialization_type=SpecializationType.TYPE_SPECIALIZATION,
                     specialized_name=f"{profile.name}_typed_{'_'.join(type_sig)}",
-                    type_constraints={
-                        param.name: type_name
-                        for param, type_name in zip(profile.parameters, type_sig)
-                    },
+                    type_constraints={param.name: type_name for param, type_name in zip(profile.parameters, type_sig)},
                     estimated_speedup=1.1 + (0.05 * len(call_sites)),
                     confidence=0.8,
                     call_site_coverage=len(call_sites) / profile.total_calls,
-                    code_size_impact=profile.body_size
+                    code_size_impact=profile.body_size,
                 )
                 candidates.append(candidate)
 
@@ -458,7 +448,7 @@ class FunctionSpecializer(BaseOptimizer):
                     estimated_speedup=1.2 + (0.1 * frequency),
                     confidence=0.9,
                     call_site_coverage=frequency / profile.total_calls,
-                    code_size_impact=profile.body_size * 0.8  # May be smaller due to folding
+                    code_size_impact=profile.body_size * 0.8,  # May be smaller due to folding
                 )
                 candidates.append(candidate)
 
@@ -473,7 +463,7 @@ class FunctionSpecializer(BaseOptimizer):
             estimated_speedup=1.3,
             confidence=0.95,
             call_site_coverage=1.0,
-            code_size_impact=-profile.body_size  # Function is removed
+            code_size_impact=-profile.body_size,  # Function is removed
         )
 
     def _create_memoization_candidate(self, profile: FunctionProfile) -> SpecializationCandidate:
@@ -485,7 +475,7 @@ class FunctionSpecializer(BaseOptimizer):
             estimated_speedup=2.0 + (0.1 * profile.complexity_score),
             confidence=0.8,
             call_site_coverage=1.0,
-            code_size_impact=20  # Cache overhead
+            code_size_impact=20,  # Cache overhead
         )
 
     def _create_specializations(self, report: SpecializationReport) -> None:
@@ -502,21 +492,15 @@ class FunctionSpecializer(BaseOptimizer):
         # Apply aggressive optimizations only at higher optimization levels
         if self.optimization_level == OptimizationLevel.BASIC:
             return (
-                candidate.estimated_speedup > 1.2 and
-                candidate.confidence > 0.8 and
-                candidate.call_site_coverage > 0.5
+                candidate.estimated_speedup > 1.2 and candidate.confidence > 0.8 and candidate.call_site_coverage > 0.5
             )
         elif self.optimization_level == OptimizationLevel.MODERATE:
             return (
-                candidate.estimated_speedup > 1.1 and
-                candidate.confidence > 0.7 and
-                candidate.call_site_coverage > 0.3
+                candidate.estimated_speedup > 1.1 and candidate.confidence > 0.7 and candidate.call_site_coverage > 0.3
             )
         else:  # AGGRESSIVE or MAXIMUM
             return (
-                candidate.estimated_speedup > 1.05 and
-                candidate.confidence > 0.6 and
-                candidate.call_site_coverage > 0.2
+                candidate.estimated_speedup > 1.05 and candidate.confidence > 0.6 and candidate.call_site_coverage > 0.2
             )
 
     def _create_specialized_function(self, candidate: SpecializationCandidate) -> Optional[SpecializationResult]:
@@ -551,7 +535,7 @@ class FunctionSpecializer(BaseOptimizer):
             parameter_substitutions=candidate.parameter_bindings,
             optimizations_applied=optimizations_applied,
             performance_gain=candidate.estimated_speedup,
-            safety_verified=True
+            safety_verified=True,
         )
 
     def _copy_function_ast(self, func: ast.FunctionDef) -> ast.FunctionDef:
@@ -563,7 +547,7 @@ class FunctionSpecializer(BaseOptimizer):
             body=func.body.copy(),
             decorator_list=func.decorator_list.copy(),
             returns=func.returns,
-            lineno=func.lineno
+            lineno=func.lineno,
         )
         return new_func
 
@@ -633,7 +617,7 @@ class FunctionSpecializer(BaseOptimizer):
                 # Assume function calls might have side effects
                 if isinstance(node.func, ast.Name):
                     func_name = node.func.id
-                    if func_name in {'print', 'open', 'write'}:
+                    if func_name in {"print", "open", "write"}:
                         return True
         return False
 
@@ -686,7 +670,7 @@ class FunctionSpecializer(BaseOptimizer):
             "constant_folding": True,
             "inline_expansion": True,
             "memoization": True,
-            "all_specializations_safe": True
+            "all_specializations_safe": True,
         }
 
         # Check each specialization for safety

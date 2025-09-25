@@ -1,7 +1,6 @@
-"""
-CGen Extensions Package
+"""CGen Extensions Package
 
 This package contains external library integrations and extensions for CGen.
 """
 
-__all__ = ['stc']
+__all__ = ["stc"]

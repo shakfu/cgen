@@ -1,5 +1,4 @@
-"""
-Enhanced Memory Management System
+"""Enhanced Memory Management System
 
 This module integrates smart pointers, custom allocators, and STC containers
 into a comprehensive memory management system with advanced safety guarantees.
@@ -13,18 +12,18 @@ Features:
 - RAII semantics
 """
 
-from typing import Dict, List, Set, Optional, Tuple, Any, Union
 from dataclasses import dataclass
 from enum import Enum
-import ast
+from typing import Any, Dict, List, Optional, Set, Tuple
 
-from .memory_manager import STCMemoryManager, MemoryScope, ContainerAllocation, MemoryError
-from .smart_pointers import SmartPointerManager, SmartPointerType, SmartPointerAllocation
-from .allocators import MemoryAllocatorManager, AllocatorType, AllocatorInstance
+from .allocators import AllocatorInstance, AllocatorType, MemoryAllocatorManager
+from .memory_manager import MemoryError, MemoryScope, STCMemoryManager
+from .smart_pointers import SmartPointerManager, SmartPointerType
 
 
 class ResourceType(Enum):
     """Types of managed resources."""
+
     CONTAINER = "container"
     SMART_POINTER = "smart_pointer"
     RAW_ALLOCATION = "raw_allocation"
@@ -35,6 +34,7 @@ class ResourceType(Enum):
 @dataclass
 class ResourceAllocation:
     """Unified resource allocation tracking."""
+
     name: str
     resource_type: ResourceType
     data_type: str
@@ -54,8 +54,7 @@ class ResourceAllocation:
 
 
 class EnhancedMemoryManager:
-    """
-    Enhanced memory management system integrating smart pointers, allocators,
+    """Enhanced memory management system integrating smart pointers, allocators,
     and STC containers with comprehensive safety analysis.
 
     Provides:
@@ -87,22 +86,25 @@ class EnhancedMemoryManager:
 
         # Performance metrics
         self.performance_metrics: Dict[str, Any] = {
-            'total_allocations': 0,
-            'smart_pointer_usage': 0,
-            'custom_allocator_usage': 0,
-            'cycles_detected': 0,
-            'leaks_prevented': 0
+            "total_allocations": 0,
+            "smart_pointer_usage": 0,
+            "custom_allocator_usage": 0,
+            "cycles_detected": 0,
+            "leaks_prevented": 0,
         }
 
-    def register_container_with_allocator(self, name: str, container_type: str,
-                                        element_type: str, allocator_name: Optional[str] = None,
-                                        scope: MemoryScope = MemoryScope.BLOCK,
-                                        line_number: int = 0) -> ResourceAllocation:
+    def register_container_with_allocator(
+        self,
+        name: str,
+        container_type: str,
+        element_type: str,
+        allocator_name: Optional[str] = None,
+        scope: MemoryScope = MemoryScope.BLOCK,
+        line_number: int = 0,
+    ) -> ResourceAllocation:
         """Register a container with optional custom allocator."""
         # Register with STC manager
-        container_alloc = self.stc_manager.register_container(
-            name, container_type, scope, line_number
-        )
+        container_alloc = self.stc_manager.register_container(name, container_type, scope, line_number)
 
         # Create unified resource allocation
         resource = ResourceAllocation(
@@ -111,7 +113,7 @@ class EnhancedMemoryManager:
             data_type=f"{container_type}<{element_type}>",
             allocator=allocator_name,
             scope=scope,
-            line_number=line_number
+            line_number=line_number,
         )
 
         self.resources[name] = resource
@@ -120,16 +122,22 @@ class EnhancedMemoryManager:
         # Bind to allocator if specified
         if allocator_name:
             self.allocator_manager.bind_container_to_allocator(name, allocator_name)
-            self.performance_metrics['custom_allocator_usage'] += 1
+            self.performance_metrics["custom_allocator_usage"] += 1
 
-        self.performance_metrics['total_allocations'] += 1
+        self.performance_metrics["total_allocations"] += 1
         return resource
 
-    def register_smart_pointer(self, name: str, pointer_type: SmartPointerType,
-                             element_type: str, allocator_name: Optional[str] = None,
-                             is_array: bool = False, custom_deleter: Optional[str] = None,
-                             scope: MemoryScope = MemoryScope.BLOCK,
-                             line_number: int = 0) -> ResourceAllocation:
+    def register_smart_pointer(
+        self,
+        name: str,
+        pointer_type: SmartPointerType,
+        element_type: str,
+        allocator_name: Optional[str] = None,
+        is_array: bool = False,
+        custom_deleter: Optional[str] = None,
+        scope: MemoryScope = MemoryScope.BLOCK,
+        line_number: int = 0,
+    ) -> ResourceAllocation:
         """Register a smart pointer with optional custom allocator."""
         # Register with smart pointer manager
         pointer_alloc = self.smart_pointer_manager.register_smart_pointer(
@@ -143,21 +151,26 @@ class EnhancedMemoryManager:
             data_type=f"{pointer_type.value}<{element_type}>",
             allocator=allocator_name,
             scope=scope,
-            line_number=line_number
+            line_number=line_number,
         )
 
         self.resources[name] = resource
         self._add_to_current_scope(resource)
 
-        self.performance_metrics['smart_pointer_usage'] += 1
-        self.performance_metrics['total_allocations'] += 1
+        self.performance_metrics["smart_pointer_usage"] += 1
+        self.performance_metrics["total_allocations"] += 1
         return resource
 
-    def register_allocator(self, name: str, allocator_type: AllocatorType,
-                         block_size: Optional[int] = None,
-                         pool_size: Optional[int] = None,
-                         alignment: int = 8, thread_safe: bool = False,
-                         line_number: int = 0) -> AllocatorInstance:
+    def register_allocator(
+        self,
+        name: str,
+        allocator_type: AllocatorType,
+        block_size: Optional[int] = None,
+        pool_size: Optional[int] = None,
+        alignment: int = 8,
+        thread_safe: bool = False,
+        line_number: int = 0,
+    ) -> AllocatorInstance:
         """Register a custom allocator."""
         return self.allocator_manager.register_allocator(
             name, allocator_type, block_size, pool_size, alignment, thread_safe, line_number
@@ -174,8 +187,10 @@ class EnhancedMemoryManager:
             self.dependency_graph[dependent].add(dependency)
 
             # Track smart pointer assignments
-            if (self.resources[dependent].resource_type == ResourceType.SMART_POINTER and
-                self.resources[dependency].resource_type == ResourceType.SMART_POINTER):
+            if (
+                self.resources[dependent].resource_type == ResourceType.SMART_POINTER
+                and self.resources[dependency].resource_type == ResourceType.SMART_POINTER
+            ):
                 self.smart_pointer_manager.track_assignment(dependent, dependency)
 
     def detect_memory_issues(self) -> List[MemoryError]:
@@ -185,31 +200,28 @@ class EnhancedMemoryManager:
         # Detect reference cycles
         cycles = self._detect_dependency_cycles()
         for cycle in cycles:
-            self._add_error("reference_cycle",
-                          f"Reference cycle detected: {' -> '.join(cycle)}",
-                          0, "warning")
-            self.performance_metrics['cycles_detected'] += 1
+            self._add_error("reference_cycle", f"Reference cycle detected: {' -> '.join(cycle)}", 0, "warning")
+            self.performance_metrics["cycles_detected"] += 1
 
         # Detect potential leaks
         potential_leaks = self._detect_potential_leaks()
         for leak in potential_leaks:
-            self._add_error("potential_leak",
-                          f"Resource {leak} may leak without proper cleanup",
-                          self.resources[leak].line_number, "warning")
+            self._add_error(
+                "potential_leak",
+                f"Resource {leak} may leak without proper cleanup",
+                self.resources[leak].line_number,
+                "warning",
+            )
 
         # Detect use-after-move violations
         moved_violations = self._detect_use_after_move()
         for violation in moved_violations:
-            self._add_error("use_after_move",
-                          f"Potential use of {violation} after move",
-                          0, "error")
+            self._add_error("use_after_move", f"Potential use of {violation} after move", 0, "error")
 
         # Detect double-free risks
         double_free_risks = self._detect_double_free_risks()
         for risk in double_free_risks:
-            self._add_error("double_free_risk",
-                          f"Potential double-free of {risk}",
-                          0, "error")
+            self._add_error("double_free_risk", f"Potential double-free of {risk}", 0, "error")
 
         return self.safety_errors
 
@@ -276,9 +288,7 @@ class EnhancedMemoryManager:
                 continue
 
             if resource.resource_type == ResourceType.CONTAINER:
-                stc_cleanup = self.stc_manager._generate_cleanup_statement(
-                    self.stc_manager.allocations[resource_name]
-                )
+                stc_cleanup = self.stc_manager._generate_cleanup_statement(self.stc_manager.allocations[resource_name])
                 cleanup_code.append(stc_cleanup)
 
             elif resource.resource_type == ResourceType.SMART_POINTER:
@@ -287,9 +297,7 @@ class EnhancedMemoryManager:
 
             elif resource.resource_type == ResourceType.RAW_ALLOCATION:
                 if resource.allocator:
-                    alloc_cleanup = self.allocator_manager.generate_deallocation_code(
-                        resource.allocator, resource_name
-                    )
+                    alloc_cleanup = self.allocator_manager.generate_deallocation_code(resource.allocator, resource_name)
                     cleanup_code.append(alloc_cleanup)
 
         # Generate allocator cleanup
@@ -320,38 +328,34 @@ class EnhancedMemoryManager:
     def analyze_performance(self) -> Dict[str, Any]:
         """Analyze memory management performance and provide recommendations."""
         analysis = {
-            'metrics': self.performance_metrics.copy(),
-            'allocator_analysis': self.allocator_manager.analyze_allocation_patterns(),
-            'smart_pointer_analysis': self._analyze_smart_pointer_usage(),
-            'optimization_recommendations': []
+            "metrics": self.performance_metrics.copy(),
+            "allocator_analysis": self.allocator_manager.analyze_allocation_patterns(),
+            "smart_pointer_analysis": self._analyze_smart_pointer_usage(),
+            "optimization_recommendations": [],
         }
 
         # Generate optimization recommendations
         recommendations = []
 
         # Smart pointer recommendations
-        if self.performance_metrics['smart_pointer_usage'] == 0:
-            recommendations.append(
-                "Consider using smart pointers for automatic memory management"
-            )
+        if self.performance_metrics["smart_pointer_usage"] == 0:
+            recommendations.append("Consider using smart pointers for automatic memory management")
 
         # Allocator recommendations
-        if self.performance_metrics['custom_allocator_usage'] == 0:
-            recommendations.append(
-                "Consider using custom allocators for performance-critical code"
-            )
+        if self.performance_metrics["custom_allocator_usage"] == 0:
+            recommendations.append("Consider using custom allocators for performance-critical code")
 
         # Cycle recommendations
-        if self.performance_metrics['cycles_detected'] > 0:
+        if self.performance_metrics["cycles_detected"] > 0:
             recommendations.append(
                 f"Detected {self.performance_metrics['cycles_detected']} reference cycles. "
                 "Consider using weak_ptr to break cycles."
             )
 
         # Add allocator-specific recommendations
-        recommendations.extend(analysis['allocator_analysis']['recommendations'])
+        recommendations.extend(analysis["allocator_analysis"]["recommendations"])
 
-        analysis['optimization_recommendations'] = recommendations
+        analysis["optimization_recommendations"] = recommendations
 
         return analysis
 
@@ -409,10 +413,12 @@ class EnhancedMemoryManager:
         potential_leaks = []
 
         for name, resource in self.resources.items():
-            if (resource.requires_cleanup and
-                not resource.is_return_value and
-                not resource.is_moved and
-                resource.resource_type != ResourceType.SMART_POINTER):
+            if (
+                resource.requires_cleanup
+                and not resource.is_return_value
+                and not resource.is_moved
+                and resource.resource_type != ResourceType.SMART_POINTER
+            ):
                 potential_leaks.append(name)
 
         return potential_leaks
@@ -466,64 +472,56 @@ class EnhancedMemoryManager:
 
     def _needs_cleanup(self, resource: ResourceAllocation) -> bool:
         """Check if resource needs cleanup."""
-        return (resource.requires_cleanup and
-                not resource.is_parameter and
-                not resource.is_return_value and
-                not resource.is_moved)
+        return (
+            resource.requires_cleanup
+            and not resource.is_parameter
+            and not resource.is_return_value
+            and not resource.is_moved
+        )
 
     def _analyze_smart_pointer_usage(self) -> Dict[str, Any]:
         """Analyze smart pointer usage patterns."""
-        smart_pointer_resources = [
-            r for r in self.resources.values()
-            if r.resource_type == ResourceType.SMART_POINTER
-        ]
+        smart_pointer_resources = [r for r in self.resources.values() if r.resource_type == ResourceType.SMART_POINTER]
 
         analysis = {
-            'total_smart_pointers': len(smart_pointer_resources),
-            'by_type': {},
-            'cycles': len(self.smart_pointer_manager.detect_reference_cycles()),
-            'shared_ptr_usage': 0,
-            'unique_ptr_usage': 0,
-            'weak_ptr_usage': 0
+            "total_smart_pointers": len(smart_pointer_resources),
+            "by_type": {},
+            "cycles": len(self.smart_pointer_manager.detect_reference_cycles()),
+            "shared_ptr_usage": 0,
+            "unique_ptr_usage": 0,
+            "weak_ptr_usage": 0,
         }
 
         for resource in smart_pointer_resources:
-            pointer_type = resource.data_type.split('<')[0]
-            analysis['by_type'][pointer_type] = analysis['by_type'].get(pointer_type, 0) + 1
+            pointer_type = resource.data_type.split("<")[0]
+            analysis["by_type"][pointer_type] = analysis["by_type"].get(pointer_type, 0) + 1
 
-            if 'shared_ptr' in pointer_type:
-                analysis['shared_ptr_usage'] += 1
-            elif 'unique_ptr' in pointer_type:
-                analysis['unique_ptr_usage'] += 1
-            elif 'weak_ptr' in pointer_type:
-                analysis['weak_ptr_usage'] += 1
+            if "shared_ptr" in pointer_type:
+                analysis["shared_ptr_usage"] += 1
+            elif "unique_ptr" in pointer_type:
+                analysis["unique_ptr_usage"] += 1
+            elif "weak_ptr" in pointer_type:
+                analysis["weak_ptr_usage"] += 1
 
         return analysis
 
     def _extract_element_type(self, data_type: str) -> str:
         """Extract element type from data type string."""
-        if '<' in data_type and '>' in data_type:
-            return data_type.split('<')[1].split('>')[0].split(',')[0].strip()
+        if "<" in data_type and ">" in data_type:
+            return data_type.split("<")[1].split(">")[0].split(",")[0].strip()
         return data_type
 
     def _extract_container_type(self, data_type: str) -> str:
         """Extract container type from data type string."""
-        if '<' in data_type:
-            return data_type.split('<')[0]
+        if "<" in data_type:
+            return data_type.split("<")[0]
         return data_type
 
     def _add_error(self, error_type: str, message: str, line_number: int, severity: str):
         """Add a memory safety error."""
-        self.safety_errors.append(MemoryError(
-            error_type=error_type,
-            message=message,
-            line_number=line_number,
-            severity=severity
-        ))
+        self.safety_errors.append(
+            MemoryError(error_type=error_type, message=message, line_number=line_number, severity=severity)
+        )
 
 
-__all__ = [
-    'EnhancedMemoryManager',
-    'ResourceType',
-    'ResourceAllocation'
-]
+__all__ = ["EnhancedMemoryManager", "ResourceType", "ResourceAllocation"]

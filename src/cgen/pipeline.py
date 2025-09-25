@@ -25,38 +25,40 @@ Usage:
 """
 
 import ast
-import os
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
+from .builder import CGenMakefileGenerator
+from .common import log
+
 # Import existing components
 from .frontend import (
-    ASTAnalyzer,
-    StaticPythonSubsetValidator,
-    StaticConstraintChecker,
-    CompileTimeEvaluator,
-    LoopAnalyzer,
-    FunctionSpecializer,
-    VectorizationDetector,
     AnalysisContext,
+    ASTAnalyzer,
+    CompileTimeEvaluator,
+    FunctionSpecializer,
+    LoopAnalyzer,
     OptimizationLevel,
+    StaticConstraintChecker,
+    StaticPythonSubsetValidator,
+    VectorizationDetector,
 )
 from .generator import PythonToCConverter, StyleOptions
-from .builder import MakefileGenerator, CGenMakefileGenerator
-from .common import log
 
 
 class BuildMode(Enum):
     """Build mode options for the pipeline."""
-    NONE = "none"           # Generate C code only
-    DIRECT = "direct"       # Compile directly to executable
-    MAKEFILE = "makefile"   # Generate Makefile
+
+    NONE = "none"  # Generate C code only
+    DIRECT = "direct"  # Compile directly to executable
+    MAKEFILE = "makefile"  # Generate Makefile
 
 
 class PipelinePhase(Enum):
     """Pipeline phase identifiers."""
+
     VALIDATION = "validation"
     ANALYSIS = "analysis"
     PYTHON_OPTIMIZATION = "python_optimization"
@@ -69,6 +71,7 @@ class PipelinePhase(Enum):
 @dataclass
 class PipelineResult:
     """Result of running the complete CGen pipeline."""
+
     success: bool
     input_file: str
     output_files: Dict[str, str]  # file_type -> file_path
@@ -91,6 +94,7 @@ class PipelineResult:
 @dataclass
 class PipelineConfig:
     """Configuration for the CGen pipeline."""
+
     optimization_level: OptimizationLevel = OptimizationLevel.MODERATE
     style_options: Optional[StyleOptions] = None
     output_dir: Optional[str] = None
@@ -141,17 +145,16 @@ class CGenPipeline:
 
         # Writer for converting sequences to strings
         from .generator import Writer
+
         self.writer = Writer(self.config.style_options)
 
         # Build components
         self.makefile_generator = CGenMakefileGenerator()
 
-    def convert(self,
-                input_path: Union[str, Path],
-                output_path: Optional[Union[str, Path]] = None,
-                build: Optional[str] = None) -> PipelineResult:
-        """
-        Convert Python module through complete pipeline.
+    def convert(
+        self, input_path: Union[str, Path], output_path: Optional[Union[str, Path]] = None, build: Optional[str] = None
+    ) -> PipelineResult:
+        """Convert Python module through complete pipeline.
 
         Args:
             input_path: Path to Python file or module
@@ -168,7 +171,7 @@ class CGenPipeline:
                 success=False,
                 input_file=str(input_path),
                 output_files={},
-                errors=[f"Input file not found: {input_path}"]
+                errors=[f"Input file not found: {input_path}"],
             )
 
         # Set build mode if specified
@@ -186,11 +189,7 @@ class CGenPipeline:
 
         output_dir.mkdir(parents=True, exist_ok=True)
 
-        result = PipelineResult(
-            success=True,
-            input_file=str(input_path),
-            output_files={}
-        )
+        result = PipelineResult(success=True, input_file=str(input_path), output_files={})
 
         try:
             self.log.info(f"Starting pipeline conversion for: {input_path}")
@@ -262,14 +261,13 @@ class CGenPipeline:
 
             # Add warnings for constraint violations
             for violation in constraint_report.violations:
-                if violation.severity.name in ['ERROR', 'CRITICAL']:
+                if violation.severity.name in ["ERROR", "CRITICAL"]:
                     result.errors.append(f"Constraint violation: {violation.message}")
                 else:
                     result.warnings.append(f"Constraint warning: {violation.message}")
 
             # Fail if there are critical constraint violations
-            critical_errors = [v for v in constraint_report.violations
-                             if v.severity.name in ['ERROR', 'CRITICAL']]
+            critical_errors = [v for v in constraint_report.violations if v.severity.name in ["ERROR", "CRITICAL"]]
             if critical_errors:
                 result.success = False
                 return False
@@ -312,22 +310,22 @@ class CGenPipeline:
                 source_code=analysis_result.source_code,
                 ast_node=analysis_result.ast_root,
                 analysis_result=analysis_result,
-                optimization_level=self.config.optimization_level
+                optimization_level=self.config.optimization_level,
             )
 
             optimizations = {}
 
             # Compile-time evaluation
             compile_time_result = self.compile_time_evaluator.optimize(context)
-            optimizations['compile_time'] = compile_time_result
+            optimizations["compile_time"] = compile_time_result
 
             # Loop analysis
             loop_result = self.loop_analyzer.optimize(context)
-            optimizations['loops'] = loop_result
+            optimizations["loops"] = loop_result
 
             # Function specialization
             specialization_result = self.function_specializer.optimize(context)
-            optimizations['specialization'] = specialization_result
+            optimizations["specialization"] = specialization_result
 
             result.phase_results[PipelinePhase.PYTHON_OPTIMIZATION] = optimizations
             return analysis_result  # For now, return original analysis
@@ -349,10 +347,10 @@ class CGenPipeline:
             c_file_path.write_text(c_code)
 
             result.c_code = c_code
-            result.output_files['c_source'] = str(c_file_path)
+            result.output_files["c_source"] = str(c_file_path)
             result.phase_results[PipelinePhase.GENERATION] = {
-                'c_file': str(c_file_path),
-                'lines_of_code': len(c_code.splitlines())
+                "c_file": str(c_file_path),
+                "lines_of_code": len(c_code.splitlines()),
             }
 
             return True
@@ -365,7 +363,7 @@ class CGenPipeline:
     def _build_phase(self, output_dir: Path, result: PipelineResult) -> bool:
         """Phase 7: Build executable or generate Makefile."""
         try:
-            c_file = result.output_files.get('c_source')
+            c_file = result.output_files.get("c_source")
             if not c_file:
                 result.errors.append("No C source file available for build phase")
                 return False
@@ -385,7 +383,7 @@ class CGenPipeline:
                     output_name=c_file_path.stem,
                     additional_flags=self.config.compiler_flags,
                     additional_includes=self.config.include_dirs,
-                    makefile_dir=str(makefile_dir)
+                    makefile_dir=str(makefile_dir),
                 )
                 makefile_content = makefile_gen.generate_makefile()
 
@@ -394,7 +392,7 @@ class CGenPipeline:
                 makefile_path.write_text(makefile_content)
 
                 result.makefile_content = makefile_content
-                result.output_files['makefile'] = str(makefile_path)
+                result.output_files["makefile"] = str(makefile_path)
 
             elif self.config.build_mode == BuildMode.DIRECT:
                 # Direct compilation - place executable in build root
@@ -425,6 +423,7 @@ class CGenPipeline:
 
                 # Execute compilation
                 import subprocess
+
                 proc_result = subprocess.run(cmd, capture_output=True, text=True)
 
                 if proc_result.returncode != 0:
@@ -433,11 +432,11 @@ class CGenPipeline:
                     return False
 
                 result.executable_path = str(executable_path)
-                result.output_files['executable'] = str(executable_path)
+                result.output_files["executable"] = str(executable_path)
 
             result.phase_results[PipelinePhase.BUILD] = {
-                'mode': self.config.build_mode.value,
-                'outputs': result.output_files
+                "mode": self.config.build_mode.value,
+                "outputs": result.output_files,
             }
 
             return True
@@ -449,23 +448,24 @@ class CGenPipeline:
 
 
 # Convenience functions for simple usage
-def convert_python_to_c(input_path: Union[str, Path],
-                       output_path: Optional[Union[str, Path]] = None,
-                       optimization_level: OptimizationLevel = OptimizationLevel.MODERATE) -> PipelineResult:
+def convert_python_to_c(
+    input_path: Union[str, Path],
+    output_path: Optional[Union[str, Path]] = None,
+    optimization_level: OptimizationLevel = OptimizationLevel.MODERATE,
+) -> PipelineResult:
     """Convert Python file to C code using default pipeline."""
     config = PipelineConfig(optimization_level=optimization_level)
     pipeline = CGenPipeline(config)
     return pipeline.convert(input_path, output_path)
 
 
-def convert_and_build(input_path: Union[str, Path],
-                     output_path: Optional[Union[str, Path]] = None,
-                     build_mode: str = "makefile",
-                     optimization_level: OptimizationLevel = OptimizationLevel.MODERATE) -> PipelineResult:
+def convert_and_build(
+    input_path: Union[str, Path],
+    output_path: Optional[Union[str, Path]] = None,
+    build_mode: str = "makefile",
+    optimization_level: OptimizationLevel = OptimizationLevel.MODERATE,
+) -> PipelineResult:
     """Convert Python file to C and build executable/Makefile."""
-    config = PipelineConfig(
-        optimization_level=optimization_level,
-        build_mode=BuildMode(build_mode)
-    )
+    config = PipelineConfig(optimization_level=optimization_level, build_mode=BuildMode(build_mode))
     pipeline = CGenPipeline(config)
     return pipeline.convert(input_path, output_path)

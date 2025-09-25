@@ -1,30 +1,34 @@
-"""
-Enhanced Type Inference for STC Containers
+"""Enhanced Type Inference for STC Containers
 
 This module provides advanced type inference capabilities for STC container types,
 improving accuracy from ~70% to >90% by analyzing context, usage patterns, and data flow.
 """
 
 import ast
-from typing import Dict, List, Optional, Set, Tuple, Any
 from dataclasses import dataclass
 from enum import Enum
+from typing import Any, Dict, List, Optional, Set, Tuple
+
 
 class TypeConfidence(Enum):
     """Confidence levels for type inference."""
+
     LOW = 0.3
     MEDIUM = 0.6
     HIGH = 0.8
     VERY_HIGH = 0.95
 
+
 @dataclass
 class InferredType:
     """Represents an inferred type with confidence level."""
+
     python_type: str
     c_type: str
     confidence: float
     source: str  # How the type was inferred
     line_number: int = 0
+
 
 class EnhancedTypeInferenceEngine:
     """Advanced type inference engine for STC containers."""
@@ -36,8 +40,7 @@ class EnhancedTypeInferenceEngine:
         self.data_flow_graph: Dict[str, Set[str]] = {}
 
     def analyze_module(self, module: ast.Module) -> Dict[str, InferredType]:
-        """
-        Perform comprehensive type analysis on a module.
+        """Perform comprehensive type analysis on a module.
 
         Returns:
             Dictionary mapping variable names to inferred types
@@ -55,6 +58,7 @@ class EnhancedTypeInferenceEngine:
 
     def _build_data_flow_graph(self, node: ast.AST):
         """Build data flow graph to track variable relationships."""
+
         class DataFlowAnalyzer(ast.NodeVisitor):
             def __init__(self, engine):
                 self.engine = engine
@@ -93,6 +97,7 @@ class EnhancedTypeInferenceEngine:
 
     def _analyze_usage_patterns(self, node: ast.AST):
         """Analyze how variables are used to infer their types."""
+
         class UsageAnalyzer(ast.NodeVisitor):
             def __init__(self, engine):
                 self.engine = engine
@@ -141,6 +146,7 @@ class EnhancedTypeInferenceEngine:
 
     def _infer_types_from_annotations(self, node: ast.AST):
         """Infer types from explicit type annotations."""
+
         class AnnotationAnalyzer(ast.NodeVisitor):
             def __init__(self, engine):
                 self.engine = engine
@@ -159,7 +165,7 @@ class EnhancedTypeInferenceEngine:
                         c_type=c_type,
                         confidence=TypeConfidence.VERY_HIGH.value,
                         source="type_annotation",
-                        line_number=getattr(node, 'lineno', 0)
+                        line_number=getattr(node, "lineno", 0),
                     )
 
                 self.generic_visit(node)
@@ -177,7 +183,7 @@ class EnhancedTypeInferenceEngine:
                             c_type=c_type,
                             confidence=TypeConfidence.VERY_HIGH.value,
                             source="parameter_annotation",
-                            line_number=getattr(node, 'lineno', 0)
+                            line_number=getattr(node, "lineno", 0),
                         )
 
                 self.generic_visit(node)
@@ -187,6 +193,7 @@ class EnhancedTypeInferenceEngine:
 
     def _infer_types_from_assignments(self, node: ast.AST):
         """Infer types from assignment patterns."""
+
         class AssignmentAnalyzer(ast.NodeVisitor):
             def __init__(self, engine):
                 self.engine = engine
@@ -198,11 +205,13 @@ class EnhancedTypeInferenceEngine:
                         var_name = target.id
 
                         # Skip if already inferred with high confidence
-                        if (var_name in self.engine.type_cache and
-                            self.engine.type_cache[var_name].confidence >= TypeConfidence.HIGH.value):
+                        if (
+                            var_name in self.engine.type_cache
+                            and self.engine.type_cache[var_name].confidence >= TypeConfidence.HIGH.value
+                        ):
                             continue
 
-                        inferred_type = self._infer_from_value(node.value, getattr(node, 'lineno', 0))
+                        inferred_type = self._infer_from_value(node.value, getattr(node, "lineno", 0))
                         if inferred_type:
                             self.engine.type_cache[var_name] = inferred_type
 
@@ -219,7 +228,7 @@ class EnhancedTypeInferenceEngine:
                         c_type=self.engine._map_python_to_c_type(python_type),
                         confidence=TypeConfidence.HIGH.value,
                         source="list_literal",
-                        line_number=line_number
+                        line_number=line_number,
                     )
 
                 elif isinstance(value_node, ast.Dict):
@@ -231,7 +240,7 @@ class EnhancedTypeInferenceEngine:
                         c_type=self.engine._map_python_to_c_type(python_type),
                         confidence=TypeConfidence.HIGH.value,
                         source="dict_literal",
-                        line_number=line_number
+                        line_number=line_number,
                     )
 
                 elif isinstance(value_node, ast.Set):
@@ -243,21 +252,21 @@ class EnhancedTypeInferenceEngine:
                         c_type=self.engine._map_python_to_c_type(python_type),
                         confidence=TypeConfidence.HIGH.value,
                         source="set_literal",
-                        line_number=line_number
+                        line_number=line_number,
                     )
 
                 elif isinstance(value_node, ast.Call):
                     # Infer from constructor calls
                     if isinstance(value_node.func, ast.Name):
                         func_name = value_node.func.id
-                        if func_name in ['list', 'dict', 'set']:
+                        if func_name in ["list", "dict", "set"]:
                             python_type = func_name
                             return InferredType(
                                 python_type=python_type,
                                 c_type=self.engine._map_python_to_c_type(python_type),
                                 confidence=TypeConfidence.MEDIUM.value,
                                 source="constructor_call",
-                                line_number=line_number
+                                line_number=line_number,
                             )
 
                 elif isinstance(value_node, ast.Constant):
@@ -268,7 +277,7 @@ class EnhancedTypeInferenceEngine:
                             c_type="cstr",
                             confidence=TypeConfidence.VERY_HIGH.value,
                             source="string_literal",
-                            line_number=line_number
+                            line_number=line_number,
                         )
 
                 return None
@@ -313,6 +322,7 @@ class EnhancedTypeInferenceEngine:
 
     def _infer_types_from_operations(self, node: ast.AST):
         """Infer types from operations and method calls."""
+
         class OperationAnalyzer(ast.NodeVisitor):
             def __init__(self, engine):
                 self.engine = engine
@@ -324,12 +334,14 @@ class EnhancedTypeInferenceEngine:
                     method_name = node.func.attr
 
                     # Skip if already inferred with high confidence
-                    if (obj_name in self.engine.type_cache and
-                        self.engine.type_cache[obj_name].confidence >= TypeConfidence.HIGH.value):
+                    if (
+                        obj_name in self.engine.type_cache
+                        and self.engine.type_cache[obj_name].confidence >= TypeConfidence.HIGH.value
+                    ):
                         return
 
                     # Infer based on method usage
-                    inferred_type = self._infer_from_method_usage(obj_name, method_name, getattr(node, 'lineno', 0))
+                    inferred_type = self._infer_from_method_usage(obj_name, method_name, getattr(node, "lineno", 0))
                     if inferred_type:
                         existing = self.engine.type_cache.get(obj_name)
                         if not existing or inferred_type.confidence > existing.confidence:
@@ -337,16 +349,28 @@ class EnhancedTypeInferenceEngine:
 
                 self.generic_visit(node)
 
-            def _infer_from_method_usage(self, obj_name: str, method_name: str, line_number: int) -> Optional[InferredType]:
+            def _infer_from_method_usage(
+                self, obj_name: str, method_name: str, line_number: int
+            ) -> Optional[InferredType]:
                 """Infer container type from method usage patterns."""
                 # List-specific methods
-                list_methods = {'append', 'pop', 'insert', 'remove', 'reverse', 'sort', 'extend', 'index', 'count'}
+                list_methods = {"append", "pop", "insert", "remove", "reverse", "sort", "extend", "index", "count"}
                 # Dict-specific methods
-                dict_methods = {'get', 'keys', 'values', 'items', 'update', 'setdefault', 'popitem'}
+                dict_methods = {"get", "keys", "values", "items", "update", "setdefault", "popitem"}
                 # Set-specific methods
-                set_methods = {'add', 'discard', 'union', 'intersection', 'difference', 'issubset', 'issuperset'}
+                set_methods = {"add", "discard", "union", "intersection", "difference", "issubset", "issuperset"}
                 # String-specific methods
-                string_methods = {'split', 'join', 'strip', 'replace', 'startswith', 'endswith', 'find', 'upper', 'lower'}
+                string_methods = {
+                    "split",
+                    "join",
+                    "strip",
+                    "replace",
+                    "startswith",
+                    "endswith",
+                    "find",
+                    "upper",
+                    "lower",
+                }
 
                 confidence = TypeConfidence.MEDIUM.value
 
@@ -355,38 +379,38 @@ class EnhancedTypeInferenceEngine:
 
                 if method_name in list_methods:
                     # Additional checks for list
-                    if 'indexed_access' in usage_pattern:
+                    if "indexed_access" in usage_pattern:
                         confidence = TypeConfidence.HIGH.value
                     return InferredType(
                         python_type="list",
                         c_type="vec_int_1",  # Default, will be refined
                         confidence=confidence,
                         source=f"method_usage_{method_name}",
-                        line_number=line_number
+                        line_number=line_number,
                     )
 
                 elif method_name in dict_methods:
                     # Additional checks for dict
-                    if 'keyed_access' in usage_pattern:
+                    if "keyed_access" in usage_pattern:
                         confidence = TypeConfidence.HIGH.value
                     return InferredType(
                         python_type="dict",
                         c_type="hmap_cstr_int_1",  # Default, will be refined
                         confidence=confidence,
                         source=f"method_usage_{method_name}",
-                        line_number=line_number
+                        line_number=line_number,
                     )
 
                 elif method_name in set_methods:
                     # Additional checks for set
-                    if 'membership_test' in usage_pattern:
+                    if "membership_test" in usage_pattern:
                         confidence = TypeConfidence.HIGH.value
                     return InferredType(
                         python_type="set",
                         c_type="hset_int_1",  # Default, will be refined
                         confidence=confidence,
                         source=f"method_usage_{method_name}",
-                        line_number=line_number
+                        line_number=line_number,
                     )
 
                 elif method_name in string_methods:
@@ -395,7 +419,7 @@ class EnhancedTypeInferenceEngine:
                         c_type="cstr",
                         confidence=TypeConfidence.HIGH.value,
                         source=f"method_usage_{method_name}",
-                        line_number=line_number
+                        line_number=line_number,
                     )
 
                 return None
@@ -420,17 +444,14 @@ class EnhancedTypeInferenceEngine:
                     for target in targets:
                         if target not in self.type_cache:
                             # Propagate type with reduced confidence
-                            propagated_confidence = max(
-                                source_type.confidence * 0.8,
-                                TypeConfidence.LOW.value
-                            )
+                            propagated_confidence = max(source_type.confidence * 0.8, TypeConfidence.LOW.value)
 
                             self.type_cache[target] = InferredType(
                                 python_type=source_type.python_type,
                                 c_type=source_type.c_type,
                                 confidence=propagated_confidence,
                                 source=f"propagated_from_{source}",
-                                line_number=source_type.line_number
+                                line_number=source_type.line_number,
                             )
                             changed = True
 
@@ -448,41 +469,35 @@ class EnhancedTypeInferenceEngine:
 
                 if inferred_type.python_type == "list":
                     # Improve list type inference
-                    if 'indexed_access' in usage_pattern and 'append' in usage_pattern:
+                    if "indexed_access" in usage_pattern and "append" in usage_pattern:
                         inferred_type.confidence = min(TypeConfidence.HIGH.value, inferred_type.confidence + 0.2)
 
                 elif inferred_type.python_type == "dict":
                     # Improve dict type inference
-                    if 'keyed_access' in usage_pattern and 'get' in usage_pattern:
+                    if "keyed_access" in usage_pattern and "get" in usage_pattern:
                         inferred_type.confidence = min(TypeConfidence.HIGH.value, inferred_type.confidence + 0.2)
 
                 elif inferred_type.python_type == "set":
                     # Improve set type inference
-                    if 'membership_test' in usage_pattern and 'add' in usage_pattern:
+                    if "membership_test" in usage_pattern and "add" in usage_pattern:
                         inferred_type.confidence = min(TypeConfidence.HIGH.value, inferred_type.confidence + 0.2)
 
     def _map_python_to_c_type(self, python_type: str) -> str:
         """Map Python type to appropriate C type."""
         # Basic type mappings
-        basic_mappings = {
-            'int': 'int',
-            'float': 'double',
-            'str': 'cstr',
-            'bool': 'bool',
-            'bytes': 'uint8_t*'
-        }
+        basic_mappings = {"int": "int", "float": "double", "str": "cstr", "bool": "bool", "bytes": "uint8_t*"}
 
         if python_type in basic_mappings:
             return basic_mappings[python_type]
 
         # Container type mappings (will be refined by template manager)
-        if python_type.startswith(('List[', 'list[')):
+        if python_type.startswith(("List[", "list[")):
             return "vec_type"  # Placeholder, will be resolved by template manager
-        elif python_type.startswith(('Dict[', 'dict[')):
+        elif python_type.startswith(("Dict[", "dict[")):
             return "hmap_type"  # Placeholder
-        elif python_type.startswith(('Set[', 'set[')):
+        elif python_type.startswith(("Set[", "set[")):
             return "hset_type"  # Placeholder
-        elif python_type in ['list', 'dict', 'set']:
+        elif python_type in ["list", "dict", "set"]:
             return f"{python_type}_type"  # Placeholder
 
         return python_type  # Fallback
@@ -504,11 +519,8 @@ class EnhancedTypeInferenceEngine:
             "average_confidence": avg_confidence,
             "total_variables": total_vars,
             "high_confidence_vars": high_confidence,
-            "inference_sources": list(set(t.source for t in self.type_cache.values()))
+            "inference_sources": list(set(t.source for t in self.type_cache.values())),
         }
 
-__all__ = [
-    'EnhancedTypeInferenceEngine',
-    'InferredType',
-    'TypeConfidence'
-]
+
+__all__ = ["EnhancedTypeInferenceEngine", "InferredType", "TypeConfidence"]

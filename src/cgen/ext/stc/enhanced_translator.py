@@ -1,5 +1,4 @@
-"""
-Enhanced STC Translator with Smart Pointers and Allocators
+"""Enhanced STC Translator with Smart Pointers and Allocators
 
 This module extends the STC translator to support smart pointers, custom allocators,
 and advanced memory management patterns in Python-to-C translation.
@@ -13,18 +12,16 @@ Features:
 """
 
 import ast
-from typing import Dict, List, Optional, Set, Tuple, Any, Union
-import re
+from typing import Any, Dict, List, Optional, Tuple
 
-from .translator import STCPythonToCTranslator
+from .allocators import AllocatorType
 from .enhanced_memory_manager import EnhancedMemoryManager, ResourceType
-from .smart_pointers import SmartPointerType, SmartPointerManager
-from .allocators import AllocatorType, MemoryAllocatorManager
+from .smart_pointers import SmartPointerType
+from .translator import STCPythonToCTranslator
 
 
 class EnhancedSTCTranslator(STCPythonToCTranslator):
-    """
-    Enhanced STC translator supporting smart pointers and custom allocators.
+    """Enhanced STC translator supporting smart pointers and custom allocators.
 
     Extends the base STC translator with:
     - Smart pointer operation translation
@@ -39,18 +36,18 @@ class EnhancedSTCTranslator(STCPythonToCTranslator):
 
         # Python syntax mappings for smart pointers
         self.smart_pointer_syntax = {
-            'unique_ptr': SmartPointerType.UNIQUE,
-            'shared_ptr': SmartPointerType.SHARED,
-            'weak_ptr': SmartPointerType.WEAK,
-            'scoped_ptr': SmartPointerType.SCOPED
+            "unique_ptr": SmartPointerType.UNIQUE,
+            "shared_ptr": SmartPointerType.SHARED,
+            "weak_ptr": SmartPointerType.WEAK,
+            "scoped_ptr": SmartPointerType.SCOPED,
         }
 
         # Python syntax mappings for allocators
         self.allocator_syntax = {
-            'arena_alloc': AllocatorType.ARENA,
-            'pool_alloc': AllocatorType.POOL,
-            'stack_alloc': AllocatorType.STACK,
-            'free_list_alloc': AllocatorType.FREE_LIST
+            "arena_alloc": AllocatorType.ARENA,
+            "pool_alloc": AllocatorType.POOL,
+            "stack_alloc": AllocatorType.STACK,
+            "free_list_alloc": AllocatorType.FREE_LIST,
         }
 
         # Track smart pointer variables
@@ -88,9 +85,9 @@ class EnhancedSTCTranslator(STCPythonToCTranslator):
                 # Check for smart pointer factory functions
                 if isinstance(node.func, ast.Name):
                     func_name = node.func.id
-                    if func_name.startswith(('make_unique', 'make_shared')):
+                    if func_name.startswith(("make_unique", "make_shared")):
                         # Extract return type and register
-                        if func_name.startswith('make_unique'):
+                        if func_name.startswith("make_unique"):
                             pointer_type = SmartPointerType.UNIQUE
                         else:
                             pointer_type = SmartPointerType.SHARED
@@ -151,16 +148,14 @@ class EnhancedSTCTranslator(STCPythonToCTranslator):
         args = [self._convert_arg_to_string(arg) for arg in node.args]
 
         # Generate allocator operation based on method
-        if method_name == 'alloc':
+        if method_name == "alloc":
             if len(args) >= 2:  # variable_name, size, element_type
                 return self.enhanced_memory_manager.allocator_manager.generate_allocation_code(
                     obj_name, args[0], args[1], args[2] if len(args) > 2 else "void"
                 )
-        elif method_name == 'free':
+        elif method_name == "free":
             if len(args) >= 1:
-                return self.enhanced_memory_manager.allocator_manager.generate_deallocation_code(
-                    obj_name, args[0]
-                )
+                return self.enhanced_memory_manager.allocator_manager.generate_deallocation_code(obj_name, args[0])
 
         return None
 
@@ -171,12 +166,12 @@ class EnhancedSTCTranslator(STCPythonToCTranslator):
 
         func_name = node.func.id
 
-        if func_name.startswith('make_unique'):
+        if func_name.startswith("make_unique"):
             pointer_type = SmartPointerType.UNIQUE
-            element_type = func_name.replace('make_unique_', '') if '_' in func_name else 'auto'
-        elif func_name.startswith('make_shared'):
+            element_type = func_name.replace("make_unique_", "") if "_" in func_name else "auto"
+        elif func_name.startswith("make_shared"):
             pointer_type = SmartPointerType.SHARED
-            element_type = func_name.replace('make_shared_', '') if '_' in func_name else 'auto'
+            element_type = func_name.replace("make_shared_", "") if "_" in func_name else "auto"
         else:
             return None
 
@@ -221,9 +216,7 @@ class EnhancedSTCTranslator(STCPythonToCTranslator):
                 element_type = self._extract_element_type_from_annotation(type_str)
 
                 # Register smart pointer
-                resource = self.enhanced_memory_manager.register_smart_pointer(
-                    var_name, pointer_type, element_type
-                )
+                resource = self.enhanced_memory_manager.register_smart_pointer(var_name, pointer_type, element_type)
 
                 # Generate type definition
                 pointer_alloc = self.enhanced_memory_manager.smart_pointer_manager.allocations[var_name]
@@ -240,9 +233,7 @@ class EnhancedSTCTranslator(STCPythonToCTranslator):
                 allocator_type = self.allocator_variables[var_name]
 
                 # Register allocator with default parameters
-                allocator_instance = self.enhanced_memory_manager.register_allocator(
-                    var_name, allocator_type
-                )
+                allocator_instance = self.enhanced_memory_manager.register_allocator(var_name, allocator_type)
 
                 # Generate allocator setup
                 init_code, include = self.enhanced_memory_manager.allocator_manager.generate_allocator_setup(
@@ -254,7 +245,7 @@ class EnhancedSTCTranslator(STCPythonToCTranslator):
                 if init_code:
                     type_defs.append(init_code)
 
-            elif any(container_type in type_str for container_type in ['list', 'dict', 'set']):
+            elif any(container_type in type_str for container_type in ["list", "dict", "set"]):
                 # Standard container - check if it should use a custom allocator
                 container_type = self._extract_container_type_from_annotation(type_str)
                 element_type = self._extract_element_type_from_annotation(type_str)
@@ -294,42 +285,52 @@ class EnhancedSTCTranslator(STCPythonToCTranslator):
         performance_analysis = self.enhanced_memory_manager.analyze_performance()
 
         return {
-            'memory_errors': [
+            "memory_errors": [
                 {
-                    'type': error.error_type,
-                    'message': error.message,
-                    'line': error.line_number,
-                    'severity': error.severity
+                    "type": error.error_type,
+                    "message": error.message,
+                    "line": error.line_number,
+                    "severity": error.severity,
                 }
                 for error in all_errors
             ],
-            'performance_analysis': performance_analysis,
-            'cleanup_summary': {
-                'total_resources': len(self.enhanced_memory_manager.resources),
-                'smart_pointers': len([r for r in self.enhanced_memory_manager.resources.values()
-                                     if r.resource_type == ResourceType.SMART_POINTER]),
-                'containers': len([r for r in self.enhanced_memory_manager.resources.values()
-                                 if r.resource_type == ResourceType.CONTAINER]),
-                'custom_allocators': len(self.enhanced_memory_manager.allocator_manager.allocators),
-                'cycles_detected': len(self.enhanced_memory_manager._detect_dependency_cycles()),
-                'recommendations': performance_analysis['optimization_recommendations']
-            }
+            "performance_analysis": performance_analysis,
+            "cleanup_summary": {
+                "total_resources": len(self.enhanced_memory_manager.resources),
+                "smart_pointers": len(
+                    [
+                        r
+                        for r in self.enhanced_memory_manager.resources.values()
+                        if r.resource_type == ResourceType.SMART_POINTER
+                    ]
+                ),
+                "containers": len(
+                    [
+                        r
+                        for r in self.enhanced_memory_manager.resources.values()
+                        if r.resource_type == ResourceType.CONTAINER
+                    ]
+                ),
+                "custom_allocators": len(self.enhanced_memory_manager.allocator_manager.allocators),
+                "cycles_detected": len(self.enhanced_memory_manager._detect_dependency_cycles()),
+                "recommendations": performance_analysis["optimization_recommendations"],
+            },
         }
 
     def _extract_element_type_from_annotation(self, annotation: str) -> str:
         """Extract element type from type annotation."""
         # Handle smart pointer types: unique_ptr[int] -> int
         # Handle container types: list[int] -> int
-        if '[' in annotation and ']' in annotation:
-            start = annotation.find('[') + 1
-            end = annotation.rfind(']')
+        if "[" in annotation and "]" in annotation:
+            start = annotation.find("[") + 1
+            end = annotation.rfind("]")
             return annotation[start:end].strip()
-        return 'void'
+        return "void"
 
     def _extract_container_type_from_annotation(self, annotation: str) -> str:
         """Extract container type from annotation."""
-        if '[' in annotation:
-            return annotation[:annotation.find('[')].strip()
+        if "[" in annotation:
+            return annotation[: annotation.find("[")].strip()
         return annotation.strip()
 
     def _convert_arg_to_string(self, arg: ast.expr) -> str:
@@ -344,4 +345,4 @@ class EnhancedSTCTranslator(STCPythonToCTranslator):
             return ast.unparse(arg)
 
 
-__all__ = ['EnhancedSTCTranslator']
+__all__ = ["EnhancedSTCTranslator"]

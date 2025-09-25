@@ -192,7 +192,9 @@ class CFactory:
         """New while loop."""
         return core.WhileLoop(condition, body)
 
-    def for_loop(self, init: Any = None, condition: Any = None, increment: Any = None, body: Any = None) -> core.ForLoop:
+    def for_loop(
+        self, init: Any = None, condition: Any = None, increment: Any = None, body: Any = None
+    ) -> core.ForLoop:
         """New for loop."""
         return core.ForLoop(init, condition, increment, body)
 
@@ -244,27 +246,19 @@ class CFactory:
         data_type: "str | core.Type | core.Struct | core.Union",
         const: bool = False,
         pointer: bool = False,
-        array: "int | None" = None
+        array: "int | None" = None,
     ) -> "core.UnionMember":
         """New union member."""
         return core.UnionMember(name, data_type, const, pointer, array)
 
     def multi_pointer_type(
-        self,
-        base_type: "str | core.Type",
-        pointer_level: int,
-        const: bool = False,
-        volatile: bool = False
+        self, base_type: "str | core.Type", pointer_level: int, const: bool = False, volatile: bool = False
     ) -> core.Type:
         """New multi-level pointer type (e.g., int**, char***)."""
         return core.Type(base_type, const, pointer_level, volatile)
 
     def multi_array_type(
-        self,
-        base_type: "str | core.Type",
-        dimensions: list[int],
-        const: bool = False,
-        volatile: bool = False
+        self, base_type: "str | core.Type", dimensions: list[int], const: bool = False, volatile: bool = False
     ) -> core.Type:
         """New multi-dimensional array type (e.g., int[10][20])."""
         return core.Type(base_type, const, False, volatile, dimensions)
@@ -276,7 +270,7 @@ class CFactory:
         return_type: "str | core.Type | core.DataType",
         parameters: "list[core.Variable] | None" = None,
         const: bool = False,
-        volatile: bool = False
+        volatile: bool = False,
     ) -> "core.FunctionPointer":
         """New function pointer type."""
         return core.FunctionPointer(name, return_type, parameters, const, volatile)
@@ -287,7 +281,7 @@ class CFactory:
         return_type: "str | core.Type | core.DataType | None" = None,
         fixed_params: "list[core.Variable] | None" = None,
         static: bool = False,
-        extern: bool = False
+        extern: bool = False,
     ) -> "core.VariadicFunction":
         """New variadic function with variable arguments (...)."""
         return core.VariadicFunction(name, return_type, fixed_params, static, extern)
@@ -297,10 +291,7 @@ class CFactory:
         return core.StaticAssert(condition, message)
 
     def generic_selection(
-        self,
-        controlling_expr: str,
-        type_associations: "dict[str, str]",
-        default_expr: "str | None" = None
+        self, controlling_expr: str, type_associations: "dict[str, str]", default_expr: "str | None" = None
     ) -> "core.GenericSelection":
         """New generic selection for type-generic programming (_Generic)."""
         return core.GenericSelection(controlling_expr, type_associations, default_expr)
@@ -311,7 +302,7 @@ class CFactory:
         return_type: "str | core.Type | core.DataType",
         parameters: "list[core.Variable] | None" = None,
         const: bool = False,
-        static: bool = False
+        static: bool = False,
     ) -> "core.FunctionPointerDeclaration":
         """New function pointer variable declaration."""
         return core.FunctionPointerDeclaration(pointer_name, return_type, parameters, const, static)
@@ -322,23 +313,18 @@ class CFactory:
         self,
         expression: Union[str, core.Element],
         cases: "list[core.CaseStatement] | None" = None,
-        default_case: "core.DefaultCase | None" = None
+        default_case: "core.DefaultCase | None" = None,
     ) -> "core.SwitchStatement":
         """New switch statement for multi-way branching."""
         return core.SwitchStatement(expression, cases, default_case)
 
     def case_statement(
-        self,
-        value: Union[str, int, core.Element],
-        statements: "Any | list[Any] | None" = None
+        self, value: Union[str, int, core.Element], statements: "Any | list[Any] | None" = None
     ) -> "core.CaseStatement":
         """New case statement within a switch."""
         return core.CaseStatement(value, statements)
 
-    def default_case(
-        self,
-        statements: "Any | list[Any] | None" = None
-    ) -> "core.DefaultCase":
+    def default_case(self, statements: "Any | list[Any] | None" = None) -> "core.DefaultCase":
         """New default case within a switch statement."""
         return core.DefaultCase(statements)
 
@@ -368,11 +354,15 @@ class CFactory:
         """New bitwise NOT operator (~)."""
         return core.BitwiseOperator(operand, "~")
 
-    def bitwise_left_shift(self, left: Union[str, core.Element], right: Union[str, core.Element]) -> "core.BitwiseOperator":
+    def bitwise_left_shift(
+        self, left: Union[str, core.Element], right: Union[str, core.Element]
+    ) -> "core.BitwiseOperator":
         """New bitwise left shift operator (<<)."""
         return core.BitwiseOperator(left, "<<", right)
 
-    def bitwise_right_shift(self, left: Union[str, core.Element], right: Union[str, core.Element]) -> "core.BitwiseOperator":
+    def bitwise_right_shift(
+        self, left: Union[str, core.Element], right: Union[str, core.Element]
+    ) -> "core.BitwiseOperator":
         """New bitwise right shift operator (>>)."""
         return core.BitwiseOperator(left, ">>", right)
 
@@ -404,43 +394,63 @@ class CFactory:
         """New postfix decrement operator (var--)."""
         return core.DecrementOperator(operand, prefix=False)
 
-    def add_assign(self, left: Union[str, core.Element], right: Union[str, core.Element]) -> "core.CompoundAssignmentOperator":
+    def add_assign(
+        self, left: Union[str, core.Element], right: Union[str, core.Element]
+    ) -> "core.CompoundAssignmentOperator":
         """New compound addition assignment operator (+=)."""
         return core.CompoundAssignmentOperator(left, "+=", right)
 
-    def sub_assign(self, left: Union[str, core.Element], right: Union[str, core.Element]) -> "core.CompoundAssignmentOperator":
+    def sub_assign(
+        self, left: Union[str, core.Element], right: Union[str, core.Element]
+    ) -> "core.CompoundAssignmentOperator":
         """New compound subtraction assignment operator (-=)."""
         return core.CompoundAssignmentOperator(left, "-=", right)
 
-    def mul_assign(self, left: Union[str, core.Element], right: Union[str, core.Element]) -> "core.CompoundAssignmentOperator":
+    def mul_assign(
+        self, left: Union[str, core.Element], right: Union[str, core.Element]
+    ) -> "core.CompoundAssignmentOperator":
         """New compound multiplication assignment operator (*=)."""
         return core.CompoundAssignmentOperator(left, "*=", right)
 
-    def div_assign(self, left: Union[str, core.Element], right: Union[str, core.Element]) -> "core.CompoundAssignmentOperator":
+    def div_assign(
+        self, left: Union[str, core.Element], right: Union[str, core.Element]
+    ) -> "core.CompoundAssignmentOperator":
         """New compound division assignment operator (/=)."""
         return core.CompoundAssignmentOperator(left, "/=", right)
 
-    def mod_assign(self, left: Union[str, core.Element], right: Union[str, core.Element]) -> "core.CompoundAssignmentOperator":
+    def mod_assign(
+        self, left: Union[str, core.Element], right: Union[str, core.Element]
+    ) -> "core.CompoundAssignmentOperator":
         """New compound modulo assignment operator (%=)."""
         return core.CompoundAssignmentOperator(left, "%=", right)
 
-    def bitwise_and_assign(self, left: Union[str, core.Element], right: Union[str, core.Element]) -> "core.CompoundAssignmentOperator":
+    def bitwise_and_assign(
+        self, left: Union[str, core.Element], right: Union[str, core.Element]
+    ) -> "core.CompoundAssignmentOperator":
         """New compound bitwise AND assignment operator (&=)."""
         return core.CompoundAssignmentOperator(left, "&=", right)
 
-    def bitwise_or_assign(self, left: Union[str, core.Element], right: Union[str, core.Element]) -> "core.CompoundAssignmentOperator":
+    def bitwise_or_assign(
+        self, left: Union[str, core.Element], right: Union[str, core.Element]
+    ) -> "core.CompoundAssignmentOperator":
         """New compound bitwise OR assignment operator (|=)."""
         return core.CompoundAssignmentOperator(left, "|=", right)
 
-    def bitwise_xor_assign(self, left: Union[str, core.Element], right: Union[str, core.Element]) -> "core.CompoundAssignmentOperator":
+    def bitwise_xor_assign(
+        self, left: Union[str, core.Element], right: Union[str, core.Element]
+    ) -> "core.CompoundAssignmentOperator":
         """New compound bitwise XOR assignment operator (^=)."""
         return core.CompoundAssignmentOperator(left, "^=", right)
 
-    def left_shift_assign(self, left: Union[str, core.Element], right: Union[str, core.Element]) -> "core.CompoundAssignmentOperator":
+    def left_shift_assign(
+        self, left: Union[str, core.Element], right: Union[str, core.Element]
+    ) -> "core.CompoundAssignmentOperator":
         """New compound left shift assignment operator (<<=)."""
         return core.CompoundAssignmentOperator(left, "<<=", right)
 
-    def right_shift_assign(self, left: Union[str, core.Element], right: Union[str, core.Element]) -> "core.CompoundAssignmentOperator":
+    def right_shift_assign(
+        self, left: Union[str, core.Element], right: Union[str, core.Element]
+    ) -> "core.CompoundAssignmentOperator":
         """New compound right shift assignment operator (>>=)."""
         return core.CompoundAssignmentOperator(left, ">>=", right)
 
@@ -525,17 +535,23 @@ class CFactory:
         """New inline function specifier."""
         return core.InlineSpecifier(function)
 
-    def flexible_array_member(self, name: str, element_type: "str | core.Type | core.DataType") -> "core.FlexibleArrayMember":
+    def flexible_array_member(
+        self, name: str, element_type: "str | core.Type | core.DataType"
+    ) -> "core.FlexibleArrayMember":
         """New C99/C11 flexible array member."""
         return core.FlexibleArrayMember(name, element_type)
 
-    def designated_initializer(self, designators: "list[str | int]", value: "str | core.Element") -> "core.DesignatedInitializer":
+    def designated_initializer(
+        self, designators: "list[str | int]", value: "str | core.Element"
+    ) -> "core.DesignatedInitializer":
         """New C99/C11 designated initializer."""
         return core.DesignatedInitializer(designators, value)
 
     # Complex Pointer Types
 
-    def pointer_to_pointer(self, base_type: "str | core.Type | core.DataType", levels: int = 2) -> "core.PointerToPointer":
+    def pointer_to_pointer(
+        self, base_type: "str | core.Type | core.DataType", levels: int = 2
+    ) -> "core.PointerToPointer":
         """New multi-level pointer type (e.g., int**, char***)."""
         return core.PointerToPointer(base_type, levels)
 
@@ -545,10 +561,14 @@ class CFactory:
         """New pragma preprocessor directive."""
         return core.PragmaDirective(pragma_text, adjust)
 
-    def function_like_macro(self, name: str, parameters: "list[str]", replacement: str, adjust: int = 0) -> "core.FunctionLikeMacro":
+    def function_like_macro(
+        self, name: str, parameters: "list[str]", replacement: str, adjust: int = 0
+    ) -> "core.FunctionLikeMacro":
         """New function-like macro with parameters."""
         return core.FunctionLikeMacro(name, parameters, replacement, adjust)
 
-    def variadic_macro(self, name: str, fixed_params: "list[str]", replacement: str, adjust: int = 0) -> "core.VariadicMacro":
+    def variadic_macro(
+        self, name: str, fixed_params: "list[str]", replacement: str, adjust: int = 0
+    ) -> "core.VariadicMacro":
         """New variadic macro with ... parameter."""
         return core.VariadicMacro(name, fixed_params, replacement, adjust)

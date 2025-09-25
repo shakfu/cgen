@@ -2,11 +2,12 @@
 
 import re
 import sys
-import os
-from os.path import dirname, join as path_join, abspath, basename, exists
+from os.path import abspath, basename, dirname, exists
+from os.path import join as path_join
 
 top_dir = dirname(abspath(__file__))
-extra_paths = [path_join(top_dir, 'include'), path_join(top_dir, '..', 'include')]
+extra_paths = [path_join(top_dir, "include"), path_join(top_dir, "..", "include")]
+
 
 def find_file(included_name, current_file):
     current_dir = dirname(abspath(current_file))
@@ -22,16 +23,16 @@ def process_file(
     out_lines=[],
     processed_files=[],
 ):
-    out_lines += "// ### BEGIN_FILE_INCLUDE: " + basename(file_path) + '\n'
+    out_lines += "// ### BEGIN_FILE_INCLUDE: " + basename(file_path) + "\n"
     comment_block = False
-    with open(file_path, "r", encoding="utf-8") as f:
+    with open(file_path, encoding="utf-8") as f:
         for line in f:
             is_comment = comment_block
-            if re.search('/\\*.*?\\*/', line):
+            if re.search("/\\*.*?\\*/", line):
                 pass
-            elif re.search('^\\s*/\\*', line):
+            elif re.search("^\\s*/\\*", line):
                 comment_block, is_comment = True, True
-            elif re.search('\\*/', line):
+            elif re.search("\\*/", line):
                 comment_block = False
 
             if is_comment:
@@ -53,22 +54,20 @@ def process_file(
                         # assume it's a system header
                         out_lines += [line]
                 continue
-            m_once = re.match('^\\s*# *pragma once\\s*', line) if not is_comment else False
+            m_once = re.match("^\\s*# *pragma once\\s*", line) if not is_comment else False
             # ignore pragma once; we're handling it here
             if m_once:
                 continue
             # otherwise, just add the line to the output
-            if line[-1] != '\n':
-                line += '\n'
+            if line[-1] != "\n":
+                line += "\n"
             out_lines += [line]
-    out_lines += "// ### END_FILE_INCLUDE: " + basename(file_path) + '\n'
-    return (
-        "".join(out_lines)
-    )
+    out_lines += "// ### END_FILE_INCLUDE: " + basename(file_path) + "\n"
+    return "".join(out_lines)
 
 
 if __name__ == "__main__":
-    with open(sys.argv[2], "w", newline='\n', encoding="utf-8") as f:
+    with open(sys.argv[2], "w", newline="\n", encoding="utf-8") as f:
         print(
             process_file(
                 abspath(sys.argv[1]),
@@ -77,5 +76,5 @@ if __name__ == "__main__":
                 # cause complaints about `#pragma once` when they are used in URL includes.
                 [abspath(sys.argv[1])],
             ),
-            file=f
+            file=f,
         )

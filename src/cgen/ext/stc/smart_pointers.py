@@ -1,5 +1,4 @@
-"""
-Smart Pointer System for STC Integration
+"""Smart Pointer System for STC Integration
 
 This module provides C++ style smart pointers implemented using STC containers,
 offering memory safety, RAII semantics, and automatic resource management.
@@ -12,16 +11,14 @@ Features:
 - Custom deleters and allocators
 """
 
-from typing import Dict, List, Optional, Set, Tuple, Any
 from dataclasses import dataclass
 from enum import Enum
-import ast
-
-from .containers import STCContainer
+from typing import Dict, List, Optional, Set, Tuple
 
 
 class SmartPointerType(Enum):
     """Types of smart pointers supported."""
+
     UNIQUE = "unique_ptr"
     SHARED = "shared_ptr"
     WEAK = "weak_ptr"
@@ -31,8 +28,9 @@ class SmartPointerType(Enum):
 @dataclass
 class SmartPointerSpec:
     """Specification for a smart pointer type."""
-    stc_name: str           # STC implementation name
-    header_file: str        # Header to include
+
+    stc_name: str  # STC implementation name
+    header_file: str  # Header to include
     pointer_type: SmartPointerType
     description: str
     supports_custom_deleter: bool = True
@@ -49,9 +47,8 @@ SMART_POINTER_SPECS = {
         description="Exclusive ownership smart pointer with move semantics",
         supports_custom_deleter=True,
         supports_arrays=True,
-        thread_safe=False
+        thread_safe=False,
     ),
-
     SmartPointerType.SHARED: SmartPointerSpec(
         stc_name="shared_ptr",
         header_file="stc/shared_ptr.h",
@@ -59,9 +56,8 @@ SMART_POINTER_SPECS = {
         description="Reference-counted shared ownership smart pointer",
         supports_custom_deleter=True,
         supports_arrays=False,
-        thread_safe=True
+        thread_safe=True,
     ),
-
     SmartPointerType.WEAK: SmartPointerSpec(
         stc_name="weak_ptr",
         header_file="stc/weak_ptr.h",
@@ -69,9 +65,8 @@ SMART_POINTER_SPECS = {
         description="Non-owning weak reference to shared_ptr",
         supports_custom_deleter=False,
         supports_arrays=False,
-        thread_safe=True
+        thread_safe=True,
     ),
-
     SmartPointerType.SCOPED: SmartPointerSpec(
         stc_name="scoped_ptr",
         header_file="stc/scoped_ptr.h",
@@ -79,14 +74,15 @@ SMART_POINTER_SPECS = {
         description="RAII scoped pointer for automatic cleanup",
         supports_custom_deleter=True,
         supports_arrays=True,
-        thread_safe=False
-    )
+        thread_safe=False,
+    ),
 }
 
 
 @dataclass
 class SmartPointerAllocation:
     """Tracks a smart pointer allocation."""
+
     name: str
     pointer_type: SmartPointerType
     element_type: str
@@ -98,8 +94,7 @@ class SmartPointerAllocation:
 
 
 class SmartPointerManager:
-    """
-    Manages smart pointer allocations and generates appropriate STC code.
+    """Manages smart pointer allocations and generates appropriate STC code.
 
     Provides:
     - Smart pointer type resolution
@@ -124,11 +119,16 @@ class SmartPointerManager:
         # Generated type definitions
         self.generated_types: Set[str] = set()
 
-    def register_smart_pointer(self, name: str, pointer_type: SmartPointerType,
-                             element_type: str, line_number: int = 0,
-                             is_array: bool = False,
-                             custom_deleter: Optional[str] = None,
-                             allocator: Optional[str] = None) -> SmartPointerAllocation:
+    def register_smart_pointer(
+        self,
+        name: str,
+        pointer_type: SmartPointerType,
+        element_type: str,
+        line_number: int = 0,
+        is_array: bool = False,
+        custom_deleter: Optional[str] = None,
+        allocator: Optional[str] = None,
+    ) -> SmartPointerAllocation:
         """Register a new smart pointer allocation."""
         allocation = SmartPointerAllocation(
             name=name,
@@ -137,7 +137,7 @@ class SmartPointerManager:
             line_number=line_number,
             is_array=is_array,
             custom_deleter=custom_deleter,
-            allocator=allocator
+            allocator=allocator,
         )
 
         self.allocations[name] = allocation
@@ -176,8 +176,9 @@ class SmartPointerManager:
 
         return type_def, include
 
-    def generate_smart_pointer_operation(self, operation: str, pointer_name: str,
-                                       args: List[str] = None) -> Optional[str]:
+    def generate_smart_pointer_operation(
+        self, operation: str, pointer_name: str, args: List[str] = None
+    ) -> Optional[str]:
         """Generate smart pointer operation code."""
         if pointer_name not in self.allocations:
             return None
@@ -189,38 +190,36 @@ class SmartPointerManager:
         # Map operations to STC smart pointer functions
         operation_mappings = {
             # Common operations
-            'reset': 'reset',
-            'release': 'release',
-            'get': 'get',
-            'operator*': 'deref',
-            'operator->': 'arrow',
-            'operator bool': 'has_value',
-
+            "reset": "reset",
+            "release": "release",
+            "get": "get",
+            "operator*": "deref",
+            "operator->": "arrow",
+            "operator bool": "has_value",
             # unique_ptr specific
-            'move': 'move',
-
+            "move": "move",
             # shared_ptr specific
-            'use_count': 'use_count',
-            'unique': 'unique',
-
+            "use_count": "use_count",
+            "unique": "unique",
             # weak_ptr specific
-            'expired': 'expired',
-            'lock': 'lock',
+            "expired": "expired",
+            "lock": "lock",
         }
 
         stc_operation = operation_mappings.get(operation, operation)
 
         if args:
-            args_str = ', '.join(args)
+            args_str = ", ".join(args)
             return f"{type_name}_{stc_operation}(&{pointer_name}, {args_str})"
         else:
             return f"{type_name}_{stc_operation}(&{pointer_name})"
 
-    def generate_make_smart_pointer(self, pointer_type: SmartPointerType,
-                                  element_type: str, args: List[str] = None) -> str:
+    def generate_make_smart_pointer(
+        self, pointer_type: SmartPointerType, element_type: str, args: List[str] = None
+    ) -> str:
         """Generate make_unique, make_shared, etc. calls."""
         args = args or []
-        args_str = ', '.join(args) if args else ""
+        args_str = ", ".join(args) if args else ""
 
         if pointer_type == SmartPointerType.UNIQUE:
             return f"make_unique_{element_type}({args_str})"
@@ -318,10 +317,7 @@ class SmartPointerManager:
             source_type = self._generate_type_name(source_alloc)
             target_type = self._generate_type_name(target_alloc)
 
-            return [
-                f"{target_type}_move(&{target}, &{source});",
-                f"// {source} is now empty after move"
-            ]
+            return [f"{target_type}_move(&{target}, &{source});", f"// {source} is now empty after move"]
 
         return []
 
@@ -374,9 +370,9 @@ class SmartPointerManager:
 
 
 __all__ = [
-    'SmartPointerType',
-    'SmartPointerSpec',
-    'SmartPointerAllocation',
-    'SmartPointerManager',
-    'SMART_POINTER_SPECS'
+    "SmartPointerType",
+    "SmartPointerSpec",
+    "SmartPointerAllocation",
+    "SmartPointerManager",
+    "SMART_POINTER_SPECS",
 ]

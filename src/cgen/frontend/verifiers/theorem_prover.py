@@ -1,5 +1,4 @@
-"""
-Z3 Theorem Prover Integration for Formal Verification
+"""Z3 Theorem Prover Integration for Formal Verification
 
 This module provides integration with the Z3 theorem prover for formal verification
 of code properties, memory safety, and algorithm correctness.
@@ -7,47 +6,64 @@ of code properties, memory safety, and algorithm correctness.
 
 import ast
 import time
-from typing import Dict, List, Optional, Set, Union, Any
 from dataclasses import dataclass
 from enum import Enum
+from typing import Any, Dict, List, Optional, Union
 
 # Z3 integration - graceful fallback if not installed
 try:
     import z3
+
     Z3_AVAILABLE = True
 except ImportError:
     Z3_AVAILABLE = False
+
     # Mock Z3 classes for development without Z3
     class z3:
         class Solver:
-            def __init__(self): pass
-            def add(self, constraint): pass
-            def check(self): return "unknown"
-            def model(self): return None
+            def __init__(self):
+                pass
+
+            def add(self, constraint):
+                pass
+
+            def check(self):
+                return "unknown"
+
+            def model(self):
+                return None
 
         class Int:
-            def __init__(self, name): self.name = name
+            def __init__(self, name):
+                self.name = name
 
         class Bool:
-            def __init__(self, name): self.name = name
+            def __init__(self, name):
+                self.name = name
 
         @staticmethod
-        def And(*args): return "And(" + str(args) + ")"
+        def And(*args):
+            return "And(" + str(args) + ")"
 
         @staticmethod
-        def Or(*args): return "Or(" + str(args) + ")"
+        def Or(*args):
+            return "Or(" + str(args) + ")"
 
         @staticmethod
-        def Implies(a, b): return f"Implies({a}, {b})"
+        def Implies(a, b):
+            return f"Implies({a}, {b})"
 
         @staticmethod
-        def ForAll(vars, body): return f"ForAll({vars}, {body})"
+        def ForAll(vars, body):
+            return f"ForAll({vars}, {body})"
 
-from ..base import AnalysisContext, AnalysisResult
+
+from ..base import AnalysisContext
 
 
 class ProofStatus(Enum):
     """Status of a formal proof attempt."""
+
     PROVED = "proved"
     DISPROVED = "disproved"
     UNKNOWN = "unknown"
@@ -57,6 +73,7 @@ class ProofStatus(Enum):
 
 class PropertyType(Enum):
     """Types of properties that can be verified."""
+
     MEMORY_SAFETY = "memory_safety"
     BOUNDS_CHECKING = "bounds_checking"
     NULL_POINTER_SAFETY = "null_pointer_safety"
@@ -74,6 +91,7 @@ class PropertyType(Enum):
 @dataclass
 class ProofProperty:
     """A property to be verified."""
+
     name: str
     property_type: PropertyType
     description: str
@@ -84,6 +102,7 @@ class ProofProperty:
 @dataclass
 class ProofResult:
     """Result of a formal verification attempt."""
+
     property: ProofProperty
     status: ProofStatus
     proof_time: float
@@ -146,7 +165,7 @@ class TheoremProver:
                 property=prop,
                 status=ProofStatus.ERROR,
                 proof_time=0.0,
-                error_message="Z3 not available. Install with: pip install z3-solver"
+                error_message="Z3 not available. Install with: pip install z3-solver",
             )
 
         start_time = time.time()
@@ -173,7 +192,7 @@ class TheoremProver:
                     status=ProofStatus.DISPROVED,
                     proof_time=proof_time,
                     counterexample=counterexample,
-                    z3_model=model
+                    z3_model=model,
                 )
             elif result == z3.unsat:
                 # No counterexample - property is true
@@ -181,7 +200,7 @@ class TheoremProver:
                     property=prop,
                     status=ProofStatus.PROVED,
                     proof_time=proof_time,
-                    verification_steps=[f"Z3 proved property in {proof_time:.3f}s"]
+                    verification_steps=[f"Z3 proved property in {proof_time:.3f}s"],
                 )
             else:
                 # Unknown result (timeout or undecidable)
@@ -189,15 +208,12 @@ class TheoremProver:
                     property=prop,
                     status=ProofStatus.UNKNOWN,
                     proof_time=proof_time,
-                    error_message="Z3 could not determine satisfiability"
+                    error_message="Z3 could not determine satisfiability",
                 )
 
         except Exception as e:
             return ProofResult(
-                property=prop,
-                status=ProofStatus.ERROR,
-                proof_time=time.time() - start_time,
-                error_message=str(e)
+                property=prop, status=ProofStatus.ERROR, proof_time=time.time() - start_time, error_message=str(e)
             )
 
     def verify_multiple_properties(self, properties: List[ProofProperty]) -> List[ProofResult]:
@@ -222,11 +238,7 @@ class TheoremProver:
         return results
 
     def create_bounds_check_property(
-        self,
-        array_name: str,
-        index_expr: str,
-        array_size: Union[int, str],
-        context: Optional[Dict[str, Any]] = None
+        self, array_name: str, index_expr: str, array_size: Union[int, str], context: Optional[Dict[str, Any]] = None
     ) -> ProofProperty:
         """Create a bounds checking property.
 
@@ -245,7 +257,7 @@ class TheoremProver:
                 name=f"bounds_check_{array_name}",
                 property_type=PropertyType.BOUNDS_CHECKING,
                 description=f"Index {index_expr} is within bounds of {array_name}[{array_size}]",
-                z3_formula="mock_formula"
+                z3_formula="mock_formula",
             )
 
         # Create Z3 variables
@@ -260,15 +272,11 @@ class TheoremProver:
             property_type=PropertyType.BOUNDS_CHECKING,
             description=f"Index {index_expr} is within bounds of {array_name}[{array_size}]",
             z3_formula=bounds_check,
-            context=context
+            context=context,
         )
 
     def create_overflow_safety_property(
-        self,
-        operation: str,
-        operands: List[str],
-        result_type: str = "int",
-        context: Optional[Dict[str, Any]] = None
+        self, operation: str, operands: List[str], result_type: str = "int", context: Optional[Dict[str, Any]] = None
     ) -> ProofProperty:
         """Create an overflow safety property.
 
@@ -286,7 +294,7 @@ class TheoremProver:
                 name=f"overflow_safety_{operation}",
                 property_type=PropertyType.OVERFLOW_SAFETY,
                 description=f"Operation {operation} on {operands} does not overflow",
-                z3_formula="mock_formula"
+                z3_formula="mock_formula",
             )
 
         # Create Z3 variables for operands
@@ -294,9 +302,9 @@ class TheoremProver:
 
         # Define bounds for different types
         type_bounds = {
-            "int": (-2**31, 2**31 - 1),
-            "long": (-2**63, 2**63 - 1),
-            "short": (-2**15, 2**15 - 1),
+            "int": (-(2**31), 2**31 - 1),
+            "long": (-(2**63), 2**63 - 1),
+            "short": (-(2**15), 2**15 - 1),
         }
 
         min_val, max_val = type_bounds.get(result_type, type_bounds["int"])
@@ -319,7 +327,7 @@ class TheoremProver:
             property_type=PropertyType.OVERFLOW_SAFETY,
             description=f"Operation {operation} on {operands} does not overflow",
             z3_formula=overflow_safety,
-            context=context
+            context=context,
         )
 
     def analyze_function_safety(self, context: AnalysisContext) -> List[ProofResult]:
@@ -340,18 +348,13 @@ class TheoremProver:
         # Create properties for array accesses
         for array_access in safety_visitor.array_accesses:
             prop = self.create_bounds_check_property(
-                array_access['array'],
-                array_access['index'],
-                array_access.get('size', 'unknown')
+                array_access["array"], array_access["index"], array_access.get("size", "unknown")
             )
             properties.append(prop)
 
         # Create properties for arithmetic operations
         for operation in safety_visitor.arithmetic_ops:
-            prop = self.create_overflow_safety_property(
-                operation['op'],
-                operation['operands']
-            )
+            prop = self.create_overflow_safety_property(operation["op"], operation["operands"])
             properties.append(prop)
 
         # Verify all properties
@@ -409,22 +412,14 @@ class SafetyPropertyExtractor(ast.NodeVisitor):
             else:
                 index_name = "complex_index"
 
-            self.array_accesses.append({
-                'array': array_name,
-                'index': index_name,
-                'line': node.lineno
-            })
+            self.array_accesses.append({"array": array_name, "index": index_name, "line": node.lineno})
 
         self.generic_visit(node)
 
     def visit_BinOp(self, node):
         """Extract arithmetic operations for overflow checking."""
         if isinstance(node.op, (ast.Add, ast.Sub, ast.Mult)):
-            op_name = {
-                ast.Add: "add",
-                ast.Sub: "sub",
-                ast.Mult: "mul"
-            }[type(node.op)]
+            op_name = {ast.Add: "add", ast.Sub: "sub", ast.Mult: "mul"}[type(node.op)]
 
             operands = []
             if isinstance(node.left, ast.Name):
@@ -433,11 +428,7 @@ class SafetyPropertyExtractor(ast.NodeVisitor):
                 operands.append(node.right.id)
 
             if operands:
-                self.arithmetic_ops.append({
-                    'op': op_name,
-                    'operands': operands,
-                    'line': node.lineno
-                })
+                self.arithmetic_ops.append({"op": op_name, "operands": operands, "line": node.lineno})
 
         self.generic_visit(node)
 
@@ -447,11 +438,7 @@ class SafetyPropertyExtractor(ast.NodeVisitor):
             if node.iter.func.id == "range":
                 args = node.iter.args
                 if args:
-                    bound_info = {
-                        'type': 'range',
-                        'args': len(args),
-                        'line': node.lineno
-                    }
+                    bound_info = {"type": "range", "args": len(args), "line": node.lineno}
                     self.loop_bounds.append(bound_info)
 
         self.generic_visit(node)

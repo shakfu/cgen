@@ -5,15 +5,16 @@ optimization opportunities, particularly in loops and array operations.
 """
 
 import ast
-from typing import List, Dict, Set, Optional, Tuple, Any, Union
 from dataclasses import dataclass, field
 from enum import Enum
+from typing import Any, Dict, List, Optional, Set, Tuple
 
-from ..base import BaseOptimizer, AnalysisContext, OptimizationResult
+from ..base import AnalysisContext, BaseOptimizer, OptimizationResult
 
 
 class VectorizationType(Enum):
     """Types of vectorization opportunities."""
+
     SIMPLE_LOOP = "simple_loop"
     REDUCTION_LOOP = "reduction_loop"
     ARRAY_COPY = "array_copy"
@@ -26,6 +27,7 @@ class VectorizationType(Enum):
 
 class VectorizationConstraint(Enum):
     """Constraints that affect vectorization."""
+
     MEMORY_ALIGNMENT = "memory_alignment"
     DATA_DEPENDENCIES = "data_dependencies"
     ALIASING = "aliasing"
@@ -39,6 +41,7 @@ class VectorizationConstraint(Enum):
 @dataclass
 class MemoryAccess:
     """Represents a memory access pattern."""
+
     variable: str
     indices: List[ast.AST]
     is_read: bool
@@ -51,6 +54,7 @@ class MemoryAccess:
 @dataclass
 class VectorizationCandidate:
     """Represents a potential vectorization opportunity."""
+
     loop_node: ast.AST
     vectorization_type: VectorizationType
     vector_length: int
@@ -72,6 +76,7 @@ class VectorizationCandidate:
 @dataclass
 class VectorizationReport:
     """Report containing vectorization analysis results."""
+
     candidates: List[VectorizationCandidate]
     total_loops_analyzed: int
     vectorizable_loops: int
@@ -103,14 +108,14 @@ class VectorizationDetector(BaseOptimizer):
                 "simd_extensions": ["SSE", "SSE2", "AVX", "AVX2", "AVX512"],
                 "vector_widths": {"float": [4, 8, 16], "int": [4, 8, 16], "double": [2, 4, 8]},
                 "alignment_requirements": {"float": 16, "double": 32, "int": 16},
-                "supported_operations": ["add", "sub", "mul", "fma", "load", "store", "broadcast"]
+                "supported_operations": ["add", "sub", "mul", "fma", "load", "store", "broadcast"],
             },
             "arm": {
                 "simd_extensions": ["NEON", "SVE"],
                 "vector_widths": {"float": [4, 8], "int": [4, 8, 16], "double": [2, 4]},
                 "alignment_requirements": {"float": 16, "double": 16, "int": 16},
-                "supported_operations": ["add", "sub", "mul", "fma", "load", "store"]
-            }
+                "supported_operations": ["add", "sub", "mul", "fma", "load", "store"],
+            },
         }
         return capabilities.get(self.target_arch, capabilities["x86_64"])
 
@@ -136,7 +141,7 @@ class VectorizationDetector(BaseOptimizer):
             transformations=transformations,
             performance_gain_estimate=report.potential_speedup,
             safety_analysis={"vectorization_safe": True},
-            metadata={"vectorization_report": report}
+            metadata={"vectorization_report": report},
         )
 
     def analyze(self, node: ast.AST) -> VectorizationReport:
@@ -168,7 +173,7 @@ class VectorizationDetector(BaseOptimizer):
             "vectorization_efficiency": vectorizable_loops / max(total_loops, 1),
             "average_speedup": potential_speedup / max(vectorizable_loops, 1),
             "complexity_distribution": self._analyze_complexity_distribution(candidates),
-            "constraint_frequency": self._analyze_constraint_frequency(candidates)
+            "constraint_frequency": self._analyze_constraint_frequency(candidates),
         }
 
         return VectorizationReport(
@@ -178,7 +183,7 @@ class VectorizationDetector(BaseOptimizer):
             potential_speedup=potential_speedup,
             recommended_vector_widths=recommended_widths,
             architecture_recommendations=arch_recommendations,
-            analysis_summary=analysis_summary
+            analysis_summary=analysis_summary,
         )
 
     def _analyze_loop(self, loop_node: ast.AST) -> Optional[VectorizationCandidate]:
@@ -215,7 +220,7 @@ class VectorizationDetector(BaseOptimizer):
             estimated_speedup=speedup,
             confidence=confidence,
             transformation_complexity=complexity,
-            required_intrinsics=intrinsics
+            required_intrinsics=intrinsics,
         )
 
     def _is_vectorizable_loop(self, loop_node: ast.AST) -> bool:
@@ -261,8 +266,8 @@ class VectorizationDetector(BaseOptimizer):
         if access_pattern == "irregular":
             return None
 
-        is_read = not isinstance(getattr(node, 'ctx', None), ast.Store)
-        is_write = isinstance(getattr(node, 'ctx', None), ast.Store)
+        is_read = not isinstance(getattr(node, "ctx", None), ast.Store)
+        is_write = isinstance(getattr(node, "ctx", None), ast.Store)
 
         return MemoryAccess(
             variable=variable,
@@ -270,7 +275,7 @@ class VectorizationDetector(BaseOptimizer):
             is_read=is_read,
             is_write=is_write,
             access_pattern=access_pattern,
-            stride=stride
+            stride=stride,
         )
 
     def _analyze_access_pattern(self, indices: List[ast.AST], loop_node: ast.AST) -> Tuple[str, Optional[int]]:
@@ -352,8 +357,7 @@ class VectorizationDetector(BaseOptimizer):
             write_access = next((a for a in accesses if a.is_write), None)
 
             if read_access and write_access:
-                return (read_access.access_pattern == "linear" and
-                       write_access.access_pattern == "linear")
+                return read_access.access_pattern == "linear" and write_access.access_pattern == "linear"
         return False
 
     def _is_element_wise_pattern(self, accesses: List[MemoryAccess]) -> bool:
@@ -425,11 +429,11 @@ class VectorizationDetector(BaseOptimizer):
         for node in ast.walk(loop_node):
             if isinstance(node, ast.Call):
                 # Skip the iterator call (like range()) - it's not in the loop body
-                if hasattr(loop_node, 'iter') and node == loop_node.iter:
+                if hasattr(loop_node, "iter") and node == loop_node.iter:
                     continue
                 # Skip common safe functions
                 if isinstance(node.func, ast.Name):
-                    safe_functions = {'range', 'len', 'enumerate'}
+                    safe_functions = {"range", "len", "enumerate"}
                     if node.func.id in safe_functions:
                         continue
                 return True
@@ -486,7 +490,7 @@ class VectorizationDetector(BaseOptimizer):
         type_adjustments = {
             VectorizationType.DOT_PRODUCT: lambda w: min(w, 8),
             VectorizationType.REDUCTION_LOOP: lambda w: min(w, 4),
-            VectorizationType.MATRIX_MULTIPLY: lambda w: max(w, 8)
+            VectorizationType.MATRIX_MULTIPLY: lambda w: max(w, 8),
         }
 
         if vec_type in type_adjustments:
@@ -494,8 +498,9 @@ class VectorizationDetector(BaseOptimizer):
 
         return max(2, min(base_width, 16))
 
-    def _estimate_speedup(self, vec_type: VectorizationType, vector_length: int,
-                         constraints: Set[VectorizationConstraint]) -> float:
+    def _estimate_speedup(
+        self, vec_type: VectorizationType, vector_length: int, constraints: Set[VectorizationConstraint]
+    ) -> float:
         """Estimate potential speedup from vectorization."""
         base_speedup = vector_length * 0.8  # Account for overhead
 
@@ -506,7 +511,7 @@ class VectorizationDetector(BaseOptimizer):
             VectorizationType.ARRAY_COPY: 0.85,
             VectorizationType.DOT_PRODUCT: 0.9,
             VectorizationType.REDUCTION_LOOP: 0.7,
-            VectorizationType.MATRIX_MULTIPLY: 1.1
+            VectorizationType.MATRIX_MULTIPLY: 1.1,
         }
 
         multiplier = type_multipliers.get(vec_type, 0.8)
@@ -518,7 +523,7 @@ class VectorizationDetector(BaseOptimizer):
             VectorizationConstraint.FUNCTION_CALLS: 0.6,
             VectorizationConstraint.DATA_DEPENDENCIES: 0.5,
             VectorizationConstraint.ALIASING: 0.8,
-            VectorizationConstraint.IRREGULAR_ACCESS: 0.4
+            VectorizationConstraint.IRREGULAR_ACCESS: 0.4,
         }
 
         for constraint in constraints:
@@ -527,8 +532,7 @@ class VectorizationDetector(BaseOptimizer):
 
         return max(1.1, speedup)
 
-    def _calculate_confidence(self, constraints: Set[VectorizationConstraint],
-                            accesses: List[MemoryAccess]) -> float:
+    def _calculate_confidence(self, constraints: Set[VectorizationConstraint], accesses: List[MemoryAccess]) -> float:
         """Calculate confidence in the vectorization analysis."""
         base_confidence = 0.9
 
@@ -538,7 +542,7 @@ class VectorizationDetector(BaseOptimizer):
             VectorizationConstraint.FUNCTION_CALLS: 0.4,
             VectorizationConstraint.DATA_DEPENDENCIES: 0.51,  # Changed to ensure < 0.5
             VectorizationConstraint.ALIASING: 0.2,
-            VectorizationConstraint.IRREGULAR_ACCESS: 0.6
+            VectorizationConstraint.IRREGULAR_ACCESS: 0.6,
         }
 
         for constraint in constraints:
@@ -551,8 +555,9 @@ class VectorizationDetector(BaseOptimizer):
 
         return max(0.1, min(1.0, base_confidence))
 
-    def _assess_transformation_complexity(self, vec_type: VectorizationType,
-                                        constraints: Set[VectorizationConstraint]) -> str:
+    def _assess_transformation_complexity(
+        self, vec_type: VectorizationType, constraints: Set[VectorizationConstraint]
+    ) -> str:
         """Assess the complexity of the required transformation."""
         if len(constraints) == 0:
             return "trivial"
@@ -560,7 +565,7 @@ class VectorizationDetector(BaseOptimizer):
         complex_constraints = {
             VectorizationConstraint.DATA_DEPENDENCIES,
             VectorizationConstraint.CONTROL_FLOW,
-            VectorizationConstraint.FUNCTION_CALLS
+            VectorizationConstraint.FUNCTION_CALLS,
         }
 
         if constraints.intersection(complex_constraints):

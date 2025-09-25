@@ -1,5 +1,4 @@
-"""
-STC (Smart Template Containers) Integration
+"""STC (Smart Template Containers) Integration
 
 This module provides integration with the STC C library for high-performance,
 type-safe container operations in generated C code.
@@ -23,13 +22,16 @@ STC_BASE_DIR = Path(__file__).parent
 STC_INCLUDE_DIR = STC_BASE_DIR / "include"
 STC_SRC_DIR = STC_BASE_DIR / "src"
 
+
 def get_stc_include_path() -> str:
     """Get the path to STC include directory."""
     return str(STC_INCLUDE_DIR)
 
+
 def get_stc_src_path() -> str:
     """Get the path to STC source directory."""
     return str(STC_SRC_DIR)
+
 
 def get_stc_headers() -> list:
     """Get list of available STC header files."""
@@ -38,17 +40,19 @@ def get_stc_headers() -> list:
         return [f.name for f in stc_headers_dir.glob("*.h")]
     return []
 
+
 def get_stc_sources() -> list:
     """Get list of available STC source files."""
     if STC_SRC_DIR.exists():
         return [f.name for f in STC_SRC_DIR.glob("*.c")]
     return []
 
+
 __all__ = [
-    'get_stc_include_path',
-    'get_stc_src_path',
-    'get_stc_headers',
-    'get_stc_sources',
-    'STC_INCLUDE_DIR',
-    'STC_SRC_DIR'
+    "get_stc_include_path",
+    "get_stc_src_path",
+    "get_stc_headers",
+    "get_stc_sources",
+    "STC_INCLUDE_DIR",
+    "STC_SRC_DIR",
 ]

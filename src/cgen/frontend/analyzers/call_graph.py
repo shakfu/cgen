@@ -7,7 +7,7 @@ Python code analysis, focusing on function relationships and call patterns.
 import ast
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, List, Optional, Set
 
 from ..base import AnalysisContext, AnalysisReport, BaseAnalyzer
 
@@ -119,9 +119,26 @@ class CallGraphAnalyzer(BaseAnalyzer):
         self._current_context: CallContext = CallContext.UNCONDITIONAL
         self._context_stack: List[CallContext] = []
         self._builtin_functions = {
-            'print', 'len', 'range', 'enumerate', 'zip', 'map', 'filter',
-            'sum', 'max', 'min', 'abs', 'round', 'sorted', 'reversed',
-            'all', 'any', 'isinstance', 'hasattr', 'getattr', 'setattr'
+            "print",
+            "len",
+            "range",
+            "enumerate",
+            "zip",
+            "map",
+            "filter",
+            "sum",
+            "max",
+            "min",
+            "abs",
+            "round",
+            "sorted",
+            "reversed",
+            "all",
+            "any",
+            "isinstance",
+            "hasattr",
+            "getattr",
+            "setattr",
         }
 
     def analyze(self, context: AnalysisContext) -> CallGraphReport:
@@ -160,7 +177,7 @@ class CallGraphAnalyzer(BaseAnalyzer):
                 metadata={
                     "analysis_level": self.analysis_level.value,
                     "functions_analyzed": len(self._defined_functions),
-                    "call_sites_found": len(self._call_sites)
+                    "call_sites_found": len(self._call_sites),
                 },
                 call_graph=call_graph,
                 call_sites=self._call_sites,
@@ -168,7 +185,7 @@ class CallGraphAnalyzer(BaseAnalyzer):
                 metrics=metrics,
                 cycles=cycles,
                 critical_paths=critical_paths,
-                optimization_opportunities=optimizations
+                optimization_opportunities=optimizations,
             )
 
         except Exception as e:
@@ -179,7 +196,7 @@ class CallGraphAnalyzer(BaseAnalyzer):
                 findings=[],
                 warnings=[],
                 errors=[f"Call graph analysis failed: {str(e)}"],
-                metadata={"error_type": type(e).__name__}
+                metadata={"error_type": type(e).__name__},
             )
 
     def _reset_state(self) -> None:
@@ -277,7 +294,7 @@ class CallGraphAnalyzer(BaseAnalyzer):
             arguments_count=len(node.args),
             is_method_call=is_method,
             is_builtin=is_builtin,
-            confidence=self._calculate_call_confidence(node, callee)
+            confidence=self._calculate_call_confidence(node, callee),
         )
 
         self._call_sites.append(call_site)
@@ -363,9 +380,9 @@ class CallGraphAnalyzer(BaseAnalyzer):
 
         return paths
 
-    def _generate_paths_from_function(self, call_graph: Dict[str, FunctionNode],
-                                    func_name: str, visited: Set[str],
-                                    current_path: List[str] = None) -> List[CallPath]:
+    def _generate_paths_from_function(
+        self, call_graph: Dict[str, FunctionNode], func_name: str, visited: Set[str], current_path: List[str] = None
+    ) -> List[CallPath]:
         """Generate all paths starting from a given function."""
         if current_path is None:
             current_path = []
@@ -383,40 +400,48 @@ class CallGraphAnalyzer(BaseAnalyzer):
         # Get function node
         node = call_graph.get(func_name)
         if not node:
-            return [CallPath(
-                functions=current_path,
-                total_depth=len(current_path),
-                has_cycles=has_cycle,
-                cycle_functions=cycle_functions,
-                estimated_complexity=len(current_path)
-            )]
+            return [
+                CallPath(
+                    functions=current_path,
+                    total_depth=len(current_path),
+                    has_cycles=has_cycle,
+                    cycle_functions=cycle_functions,
+                    estimated_complexity=len(current_path),
+                )
+            ]
 
         # If this is a leaf or we've detected a cycle, end the path
         if node.is_leaf or has_cycle:
-            return [CallPath(
-                functions=current_path,
-                total_depth=len(current_path),
-                has_cycles=has_cycle,
-                cycle_functions=cycle_functions,
-                estimated_complexity=len(current_path) + (2 if has_cycle else 0)
-            )]
+            return [
+                CallPath(
+                    functions=current_path,
+                    total_depth=len(current_path),
+                    has_cycles=has_cycle,
+                    cycle_functions=cycle_functions,
+                    estimated_complexity=len(current_path) + (2 if has_cycle else 0),
+                )
+            ]
 
         # Continue exploring callees
         new_visited = visited | {func_name}
         for callee in node.local_calls:
             if callee in call_graph:  # Only follow local calls
-                sub_paths = self._generate_paths_from_function(
-                    call_graph, callee, new_visited, current_path
-                )
+                sub_paths = self._generate_paths_from_function(call_graph, callee, new_visited, current_path)
                 paths.extend(sub_paths)
 
-        return paths if paths else [CallPath(
-            functions=current_path,
-            total_depth=len(current_path),
-            has_cycles=has_cycle,
-            cycle_functions=cycle_functions,
-            estimated_complexity=len(current_path)
-        )]
+        return (
+            paths
+            if paths
+            else [
+                CallPath(
+                    functions=current_path,
+                    total_depth=len(current_path),
+                    has_cycles=has_cycle,
+                    cycle_functions=cycle_functions,
+                    estimated_complexity=len(current_path),
+                )
+            ]
+        )
 
     def _detect_cycles(self, call_graph: Dict[str, FunctionNode]) -> List[List[str]]:
         """Detect cycles in the call graph using DFS."""
@@ -508,8 +533,9 @@ class CallGraphAnalyzer(BaseAnalyzer):
 
         return max_depth
 
-    def _find_optimization_opportunities(self, call_graph: Dict[str, FunctionNode],
-                                       cycles: List[List[str]]) -> List[str]:
+    def _find_optimization_opportunities(
+        self, call_graph: Dict[str, FunctionNode], cycles: List[List[str]]
+    ) -> List[str]:
         """Find potential optimization opportunities."""
         opportunities = []
 
@@ -538,9 +564,7 @@ class CallGraphAnalyzer(BaseAnalyzer):
     def _find_critical_paths(self, call_paths: List[CallPath]) -> List[CallPath]:
         """Find critical paths that might affect performance."""
         # Sort by complexity and depth
-        sorted_paths = sorted(call_paths,
-                            key=lambda p: (p.estimated_complexity, p.total_depth),
-                            reverse=True)
+        sorted_paths = sorted(call_paths, key=lambda p: (p.estimated_complexity, p.total_depth), reverse=True)
 
         # Return top 5 most complex paths
         return sorted_paths[:5]
@@ -553,15 +577,16 @@ class CallGraphAnalyzer(BaseAnalyzer):
         total_confidence = sum(call_site.confidence for call_site in self._call_sites)
         return total_confidence / len(self._call_sites)
 
-    def _generate_findings(self, call_graph: Dict[str, FunctionNode],
-                          cycles: List[List[str]], metrics: CallGraphMetrics) -> List[str]:
+    def _generate_findings(
+        self, call_graph: Dict[str, FunctionNode], cycles: List[List[str]], metrics: CallGraphMetrics
+    ) -> List[str]:
         """Generate analysis findings."""
         findings = [
             f"Analyzed {metrics.total_functions} functions with {metrics.total_call_sites} call sites",
             f"Found {metrics.root_functions} entry points and {metrics.leaf_functions} leaf functions",
             f"Average fan-out: {metrics.average_fan_out:.2f}, fan-in: {metrics.average_fan_in:.2f}",
             f"Maximum call depth: {metrics.max_call_depth}",
-            f"External dependencies: {metrics.external_dependencies}"
+            f"External dependencies: {metrics.external_dependencies}",
         ]
 
         if cycles:
@@ -572,8 +597,7 @@ class CallGraphAnalyzer(BaseAnalyzer):
 
         return findings
 
-    def _generate_warnings(self, call_graph: Dict[str, FunctionNode],
-                          cycles: List[List[str]]) -> List[str]:
+    def _generate_warnings(self, call_graph: Dict[str, FunctionNode], cycles: List[List[str]]) -> List[str]:
         """Generate analysis warnings."""
         warnings = []
 
@@ -589,7 +613,7 @@ class CallGraphAnalyzer(BaseAnalyzer):
 
         # Warn about unreachable functions
         for node in call_graph.values():
-            if len(node.callers) == 0 and not node.name.startswith('_'):
+            if len(node.callers) == 0 and not node.name.startswith("_"):
                 warnings.append(f"Function {node.name} appears to be unreachable")
 
         return warnings

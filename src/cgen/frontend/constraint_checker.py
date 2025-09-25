@@ -191,13 +191,27 @@ class StaticConstraintChecker:
         """Check if a subscript node represents a type annotation rather than array access."""
         # Common type annotation patterns: list[int], dict[str, int], etc.
         if isinstance(node.value, ast.Name):
-            type_names = {'list', 'dict', 'set', 'tuple', 'List', 'Dict', 'Set', 'Tuple',
-                         'Optional', 'Union', 'Callable', 'Type', 'ClassVar', 'Final'}
+            type_names = {
+                "list",
+                "dict",
+                "set",
+                "tuple",
+                "List",
+                "Dict",
+                "Set",
+                "Tuple",
+                "Optional",
+                "Union",
+                "Callable",
+                "Type",
+                "ClassVar",
+                "Final",
+            }
             return node.value.id in type_names
 
         # Handle nested type annotations: typing.List[int]
         if isinstance(node.value, ast.Attribute):
-            if isinstance(node.value.value, ast.Name) and node.value.value.id == 'typing':
+            if isinstance(node.value.value, ast.Name) and node.value.value.id == "typing":
                 return True
 
         return False
@@ -472,8 +486,7 @@ class StaticConstraintChecker:
             if isinstance(base, ast.Name) and base.id == "NamedTuple":
                 return True
             elif isinstance(base, ast.Attribute):
-                if (isinstance(base.value, ast.Name) and
-                    base.value.id == "typing" and base.attr == "NamedTuple"):
+                if isinstance(base.value, ast.Name) and base.value.id == "typing" and base.attr == "NamedTuple":
                     return True
         return False
 
@@ -668,11 +681,11 @@ class StaticConstraintChecker:
             if var_name in scope:
                 var_info = scope[var_name]
                 # If variable has a concrete type annotation like list[int], it's not None
-                if hasattr(var_info, 'type_annotation') and var_info.type_annotation:
+                if hasattr(var_info, "type_annotation") and var_info.type_annotation:
                     return False
                 # If variable is a built-in collection type, it's initialized
-                if hasattr(var_info, 'inferred_type'):
-                    if var_info.inferred_type in ['list', 'dict', 'set', 'tuple']:
+                if hasattr(var_info, "inferred_type"):
+                    if var_info.inferred_type in ["list", "dict", "set", "tuple"]:
                         return False
 
         # For known variable patterns that are clearly initialized

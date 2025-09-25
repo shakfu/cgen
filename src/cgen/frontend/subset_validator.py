@@ -501,8 +501,7 @@ class StaticPythonSubsetValidator:
                 is_namedtuple = True
                 break
             elif isinstance(base, ast.Attribute):
-                if (isinstance(base.value, ast.Name) and
-                    base.value.id == "typing" and base.attr == "NamedTuple"):
+                if isinstance(base.value, ast.Name) and base.value.id == "typing" and base.attr == "NamedTuple":
                     is_namedtuple = True
                     break
 

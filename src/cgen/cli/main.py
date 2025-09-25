@@ -17,9 +17,10 @@ import sys
 from pathlib import Path
 from typing import Optional
 
-# Import the pipeline
-from ..pipeline import CGenPipeline, PipelineConfig, BuildMode, OptimizationLevel
 from ..common import log
+
+# Import the pipeline
+from ..pipeline import BuildMode, CGenPipeline, OptimizationLevel, PipelineConfig
 
 BUILD_DIR = "build"
 
@@ -53,105 +54,72 @@ Build Directory Structure:
   ├── src/                 # Generated C source files
   ├── Makefile             # Generated build system (if -m flag used)
   └── executable           # Compiled binary (if -m flag not used)
-            """
+            """,
         )
 
         # Global options
-        parser.add_argument(
-            "--build-dir", "-d",
-            type=str,
-            default="build",
-            help="Build directory (default: build)"
-        )
-        parser.add_argument(
-            "--verbose", "-v",
-            action="store_true",
-            help="Verbose output"
-        )
+        parser.add_argument("--build-dir", "-d", type=str, default="build", help="Build directory (default: build)")
+        parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
 
         # Subcommands
         subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
         # Convert command
-        convert_parser = subparsers.add_parser(
-            "convert",
-            help="Convert Python to C code"
-        )
+        convert_parser = subparsers.add_parser("convert", help="Convert Python to C code")
+        convert_parser.add_argument("input_file", help="Python file to convert")
         convert_parser.add_argument(
-            "input_file",
-            help="Python file to convert"
-        )
-        convert_parser.add_argument(
-            "-O", "--optimization",
+            "-O",
+            "--optimization",
             choices=["none", "basic", "moderate", "aggressive"],
             default="moderate",
-            help="Optimization level (default: moderate)"
+            help="Optimization level (default: moderate)",
         )
 
         # Build command
         build_parser = subparsers.add_parser(
-            "build",
-            help="Convert Python to C and build (compile directly or generate Makefile)"
+            "build", help="Convert Python to C and build (compile directly or generate Makefile)"
+        )
+        build_parser.add_argument("input_file", help="Python file to convert")
+        build_parser.add_argument(
+            "-m", "--makefile", action="store_true", help="Generate Makefile instead of compiling directly"
         )
         build_parser.add_argument(
-            "input_file",
-            help="Python file to convert"
-        )
-        build_parser.add_argument(
-            "-m", "--makefile",
-            action="store_true",
-            help="Generate Makefile instead of compiling directly"
-        )
-        build_parser.add_argument(
-            "-O", "--optimization",
+            "-O",
+            "--optimization",
             choices=["none", "basic", "moderate", "aggressive"],
             default="moderate",
-            help="Optimization level (default: moderate)"
+            help="Optimization level (default: moderate)",
         )
-        build_parser.add_argument(
-            "--compiler",
-            default="gcc",
-            help="C compiler to use (default: gcc)"
-        )
+        build_parser.add_argument("--compiler", default="gcc", help="C compiler to use (default: gcc)")
 
         # Clean command
-        clean_parser = subparsers.add_parser(
-            "clean",
-            help="Clean build directory"
-        )
+        clean_parser = subparsers.add_parser("clean", help="Clean build directory")
 
         # Batch command
         batch_parser = subparsers.add_parser(
             "batch",
             help="Batch translate all Python files in a directory",
-            description="Translate all Python files in a directory to C code in build/src"
+            description="Translate all Python files in a directory to C code in build/src",
         )
-        batch_parser.add_argument(
-            "-s",
-            "--source-dir",
-            help="Directory containing Python files to translate"
-        )
+        batch_parser.add_argument("-s", "--source-dir", help="Directory containing Python files to translate")
         batch_parser.add_argument(
             "-o",
             "--output-dir",
             default="build/src",
-            help="Output directory for generated C files (default: build/src)"
+            help="Output directory for generated C files (default: build/src)",
         )
         batch_parser.add_argument(
-            "--continue-on-error",
-            action="store_true",
-            help="Continue processing other files if one fails"
+            "--continue-on-error", action="store_true", help="Continue processing other files if one fails"
         )
         batch_parser.add_argument(
-            "--summary-only",
-            action="store_true",
-            help="Show only summary statistics, not detailed output"
+            "--summary-only", action="store_true", help="Show only summary statistics, not detailed output"
         )
         batch_parser.add_argument(
-            "-O", "--optimization",
+            "-O",
+            "--optimization",
             choices=["none", "basic", "moderate", "aggressive"],
             default="moderate",
-            help="Optimization level (default: moderate)"
+            help="Optimization level (default: moderate)",
         )
 
         return parser
@@ -162,7 +130,7 @@ Build Directory Structure:
             "none": OptimizationLevel.NONE,
             "basic": OptimizationLevel.BASIC,
             "moderate": OptimizationLevel.MODERATE,
-            "aggressive": OptimizationLevel.AGGRESSIVE
+            "aggressive": OptimizationLevel.AGGRESSIVE,
         }
         return mapping.get(level_str, OptimizationLevel.MODERATE)
 
@@ -211,7 +179,12 @@ Build Directory Structure:
         src_runtime_dir = Path(__file__).parent.parent / "runtime"
         if src_runtime_dir.exists():
             dest_base_dir = build_dir / "src"
-            string_ops_files = ["cgen_string_ops.h", "cgen_string_ops.c", "cgen_error_handling.h", "cgen_error_handling.c"]
+            string_ops_files = [
+                "cgen_string_ops.h",
+                "cgen_string_ops.c",
+                "cgen_error_handling.h",
+                "cgen_error_handling.c",
+            ]
             for filename in string_ops_files:
                 src_file = src_runtime_dir / filename
                 if src_file.exists():
@@ -233,7 +206,7 @@ Build Directory Structure:
         config = PipelineConfig(
             optimization_level=self.get_optimization_level(args.optimization),
             output_dir=str(build_dir / "src"),
-            build_mode=BuildMode.NONE
+            build_mode=BuildMode.NONE,
         )
 
         # Copy STC library first (needed for generated code)
@@ -279,8 +252,8 @@ Build Directory Structure:
             optimization_level=self.get_optimization_level(args.optimization),
             output_dir=str(build_dir / "src"),
             build_mode=build_mode,
-            compiler=getattr(args, 'compiler', 'gcc'),
-            include_dirs=[str(build_dir / "src")]  # Add STC include path
+            compiler=getattr(args, "compiler", "gcc"),
+            include_dirs=[str(build_dir / "src")],  # Add STC include path
         )
 
         # Run pipeline
@@ -297,14 +270,16 @@ Build Directory Structure:
         if args.makefile:
             # Makefile generation mode
             # Move Makefile to build root
-            if 'makefile' in result.output_files:
-                makefile_src = Path(result.output_files['makefile'])
+            if "makefile" in result.output_files:
+                makefile_src = Path(result.output_files["makefile"])
                 makefile_dest = build_dir / "Makefile"
                 if makefile_src != makefile_dest:
                     shutil.move(str(makefile_src), str(makefile_dest))
-                    result.output_files['makefile'] = str(makefile_dest)
+                    result.output_files["makefile"] = str(makefile_dest)
 
-            self.log.info(f"Build preparation successful! C source: {result.output_files.get('c_source', 'N/A')}, Makefile: {result.output_files.get('makefile', 'N/A')}")
+            self.log.info(
+                f"Build preparation successful! C source: {result.output_files.get('c_source', 'N/A')}, Makefile: {result.output_files.get('makefile', 'N/A')}"
+            )
         else:
             # Direct compilation mode
             # Move executable to build root
@@ -363,7 +338,7 @@ Build Directory Structure:
         # Find all Python files in source_dir directory
         python_files = []
         for filename in os.listdir(source_dir):
-            if filename.endswith('.py'):
+            if filename.endswith(".py"):
                 filepath = os.path.join(source_dir, filename)
                 python_files.append(filepath)
 
@@ -382,7 +357,7 @@ Build Directory Structure:
 
         for i, input_file in enumerate(python_files, 1):
             filename = os.path.basename(input_file)
-            output_filename = filename.replace('.py', '.c')
+            output_filename = filename.replace(".py", ".c")
             output_file = os.path.join(output_dir, output_filename)
 
             if not summary_only:
@@ -393,7 +368,7 @@ Build Directory Structure:
                 config = PipelineConfig(
                     optimization_level=self.get_optimization_level(args.optimization),
                     output_dir=output_dir,
-                    build_mode=BuildMode.NONE
+                    build_mode=BuildMode.NONE,
                 )
 
                 pipeline = CGenPipeline(config)
@@ -403,52 +378,47 @@ Build Directory Structure:
                     successful_translations += 1
                     # Count lines in generated C file
                     try:
-                        with open(output_file, 'r') as f:
+                        with open(output_file) as f:
                             lines_generated = len(f.readlines())
                     except:
                         lines_generated = 0
 
-                    translation_results.append({
-                        'input': filename,
-                        'output': output_filename,
-                        'status': 'SUCCESS',
-                        'lines': lines_generated
-                    })
+                    translation_results.append(
+                        {"input": filename, "output": output_filename, "status": "SUCCESS", "lines": lines_generated}
+                    )
 
                     if not summary_only:
                         self.log.info(f"{output_filename} ({lines_generated} lines)")
                 else:
                     failed_translations += 1
                     error_msg = "; ".join(result.errors) if result.errors else "Unknown error"
-                    translation_results.append({
-                        'input': filename,
-                        'output': output_filename,
-                        'status': 'FAILED',
-                        'error': error_msg
-                    })
+                    translation_results.append(
+                        {"input": filename, "output": output_filename, "status": "FAILED", "error": error_msg}
+                    )
 
                     if not summary_only:
                         self.log.error(f"Failed: {error_msg}")
 
                     if not continue_on_error:
-                        self.log.info(f"Stopping due to error in {filename}. Use --continue-on-error to continue processing.")
+                        self.log.info(
+                            f"Stopping due to error in {filename}. Use --continue-on-error to continue processing."
+                        )
                         break
 
             except Exception as e:
                 failed_translations += 1
                 error_msg = str(e)
-                translation_results.append({
-                    'input': filename,
-                    'output': output_filename,
-                    'status': 'FAILED',
-                    'error': error_msg
-                })
+                translation_results.append(
+                    {"input": filename, "output": output_filename, "status": "FAILED", "error": error_msg}
+                )
 
                 if not summary_only:
                     self.log.error(f"Failed: {error_msg}")
 
                 if not continue_on_error:
-                    self.log.warn(f"Stopping due to error in {filename}. Use --continue-on-error to continue processing.")
+                    self.log.warn(
+                        f"Stopping due to error in {filename}. Use --continue-on-error to continue processing."
+                    )
                     break
 
         # Print summary

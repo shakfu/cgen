@@ -23,60 +23,6 @@ Intelligent Analysis:
 """
 
 # AST Analysis Framework
-from .ast_analyzer import (
-    AnalysisResult,
-    ASTAnalyzer,
-    FunctionInfo,
-    NodeType,
-    StaticComplexity,
-    TypeInfo,
-    VariableInfo,
-    analyze_python_code,
-    analyze_python_file,
-)
-
-# Static Constraint Checking
-from .constraint_checker import (
-    ConstraintCategory,
-    ConstraintReport,
-    ConstraintSeverity,
-    ConstraintViolation,
-    StaticConstraintChecker,
-)
-
-# Static IR
-from .static_ir import (
-    IRBuilder,
-    IRDataType,
-    IRExpression,
-    IRFunction,
-    IRModule,
-    IRStatement,
-    IRType,
-    IRVariable,
-    build_ir_from_code,
-)
-
-# Python Subset Validation
-from .subset_validator import FeatureRule, FeatureStatus, StaticPythonSubsetValidator, SubsetTier, ValidationResult
-
-# Type Inference System
-from .type_inference import InferenceMethod, InferenceResult, TypeConstraint, TypeInferenceEngine
-
-# Intelligence Base
-from .base import (
-        AnalysisContext,
-        AnalysisLevel,
-        AnalysisReport,
-        BaseAnalyzer,
-        BaseOptimizer,
-        BaseVerifier,
-        IntelligencePipeline,
-        OptimizationLevel,
-        OptimizationResult,
-        VerificationResult,
-    )
-
 # Static Analysis and Symbolic Execution
 from .analyzers import (
     BoundsChecker,
@@ -97,6 +43,40 @@ from .analyzers import (
     SymbolicExecutor,
     SymbolicState,
     SymbolicValue,
+)
+from .ast_analyzer import (
+    AnalysisResult,
+    ASTAnalyzer,
+    FunctionInfo,
+    NodeType,
+    StaticComplexity,
+    TypeInfo,
+    VariableInfo,
+    analyze_python_code,
+    analyze_python_file,
+)
+
+# Intelligence Base
+from .base import (
+    AnalysisContext,
+    AnalysisLevel,
+    AnalysisReport,
+    BaseAnalyzer,
+    BaseOptimizer,
+    BaseVerifier,
+    IntelligencePipeline,
+    OptimizationLevel,
+    OptimizationResult,
+    VerificationResult,
+)
+
+# Static Constraint Checking
+from .constraint_checker import (
+    ConstraintCategory,
+    ConstraintReport,
+    ConstraintSeverity,
+    ConstraintViolation,
+    StaticConstraintChecker,
 )
 
 # Optimization Analysis
@@ -120,6 +100,25 @@ from .optimizers import (
     VectorizationReport,
     VectorizationType,
 )
+
+# Static IR
+from .static_ir import (
+    IRBuilder,
+    IRDataType,
+    IRExpression,
+    IRFunction,
+    IRModule,
+    IRStatement,
+    IRType,
+    IRVariable,
+    build_ir_from_code,
+)
+
+# Python Subset Validation
+from .subset_validator import FeatureRule, FeatureStatus, StaticPythonSubsetValidator, SubsetTier, ValidationResult
+
+# Type Inference System
+from .type_inference import InferenceMethod, InferenceResult, TypeConstraint, TypeInferenceEngine
 
 # Formal Verification
 from .verifiers import (
@@ -171,15 +170,15 @@ __all__ = [
     "build_ir_from_code",
     # Intelligence Base
     "AnalysisContext",
-        "AnalysisLevel",
-        "AnalysisReport",
-        "BaseAnalyzer",
-        "BaseOptimizer",
-        "BaseVerifier",
-        "IntelligencePipeline",
-        "OptimizationLevel",
-        "OptimizationResult",
-        "VerificationResult",
+    "AnalysisLevel",
+    "AnalysisReport",
+    "BaseAnalyzer",
+    "BaseOptimizer",
+    "BaseVerifier",
+    "IntelligencePipeline",
+    "OptimizationLevel",
+    "OptimizationResult",
+    "VerificationResult",
     # Static Analysis
     "StaticAnalyzer",
     "StaticAnalysisReport",

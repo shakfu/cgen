@@ -7,9 +7,9 @@ Python code, focusing on loop patterns that can be efficiently converted to C.
 import ast
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from typing import Dict, List, Optional, Set, Union
 
-from ..base import AnalysisContext, BaseOptimizer, OptimizationResult, OptimizationLevel
+from ..base import AnalysisContext, BaseOptimizer, OptimizationLevel, OptimizationResult
 
 
 class LoopType(Enum):
@@ -90,7 +90,7 @@ class LoopInfo:
     has_break: bool = False
     has_continue: bool = False
     has_early_exit: bool = False
-    inner_loops: List['LoopInfo'] = field(default_factory=list)
+    inner_loops: List["LoopInfo"] = field(default_factory=list)
     dependencies: Set[str] = field(default_factory=set)
     side_effects: List[str] = field(default_factory=list)
     is_vectorizable: bool = False
@@ -174,8 +174,8 @@ class LoopAnalyzer(BaseOptimizer):
                     "loops_analyzed": len(report.loops_found),
                     "optimizations_applied": len(report.optimizations),
                     "vectorizable_loops": report.vectorizable_loops,
-                    "report": report
-                }
+                    "report": report,
+                },
             )
 
         except Exception as e:
@@ -186,7 +186,7 @@ class LoopAnalyzer(BaseOptimizer):
                 transformations=[f"Loop optimization failed: {str(e)}"],
                 performance_gain_estimate=1.0,
                 safety_analysis={"loop_optimization": False},
-                metadata={"error": str(e), "error_type": type(e).__name__}
+                metadata={"error": str(e), "error_type": type(e).__name__},
             )
 
     def _analyze_loops(self, node: ast.AST, report: LoopAnalysisReport) -> None:
@@ -212,7 +212,7 @@ class LoopAnalyzer(BaseOptimizer):
             pattern=LoopPattern.SIMPLE_COUNTER,  # Will be refined
             bounds=self._analyze_loop_bounds(node),
             nesting_level=self._current_nesting,
-            line_number=node.lineno
+            line_number=node.lineno,
         )
 
         # Analyze loop variables
@@ -256,7 +256,7 @@ class LoopAnalyzer(BaseOptimizer):
             pattern=LoopPattern.SIMPLE_COUNTER,
             bounds=LoopBounds(),  # While loops generally don't have constant bounds
             nesting_level=self._current_nesting,
-            line_number=node.lineno
+            line_number=node.lineno,
         )
 
         # Analyze loop variables
@@ -342,9 +342,13 @@ class LoopAnalyzer(BaseOptimizer):
                     if all(x is not None for x in [bounds.start, bounds.end, bounds.step]):
                         bounds.is_constant = True
                         if bounds.step > 0:
-                            bounds.total_iterations = max(0, (bounds.end - bounds.start + bounds.step - 1) // bounds.step)
+                            bounds.total_iterations = max(
+                                0, (bounds.end - bounds.start + bounds.step - 1) // bounds.step
+                            )
                         else:
-                            bounds.total_iterations = max(0, (bounds.start - bounds.end - bounds.step - 1) // (-bounds.step))
+                            bounds.total_iterations = max(
+                                0, (bounds.start - bounds.end - bounds.step - 1) // (-bounds.step)
+                            )
 
                 # Check if ascending
                 if bounds.step is not None:
@@ -380,7 +384,7 @@ class LoopAnalyzer(BaseOptimizer):
         assignments = 0
         reads = 0
 
-        for stmt in node.body if hasattr(node, 'body') else []:
+        for stmt in node.body if hasattr(node, "body") else []:
             for child in ast.walk(stmt):
                 if isinstance(child, ast.Name) and child.id == var_name:
                     if isinstance(child.ctx, ast.Store):
@@ -391,10 +395,11 @@ class LoopAnalyzer(BaseOptimizer):
 
                 # Check for accumulator pattern (var = var + something)
                 if isinstance(child, ast.Assign):
-                    if (len(child.targets) == 1 and
-                        isinstance(child.targets[0], ast.Name) and
-                        child.targets[0].id == var_name):
-
+                    if (
+                        len(child.targets) == 1
+                        and isinstance(child.targets[0], ast.Name)
+                        and child.targets[0].id == var_name
+                    ):
                         if isinstance(child.value, ast.BinOp):
                             left = child.value.left
                             if isinstance(left, ast.Name) and left.id == var_name:
@@ -446,7 +451,7 @@ class LoopAnalyzer(BaseOptimizer):
                 pattern=LoopPattern.NESTED_ITERATION,
                 bounds=self._analyze_loop_bounds(node),
                 nesting_level=self._current_nesting,
-                line_number=node.lineno
+                line_number=node.lineno,
             )
         else:
             nested_info = LoopInfo(
@@ -454,7 +459,7 @@ class LoopAnalyzer(BaseOptimizer):
                 pattern=LoopPattern.NESTED_ITERATION,
                 bounds=LoopBounds(),
                 nesting_level=self._current_nesting,
-                line_number=node.lineno
+                line_number=node.lineno,
             )
 
         self._analyze_loop_variables(node, nested_info)
@@ -474,9 +479,7 @@ class LoopAnalyzer(BaseOptimizer):
     def _classify_loop_pattern(self, loop_info: LoopInfo) -> LoopPattern:
         """Classify the pattern of the loop based on its characteristics."""
         # Check for complex patterns first (highest priority)
-        if (loop_info.has_early_exit or
-            len(loop_info.side_effects) > 2 or
-            loop_info.body_complexity > 8):
+        if loop_info.has_early_exit or len(loop_info.side_effects) > 2 or loop_info.body_complexity > 8:
             return LoopPattern.COMPLEX
 
         # Check for accumulator pattern
@@ -502,9 +505,7 @@ class LoopAnalyzer(BaseOptimizer):
     def _check_vectorizable(self, loop_info: LoopInfo) -> bool:
         """Check if a loop is potentially vectorizable."""
         # Basic vectorization requirements
-        if (loop_info.has_early_exit or
-            loop_info.has_break or
-            loop_info.has_continue):
+        if loop_info.has_early_exit or loop_info.has_break or loop_info.has_continue:
             return False
 
         # Must be a simple range loop
@@ -528,9 +529,7 @@ class LoopAnalyzer(BaseOptimizer):
     def _check_parallelizable(self, loop_info: LoopInfo) -> bool:
         """Check if a loop is potentially parallelizable."""
         # Basic parallelization requirements
-        if (loop_info.has_early_exit or
-            loop_info.has_break or
-            loop_info.has_continue):
+        if loop_info.has_early_exit or loop_info.has_break or loop_info.has_continue:
             return False
 
         # Check for dependencies
@@ -539,8 +538,11 @@ class LoopAnalyzer(BaseOptimizer):
             return False  # Accumulation creates dependencies
 
         # Check for side effects that prevent parallelization
-        unsafe_effects = [effect for effect in loop_info.side_effects
-                         if not effect.startswith('call_len') and not effect.startswith('call_abs')]
+        unsafe_effects = [
+            effect
+            for effect in loop_info.side_effects
+            if not effect.startswith("call_len") and not effect.startswith("call_abs")
+        ]
         if unsafe_effects:
             return False
 
@@ -577,20 +579,20 @@ class LoopAnalyzer(BaseOptimizer):
 
     def _generate_loop_optimizations(self, loop_info: LoopInfo, report: LoopAnalysisReport) -> None:
         """Generate optimizations for a specific loop."""
-
         # Loop unrolling for small constant loops
-        if (loop_info.bounds.is_constant and
-            loop_info.bounds.total_iterations and
-            loop_info.bounds.total_iterations <= 8 and
-            loop_info.body_complexity <= 3):
-
+        if (
+            loop_info.bounds.is_constant
+            and loop_info.bounds.total_iterations
+            and loop_info.bounds.total_iterations <= 8
+            and loop_info.body_complexity <= 3
+        ):
             optimization = LoopOptimization(
                 optimization_type=OptimizationType.LOOP_UNROLLING,
                 target_loop=loop_info,
                 description=f"Unroll loop with {loop_info.bounds.total_iterations} iterations",
                 estimated_speedup=1.2 + (0.1 * loop_info.bounds.total_iterations),
                 confidence=0.85,
-                applicability_score=0.9
+                applicability_score=0.9,
             )
             optimization.safety_checks["no_side_effects"] = len(loop_info.side_effects) == 0
             optimization.safety_checks["constant_bounds"] = loop_info.bounds.is_constant
@@ -604,7 +606,7 @@ class LoopAnalyzer(BaseOptimizer):
                 description="Replace multiplication with addition in loop",
                 estimated_speedup=1.15,
                 confidence=0.75,
-                applicability_score=0.8
+                applicability_score=0.8,
             )
             report.optimizations.append(optimization)
 
@@ -616,7 +618,7 @@ class LoopAnalyzer(BaseOptimizer):
                 description="Eliminate bounds checks for proven safe array access",
                 estimated_speedup=1.1,
                 confidence=0.8,
-                applicability_score=0.7
+                applicability_score=0.7,
             )
             report.optimizations.append(optimization)
 
@@ -628,7 +630,7 @@ class LoopAnalyzer(BaseOptimizer):
                 description="Convert Python for-range to C-style for loop",
                 estimated_speedup=1.05,
                 confidence=0.95,
-                applicability_score=1.0
+                applicability_score=1.0,
             )
             optimization.transformed_code = self._generate_c_style_loop(loop_info)
             report.optimizations.append(optimization)
@@ -641,7 +643,7 @@ class LoopAnalyzer(BaseOptimizer):
                 description="Prepare loop for vectorization",
                 estimated_speedup=2.0,
                 confidence=0.7,
-                applicability_score=0.9
+                applicability_score=0.9,
             )
             report.optimizations.append(optimization)
 
@@ -653,9 +655,9 @@ class LoopAnalyzer(BaseOptimizer):
     def _has_array_access_pattern(self, loop_info: LoopInfo) -> bool:
         """Check if loop has array access patterns."""
         # Simplified check - in a real implementation, we'd analyze the AST for subscript operations
-        return (loop_info.loop_type == LoopType.FOR_RANGE and
-                not loop_info.has_early_exit and
-                loop_info.bounds.is_constant)
+        return (
+            loop_info.loop_type == LoopType.FOR_RANGE and not loop_info.has_early_exit and loop_info.bounds.is_constant
+        )
 
     def _generate_c_style_loop(self, loop_info: LoopInfo) -> str:
         """Generate C-style loop code."""
@@ -679,7 +681,7 @@ class LoopAnalyzer(BaseOptimizer):
         optimized = ast.copy_location(ast.parse(ast.unparse(node)), node)
 
         # Add metadata about applied optimizations
-        if hasattr(optimized, '_optimizations'):
+        if hasattr(optimized, "_optimizations"):
             optimized._optimizations = report.optimizations
 
         return optimized
@@ -727,7 +729,7 @@ class LoopAnalyzer(BaseOptimizer):
             "bounds_check_elimination": True,
             "c_style_conversion": True,
             "vectorization_prep": True,
-            "all_optimizations_safe": True
+            "all_optimizations_safe": True,
         }
 
         # Check each optimization for safety

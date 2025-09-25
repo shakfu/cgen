@@ -1,23 +1,25 @@
-"""
-STC Template Manager
+"""STC Template Manager
 
 This module manages STC template instantiation and avoids multiple macro redefinitions.
 It provides a centralized system for tracking and generating unique STC template definitions.
 """
 
-from typing import Dict, List, Set, Tuple, Optional
-from dataclasses import dataclass
 import hashlib
+from dataclasses import dataclass
+from typing import Dict, List, Optional, Set
+
 
 @dataclass
 class STCTemplateInstance:
     """Represents a single STC template instantiation."""
-    template_name: str      # e.g., "vec_int"
-    stc_type: str          # e.g., "vec"
-    element_types: List[str] # e.g., ["int"] or ["cstr", "int"] for maps
-    header_file: str       # e.g., "stc/vec.h"
+
+    template_name: str  # e.g., "vec_int"
+    stc_type: str  # e.g., "vec"
+    element_types: List[str]  # e.g., ["int"] or ["cstr", "int"] for maps
+    header_file: str  # e.g., "stc/vec.h"
     macro_definition: str  # The actual #define statement
-    instance_name: str     # Unique instance name for this specific usage
+    instance_name: str  # Unique instance name for this specific usage
+
 
 class STCTemplateManager:
     """Manages STC template instantiation to avoid macro redefinition conflicts."""
@@ -47,16 +49,16 @@ class STCTemplateManager:
         """Normalize C type names for consistent naming."""
         # Handle common type mappings
         type_mappings = {
-            'const char*': 'cstr',
-            'char*': 'cstr',
-            'string': 'cstr',
-            'std::string': 'cstr',
-            'long long': 'longlong',
-            'long double': 'longdouble',
-            'unsigned int': 'uint',
-            'unsigned long': 'ulong',
-            'unsigned char': 'uchar',
-            'unsigned short': 'ushort'
+            "const char*": "cstr",
+            "char*": "cstr",
+            "string": "cstr",
+            "std::string": "cstr",
+            "long long": "longlong",
+            "long double": "longdouble",
+            "unsigned int": "uint",
+            "unsigned long": "ulong",
+            "unsigned char": "uchar",
+            "unsigned short": "ushort",
         }
         return type_mappings.get(type_name, type_name)
 
@@ -65,13 +67,14 @@ class STCTemplateManager:
         """Lazy initialization of nested container manager."""
         if self._nested_container_manager is None:
             from .nested_containers import NestedContainerManager
+
             self._nested_container_manager = NestedContainerManager()
         return self._nested_container_manager
 
-    def register_container_usage(self, variable_name: str, stc_type: str,
-                                element_types: List[str], header_file: str) -> str:
-        """
-        Register a container usage and get the template instance name.
+    def register_container_usage(
+        self, variable_name: str, stc_type: str, element_types: List[str], header_file: str
+    ) -> str:
+        """Register a container usage and get the template instance name.
         Enhanced to support nested containers.
 
         Args:
@@ -112,25 +115,25 @@ class STCTemplateManager:
         instance_name = f"{signature}_{self.instance_counter}"
 
         # Create macro definition based on STC type
-        if stc_type in ['vec', 'deque', 'stack', 'queue']:
+        if stc_type in ["vec", "deque", "stack", "queue"]:
             # Single type parameter containers
             if len(normalized_types) != 1:
                 raise ValueError(f"Container {stc_type} requires exactly 1 type parameter")
             macro_def = f"#define T {instance_name}, {normalized_types[0]}"
 
-        elif stc_type in ['hmap', 'smap']:
+        elif stc_type in ["hmap", "smap"]:
             # Key-value containers
             if len(normalized_types) != 2:
                 raise ValueError(f"Container {stc_type} requires exactly 2 type parameters")
             macro_def = f"#define T {instance_name}, {normalized_types[0]}, {normalized_types[1]}"
 
-        elif stc_type in ['hset', 'sset']:
+        elif stc_type in ["hset", "sset"]:
             # Key-only containers
             if len(normalized_types) != 1:
                 raise ValueError(f"Container {stc_type} requires exactly 1 type parameter")
             macro_def = f"#define T {instance_name}, {normalized_types[0]}"
 
-        elif stc_type == 'pqueue':
+        elif stc_type == "pqueue":
             # Priority queue
             if len(normalized_types) != 1:
                 raise ValueError(f"Container {stc_type} requires exactly 1 type parameter")
@@ -146,7 +149,7 @@ class STCTemplateManager:
             element_types=normalized_types,
             header_file=header_file,
             macro_definition=macro_def,
-            instance_name=instance_name
+            instance_name=instance_name,
         )
 
         # Register the instance
@@ -170,14 +173,13 @@ class STCTemplateManager:
 
         # Sort instances by dependency (simpler types first)
         sorted_instances = sorted(
-            self.template_instances.values(),
-            key=lambda x: (len(x.element_types), x.template_name)
+            self.template_instances.values(), key=lambda x: (len(x.element_types), x.template_name)
         )
 
         for instance in sorted_instances:
             definitions.append(instance.macro_definition)
             definitions.append(f"#include <{instance.header_file}>")
-            definitions.append(f"#undef T")
+            definitions.append("#undef T")
             definitions.append("")  # Blank line for readability
 
         return definitions
@@ -214,27 +216,26 @@ class STCTemplateManager:
     def get_statistics(self) -> Dict[str, int]:
         """Get statistics about template usage."""
         return {
-            'total_instances': len(self.template_instances),
-            'unique_headers': len(self.required_headers),
-            'variable_mappings': len(self.variable_mappings),
-            'next_instance_id': self.instance_counter + 1
+            "total_instances": len(self.template_instances),
+            "unique_headers": len(self.required_headers),
+            "variable_mappings": len(self.variable_mappings),
+            "next_instance_id": self.instance_counter + 1,
         }
+
 
 # Global template manager instance
 _global_template_manager = STCTemplateManager()
 
+
 def get_template_manager() -> STCTemplateManager:
     """Get the global template manager instance."""
     return _global_template_manager
+
 
 def reset_template_manager():
     """Reset the global template manager."""
     global _global_template_manager
     _global_template_manager = STCTemplateManager()
 
-__all__ = [
-    'STCTemplateInstance',
-    'STCTemplateManager',
-    'get_template_manager',
-    'reset_template_manager'
-]
+
+__all__ = ["STCTemplateInstance", "STCTemplateManager", "get_template_manager", "reset_template_manager"]

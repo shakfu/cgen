@@ -74,6 +74,12 @@ FEATURES:
 """
 
 # C code generation capabilities (Layer 2)
+# Build system generation and compilation
+from .builder import (
+    Builder,
+    CGenMakefileGenerator,
+    MakefileGenerator,
+)
 from .generator import (
     Alignment,
     BreakBeforeBraces,
@@ -85,22 +91,15 @@ from .generator import (
     convert_python_to_c,
 )
 
-# Build system generation and compilation
-from .builder import (
-    Builder,
-    MakefileGenerator,
-    CGenMakefileGenerator,
-)
-
 # Complete Pipeline System
 from .pipeline import (
+    BuildMode,
     CGenPipeline,
     PipelineConfig,
-    PipelineResult,
-    BuildMode,
     PipelinePhase,
-    convert_python_to_c,
+    PipelineResult,
     convert_and_build,
+    convert_python_to_c,
 )
 
 # Version information
@@ -121,14 +120,14 @@ __all__ = [
     "Builder",
     "MakefileGenerator",
     "CGenMakefileGenerator",
-        # Complete Pipeline System
-        "CGenPipeline",
-        "PipelineConfig",
-        "PipelineResult",
-        "BuildMode",
-        "PipelinePhase",
-        "convert_python_to_c",
-        "convert_and_build",
+    # Complete Pipeline System
+    "CGenPipeline",
+    "PipelineConfig",
+    "PipelineResult",
+    "BuildMode",
+    "PipelinePhase",
+    "convert_python_to_c",
+    "convert_and_build",
     # Package info
     "__version__",
 ]

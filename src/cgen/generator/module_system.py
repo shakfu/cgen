@@ -1,5 +1,4 @@
-"""
-Module System for CGen
+"""Module System for CGen
 
 This module provides support for Python import statements and cross-module function calls
 in the Python-to-C translation system.
@@ -16,8 +15,9 @@ Future Enhancements:
 """
 
 import ast
-from typing import Dict, List, Set, Optional, Tuple
 from pathlib import Path
+from typing import Dict, List, Optional, Set, Tuple
+
 from ..common import log
 
 
@@ -57,24 +57,24 @@ class ModuleResolver:
         """Initialize supported standard library modules."""
         # Math module support
         math_functions = {
-            'sqrt': 'sqrt',
-            'pow': 'pow',
-            'sin': 'sin',
-            'cos': 'cos',
-            'tan': 'tan',
-            'log': 'log',
-            'log10': 'log10',
-            'exp': 'exp',
-            'floor': 'floor',
-            'ceil': 'ceil',
-            'abs': 'abs',
-            'fabs': 'fabs'
+            "sqrt": "sqrt",
+            "pow": "pow",
+            "sin": "sin",
+            "cos": "cos",
+            "tan": "tan",
+            "log": "log",
+            "log10": "log10",
+            "exp": "exp",
+            "floor": "floor",
+            "ceil": "ceil",
+            "abs": "abs",
+            "fabs": "fabs",
         }
-        self.stdlib_modules['math'] = StandardLibraryModule('math', math_functions)
+        self.stdlib_modules["math"] = StandardLibraryModule("math", math_functions)
 
         # Type hinting and dataclass modules (no C equivalent needed)
-        self.stdlib_modules['typing'] = StandardLibraryModule('typing', {})
-        self.stdlib_modules['dataclasses'] = StandardLibraryModule('dataclasses', {})
+        self.stdlib_modules["typing"] = StandardLibraryModule("typing", {})
+        self.stdlib_modules["dataclasses"] = StandardLibraryModule("dataclasses", {})
 
         # Future: Add more standard library modules
         # self.stdlib_modules['os'] = StandardLibraryModule('os', {...})
@@ -105,7 +105,7 @@ class ModuleResolver:
 
         # Parse and analyze the module
         try:
-            with open(module_file, 'r', encoding='utf-8') as f:
+            with open(module_file, encoding="utf-8") as f:
                 source_code = f.read()
 
             ast_module = ast.parse(source_code, filename=str(module_file))
@@ -242,8 +242,8 @@ class ImportHandler:
             # Generate appropriate C includes
             if module_name in self.module_resolver.stdlib_modules:
                 # Standard library module
-                if module_name == 'math':
-                    includes.append('#include <math.h>')
+                if module_name == "math":
+                    includes.append("#include <math.h>")
                 # Note: typing and dataclasses modules don't need C includes
                 # Add more standard library includes as needed
             else:
@@ -270,8 +270,8 @@ class ImportHandler:
 
         # Generate includes
         if module_name in self.module_resolver.stdlib_modules:
-            if module_name == 'math':
-                includes.append('#include <math.h>')
+            if module_name == "math":
+                includes.append("#include <math.h>")
             # Note: typing and dataclasses modules don't need C includes
         else:
             includes.append(f'#include "{module_name}.h"')
@@ -279,8 +279,7 @@ class ImportHandler:
         return includes
 
     def resolve_function_call(self, function_name: str) -> Tuple[str, bool]:
-        """
-        Resolve a function call to its C equivalent.
+        """Resolve a function call to its C equivalent.
 
         Returns:
             (c_function_name, is_stdlib)
@@ -299,8 +298,7 @@ class ImportHandler:
         return function_name, False
 
     def resolve_module_function_call(self, module_alias: str, function_name: str) -> Tuple[str, bool]:
-        """
-        Resolve a module.function() call to its C equivalent.
+        """Resolve a module.function() call to its C equivalent.
 
         Returns:
             (c_function_name, is_stdlib)
