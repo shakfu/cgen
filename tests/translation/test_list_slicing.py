@@ -34,9 +34,9 @@ def test_slice_with_end_only() -> list[int]:
     return subset
 
 def main() -> int:
-    result1 = test_list_slicing()
-    result2 = test_slice_with_start_only()
-    result3 = test_slice_with_end_only()
+    result1: list[int] = test_list_slicing()
+    result2: list[int] = test_slice_with_start_only()
+    result3: list[int] = test_slice_with_end_only()
 
     assert len(result1) == 2
     assert len(result2) == 2

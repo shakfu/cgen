@@ -9,6 +9,6 @@ def test_simple_slice() -> list[int]:
     return subset
 
 def main() -> int:
-    result = test_simple_slice()
+    result: list[int] = test_simple_slice()
     assert len(result) == 2
     return 0

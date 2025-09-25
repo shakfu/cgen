@@ -9,6 +9,6 @@ def test_string_membership() -> bool:
     return has_hello
 
 def main() -> int:
-    result = test_string_membership()
+    result: bool = test_string_membership()
     assert result == True
     return 0

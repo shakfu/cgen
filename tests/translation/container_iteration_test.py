@@ -12,6 +12,6 @@ def test_container_iteration() -> int:
     return total
 
 def main() -> int:
-    result = test_container_iteration()
+    result: int = test_container_iteration()
     assert result == 60
     return result
