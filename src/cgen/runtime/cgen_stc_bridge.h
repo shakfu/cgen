@@ -74,6 +74,12 @@ int cgen_cstr_find(const cstr* s, const char* substr);
  */
 int cgen_cstr_count(const cstr* s, const char* substr);
 
+/**
+ * Bridge function: Python str.split() on char* returning vec_cstr
+ * This bridges the gap between char* input and vec_cstr output for STC integration
+ */
+cgen_string_list_t cgen_str_split_to_vec(const char* str, const char* delimiter);
+
 #else
 // Fallback when STC is not available - use our own string array
 typedef struct {

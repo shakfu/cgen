@@ -193,6 +193,74 @@ int cgen_cstr_count(const cstr* s, const char* substr) {
     return count;
 }
 
+/**
+ * Bridge function: Python str.split() on char* returning vec_cstr
+ */
+cgen_string_list_t cgen_str_split_to_vec(const char* str, const char* delimiter) {
+    cgen_string_list_t result = vec_cstr_init();
+
+    if (!str) {
+        CGEN_SET_ERROR(CGEN_ERROR_VALUE, "String is NULL");
+        return result;
+    }
+
+    size_t len = strlen(str);
+    if (len == 0) {
+        return result; // Empty result for empty string
+    }
+
+    if (!delimiter || strlen(delimiter) == 0) {
+        // Split on whitespace like Python
+        const char* start = str;
+        const char* end = str + len;
+
+        while (start < end) {
+            // Skip whitespace
+            while (start < end && isspace((unsigned char)*start)) {
+                start++;
+            }
+
+            if (start >= end) break;
+
+            // Find end of word
+            const char* word_end = start;
+            while (word_end < end && !isspace((unsigned char)*word_end)) {
+                word_end++;
+            }
+
+            // Add word to result
+            cstr word = cstr_from_n(start, word_end - start);
+            vec_cstr_push(&result, word);
+
+            start = word_end;
+        }
+    } else {
+        // Split on delimiter
+        const char* start = str;
+        const char* delim_pos = strstr(start, delimiter);
+        size_t delim_len = strlen(delimiter);
+
+        while (delim_pos != NULL) {
+            // Add part before delimiter
+            if (delim_pos > start) {
+                cstr part = cstr_from_n(start, delim_pos - start);
+                vec_cstr_push(&result, part);
+            }
+
+            start = delim_pos + delim_len;
+            delim_pos = strstr(start, delimiter);
+        }
+
+        // Add remaining part
+        if (*start) {
+            cstr part = cstr_from(start);
+            vec_cstr_push(&result, part);
+        }
+    }
+
+    return result;
+}
+
 #else
 
 // Fallback implementation when STC is not available

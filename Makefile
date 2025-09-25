@@ -1,7 +1,8 @@
 # Makefile for CGen development
 
 .PHONY: help install test test-unit test-integration test-translation \
-		test-py2c test-benchmark clean lint format type-check build docs
+		test-py2c test-benchmark test-build clean lint format type-check \
+		build docs
 
 # Default target
 help:
@@ -16,6 +17,7 @@ help:
 	@echo "  test          Run all tests with pytest"
 	@echo "  test-unit     Run unit tests only"
 	@echo "  test-translation  Run translation tests only"
+	@echo "  test-build    Run batch build tests (includes translation)"
 	@echo "  test-integration  Run integration tests only"
 	@echo "  test-py2c     Run Python-to-C conversion tests"
 	@echo "  test-benchmark    Run performance benchmarks"
@@ -53,6 +55,9 @@ test-unit:
 
 test-translation:
 	uv run cgen batch --continue-on-error --source-dir tests/translation
+
+test-build:
+	uv run cgen batch --build --continue-on-error --source-dir tests/translation
 
 test-integration:
 	uv run pytest -m "integration" tests/ -v

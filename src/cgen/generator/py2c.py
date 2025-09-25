@@ -92,7 +92,7 @@ class FunctionCallConverter:
             return self._convert_constructor_call(func_name, node.args)
 
         # Handle built-in functions
-        if func_name in ["set", "len", "isinstance"]:
+        if func_name in ["set", "len", "isinstance", "int", "float", "bool", "str"]:
             return self._convert_builtin_call(func_name, node)
 
         # Handle imported/module functions
@@ -151,6 +151,28 @@ class FunctionCallConverter:
             # This is a simplified approach since C is statically typed
             self.log.debug("Converting isinstance() call - type checking handled at compile time in C")
             return core.RawCode("true")  # C boolean true
+
+        elif func_name in ["int", "float", "bool", "str"]:
+            # Handle type casting functions - convert Python-style to C-style casts
+            if len(node.args) != 1:
+                raise UnsupportedFeatureError(f"{func_name}() requires exactly one argument")
+
+            arg_expr = self.converter._convert_expression(node.args[0])
+            if isinstance(arg_expr, core.Element):
+                temp_writer = Writer(StyleOptions())
+                arg_str = temp_writer.write_str_elem(arg_expr)
+            else:
+                arg_str = str(arg_expr)
+
+            # Convert Python-style casting to C-style casting
+            type_mapping = {
+                "int": "int",
+                "float": "double",
+                "bool": "bool",
+                "str": "char*"
+            }
+            c_type = type_mapping[func_name]
+            return core.RawCode(f"({c_type}){arg_str}")
 
     def _convert_len_for_container(self, container_name: str) -> core.Element:
         """Convert len() call for STC containers."""
@@ -375,6 +397,8 @@ class PythonToCConverter:
         # Add string operations header if string methods are used
         if uses_string_methods:
             sequence.append(self.c_factory.include("cgen_string_ops.h"))
+            # Also add STC bridge for advanced string operations
+            sequence.append(self.c_factory.include("cgen_stc_bridge.h"))
 
         # Add STC includes if we have containers
         stc_includes = stc_declaration_generator.generate_includes()
@@ -1402,9 +1426,10 @@ class PythonToCConverter:
 
         elif method_name == "split":
             # str.split() -> split on whitespace, str.split(separator) -> split on separator
+            # Use STC bridge function that returns vec_cstr for proper integration
             if len(args) == 0:
                 # Split on whitespace
-                return f"cgen_str_split({obj_name}, NULL)"
+                return f"cgen_str_split_to_vec({obj_name}, NULL)"
             elif len(args) == 1:
                 # Split on specific separator
                 arg_expr = self._convert_expression(args[0])
@@ -1413,7 +1438,7 @@ class PythonToCConverter:
                     arg_str = temp_writer.write_str_elem(arg_expr)
                 else:
                     arg_str = str(arg_expr)
-                return f"cgen_str_split({obj_name}, {arg_str})"
+                return f"cgen_str_split_to_vec({obj_name}, {arg_str})"
             else:
                 raise UnsupportedFeatureError("str.split() takes at most one argument")
 

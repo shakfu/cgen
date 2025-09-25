@@ -110,7 +110,7 @@ Build Directory Structure:
             help="Output directory for generated C files (default: build/src)",
         )
         batch_parser.add_argument(
-            "--continue-on-error", action="store_true", help="Continue processing other files if one fails"
+            "-c", "--continue-on-error", action="store_true", help="Continue processing other files if one fails"
         )
         batch_parser.add_argument(
             "--summary-only", action="store_true", help="Show only summary statistics, not detailed output"
@@ -123,7 +123,7 @@ Build Directory Structure:
             help="Optimization level (default: moderate)",
         )
         batch_parser.add_argument(
-            "--build", action="store_true", help="Build (compile) C files after translation"
+            "-b", "--build", action="store_true", help="Build (compile) C files after translation"
         )
         batch_parser.add_argument("--compiler", default="gcc", help="C compiler to use (default: gcc)")
 
