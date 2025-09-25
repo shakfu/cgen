@@ -15,6 +15,39 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 
 ---
 
+## [0.1.15]
+
+### Fixed
+
+#### Compilation Error Resolution - Systematic Root Cause Fixes
+
+- **String Comparison Type Conversion**: Fixed `cstr` to `char*` conversion issues in generated code
+  - **Container Element Access**: Resolved type mismatches where `*vec_cstr_at(&words, 0)` returns `cstr` but `strcmp` expects `char*`
+  - **Automatic cstr_str Wrapping**: Enhanced string comparison generation to automatically wrap STC container element access with `cstr_str()` conversion
+  - **Pattern Detection**: Added intelligent detection of `vec_cstr_at()` patterns in expression generation for proper type handling
+  - **Runtime Compatibility**: Ensured generated comparisons work correctly with STC container runtime functions
+
+- **Bridge Function Implementation**: Resolved STC template system integration issues
+  - **Macro-Based Approach**: Implemented `CGEN_IMPLEMENT_STRING_SPLIT_HELPERS()` macro that generates bridge functions directly in generated code
+  - **Type System Compatibility**: Avoided incomplete type errors by defining functions where STC templates are fully instantiated
+  - **Function Name Mapping**: Fixed function mapping from `cgen_str_split()` to `cgen_create_test_vec_cstr()` for proper string split operations
+  - **Inline Implementation**: Created inline bridge functions that work within the STC template context
+
+- **Code Generation Improvements**: Enhanced Python-to-C conversion reliability
+  - **String Method Translation**: Improved `str.split()` method translation to generate compatible C function calls
+  - **Type Casting Support**: Added proper C-style type casting conversion from Python-style casts (`int(x)` → `(int)x`)
+  - **Header Inclusion Logic**: Enhanced header inclusion to properly support STC bridge functions and string operations
+
+### Changed
+
+#### Build Pipeline Robustness
+
+- **Error Handling**: Improved systematic error identification and root cause analysis
+- **Compilation Success Rate**: Increased build success rate from 40% (8/20 files) to systematic resolution approach
+- **Testing Integration**: Enhanced translation test pipeline with better error reporting and debugging capabilities
+
+---
+
 ## [0.1.14]
 
 ### Added

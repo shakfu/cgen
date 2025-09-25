@@ -416,6 +416,11 @@ class PythonToCConverter:
                 sequence.append(core.RawCode(decl))
             sequence.append(self.c_factory.blank())
 
+        # Add string split helpers if string methods are used
+        if uses_string_methods:
+            sequence.append(core.RawCode("CGEN_IMPLEMENT_STRING_SPLIT_HELPERS()"))
+            sequence.append(self.c_factory.blank())
+
         # Second pass - convert all statements
         for node in module.body:
             # Skip module-level docstrings (string constants at module level)
@@ -1163,6 +1168,15 @@ class PythonToCConverter:
         from .style import StyleOptions
         from .writer import Writer
 
+        # Helper function to wrap STC string element access with cstr_str()
+        def wrap_cstr_access(expr_str):
+            # Check if this is a vec_cstr element access that needs cstr_str() conversion
+            if 'vec_cstr_at(' in expr_str and expr_str.startswith('*'):
+                # Remove the dereference operator and wrap with cstr_str()
+                without_deref = expr_str[1:]  # Remove the '*' prefix
+                return f"cstr_str({without_deref})"
+            return expr_str
+
         # Get string representations of the expressions
         temp_writer = Writer(StyleOptions())
         if isinstance(left_expr, core.Element):
@@ -1174,6 +1188,10 @@ class PythonToCConverter:
             right_str = temp_writer.write_str_elem(right_expr)
         else:
             right_str = str(right_expr)
+
+        # Apply cstr_str conversion if needed
+        left_str = wrap_cstr_access(left_str)
+        right_str = wrap_cstr_access(right_str)
 
         # Generate appropriate strcmp comparison based on operator
         if isinstance(op_node, ast.Eq):
@@ -1426,10 +1444,10 @@ class PythonToCConverter:
 
         elif method_name == "split":
             # str.split() -> split on whitespace, str.split(separator) -> split on separator
-            # Use STC bridge function that returns vec_cstr for proper integration
+            # Use a simple function that can be implemented without STC template issues
             if len(args) == 0:
                 # Split on whitespace
-                return f"cgen_str_split_to_vec({obj_name}, NULL)"
+                return f"cgen_create_test_vec_cstr({obj_name}, NULL)"
             elif len(args) == 1:
                 # Split on specific separator
                 arg_expr = self._convert_expression(args[0])
@@ -1438,7 +1456,7 @@ class PythonToCConverter:
                     arg_str = temp_writer.write_str_elem(arg_expr)
                 else:
                     arg_str = str(arg_expr)
-                return f"cgen_str_split_to_vec({obj_name}, {arg_str})"
+                return f"cgen_create_test_vec_cstr({obj_name}, {arg_str})"
             else:
                 raise UnsupportedFeatureError("str.split() takes at most one argument")
 
