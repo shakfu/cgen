@@ -7,3 +7,8 @@ def test_string_methods() -> str:
     index: int = text.find("World")
 
     return upper_text
+
+def main() -> int:
+    result: str = test_string_methods()
+    assert result == "HELLO WORLD"
+    return 0

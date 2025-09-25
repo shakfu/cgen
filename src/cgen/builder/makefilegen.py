@@ -546,6 +546,7 @@ class CGenMakefileGenerator:
         use_stc: bool = True,
         additional_flags: Optional[List[str]] = None,
         additional_includes: Optional[List[str]] = None,
+        makefile_dir: Optional[str] = None,
     ) -> MakefileGenerator:
         """Create a Makefile for generated C code."""
 
@@ -557,8 +558,18 @@ class CGenMakefileGenerator:
         if not output_name:
             output_name = c_path.stem
 
-        # Set up basic configuration
-        source_dir = str(c_path.parent)
+        # Set up basic configuration - compute source_dir relative to makefile location
+        if makefile_dir:
+            makefile_path = Path(makefile_dir)
+            try:
+                # Calculate relative path from makefile dir to source dir
+                source_dir = str(c_path.parent.relative_to(makefile_path))
+            except ValueError:
+                # Fallback to absolute path if relative calculation fails
+                source_dir = str(c_path.parent)
+        else:
+            source_dir = str(c_path.parent)
+
         flags = ["-Wall", "-O2"] + (additional_flags or [])
         includes = additional_includes or []
 

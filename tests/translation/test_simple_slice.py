@@ -7,3 +7,8 @@ def test_simple_slice() -> list[int]:
 
     subset: list[int] = numbers[1:3]
     return subset
+
+def main() -> int:
+    result = test_simple_slice()
+    assert len(result) == 2
+    return 0

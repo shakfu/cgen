@@ -78,7 +78,7 @@ def process_array(data: list[int]) -> int:
 """
         c_code = convert_python_to_c(python_code)
         assert "int process_array(vec_int32 data)" in c_code
-        assert "declare_vec(vec_int32, int32);" in c_code
+        assert "declare_vec(vec_int32, int32_t);" in c_code
         assert '#include "stc/vec.h"' in c_code
 
     def test_function_call_conversion(self, py2c_converter):

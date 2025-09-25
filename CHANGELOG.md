@@ -52,12 +52,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 // Before optimization - unnecessary STC overhead:
 #include <stdio.h>
 #include <stdbool.h>
-#include "stc/types.h"          // ❌ Unnecessary
-#include "stc/vec.h"            // ❌ Unnecessary
-#include "stc/hset.h"           // ❌ Unnecessary
+#include "stc/types.h"          //  Unnecessary
+#include "stc/vec.h"            //  Unnecessary
+#include "stc/hset.h"           //  Unnecessary
 
-declare_vec(vec_int32, int32);  // ❌ Unnecessary
-declare_hset(hset_int32, int32); // ❌ Unnecessary
+declare_vec(vec_int32, int32);  //  Unnecessary
+declare_hset(hset_int32, int32); //  Unnecessary
 
 typedef struct {
     int x;
@@ -69,7 +69,7 @@ typedef struct {
 // After optimization - clean minimal output:
 #include <stdio.h>
 #include <stdbool.h>
-// ✅ No unnecessary STC includes
+//  No unnecessary STC includes
 
 typedef struct {
     int x;
@@ -82,13 +82,13 @@ typedef struct {
 ```c
 #include <stdio.h>
 #include <stdbool.h>
-#include "stc/types.h"          // ✅ Required
-#include "stc/vec.h"            // ✅ Required
+#include "stc/types.h"          //  Required
+#include "stc/vec.h"            //  Required
 
-declare_vec(vec_int32, int32);  // ✅ Required
+declare_vec(vec_int32, int32);  //  Required
 
 int simple_test(void) {
-    vec_int32 numbers;          // ✅ Actually uses containers
+    vec_int32 numbers;          //  Actually uses containers
     numbers = {0};
     numbers_push(&numbers, 10);
     return numbers_size(&numbers);
@@ -122,18 +122,20 @@ int simple_test(void) {
   - **Semicolon Placement Fix**: Resolved systematic issue where semicolons appeared at beginning of lines instead of end of statements
   - **Generic Indentation System**: Fixed closing brace over-indentation with improved `_write_indented_block()` function
   - **Impact**: Generated C code now has perfect formatting with proper semicolon placement and brace alignment
+
   ```c
   for (int x = 0; x < 5; x += 1) {
       if (x % 2 == 1) {
           function_call(x * x);
-      }  // ✅ Properly aligned
-  }      // ✅ Properly aligned
+      }  //  Properly aligned
+  }      //  Properly aligned
   ```
 
 - **Code Consolidation Through Generic Functions**: Eliminated ~75% of duplicate code in syntax writing methods
   - **Generic Storage Specifier Function**: Consolidated 5 methods (`auto`, `register`, `restrict`, `inline`, `_Thread_local`) into 1 generic function + simple wrappers
   - **Generic Parenthesized Construct Function**: Consolidated 4 methods (`sizeof`, `_Alignof`, `_Atomic`, `_Alignas`) into 1 generic function + simple wrappers
   - **Benefits**: ~70-80 lines of duplicate logic eliminated, significantly improved maintainability
+
   ```python
   def _write_storage_specifier(self, specifier: str, elem: Any, element_property: str, ...) -> None:
   def _write_parenthesized_construct(self, function_name: str, elem: Any, operand_property: str, ...) -> None

@@ -169,6 +169,10 @@ class StaticConstraintChecker:
         """Check for potential buffer overflow conditions."""
         for node in ast.walk(tree):
             if isinstance(node, ast.Subscript):
+                # Skip type annotations - they are not actual array access
+                if self._is_type_annotation(node):
+                    continue
+
                 # Check array access patterns
                 if isinstance(node.slice, ast.Name):
                     # Variable index - potential risk
@@ -182,6 +186,21 @@ class StaticConstraintChecker:
                             suggestion="Add explicit bounds checking before array access",
                         )
                     )
+
+    def _is_type_annotation(self, node: ast.Subscript) -> bool:
+        """Check if a subscript node represents a type annotation rather than array access."""
+        # Common type annotation patterns: list[int], dict[str, int], etc.
+        if isinstance(node.value, ast.Name):
+            type_names = {'list', 'dict', 'set', 'tuple', 'List', 'Dict', 'Set', 'Tuple',
+                         'Optional', 'Union', 'Callable', 'Type', 'ClassVar', 'Final'}
+            return node.value.id in type_names
+
+        # Handle nested type annotations: typing.List[int]
+        if isinstance(node.value, ast.Attribute):
+            if isinstance(node.value.value, ast.Name) and node.value.value.id == 'typing':
+                return True
+
+        return False
 
     def _check_null_pointer_dereference(self, tree: ast.AST):
         """Check for potential null pointer dereferences."""

@@ -16,3 +16,8 @@ def test_math_pow():
     result: float = math.pow(base, exponent)
     # 2^3 = 8
     assert result == 8.0
+
+def main() -> int:
+    test_math_functions()
+    test_math_pow()
+    return 0

@@ -152,7 +152,8 @@ class FunctionCallConverter:
         container_type = container_info['container_type']
 
         if container_type == "list":
-            operation_code = stc_operation_mapper.map_list_operation(container_name, "len")
+            stc_type = container_info['stc_type']
+            operation_code = stc_operation_mapper.map_list_operation(stc_type, "len", variable_name=container_name)
         elif container_type == "dict":
             operation_code = stc_operation_mapper.map_dict_operation(container_name, "len")
         elif container_type == "set":
@@ -201,11 +202,15 @@ class FunctionCallConverter:
 
     def _convert_list_method(self, obj_name: str, method_name: str, args: List[ast.expr]) -> core.Element:
         """Convert list method calls."""
+        # Get the STC type name for this container variable
+        container_info = self.container_variables[obj_name]
+        stc_type = container_info['stc_type']
+
         if method_name == "append":
             if len(args) != 1:
                 raise UnsupportedFeatureError("list.append() requires exactly one argument")
             arg_str = self._convert_arg_to_string(args[0])
-            operation_code = stc_operation_mapper.map_list_operation(obj_name, "append", arg_str)
+            operation_code = stc_operation_mapper.map_list_operation(stc_type, "append", arg_str, variable_name=obj_name)
             return STCOperationElement(operation_code)
         else:
             raise UnsupportedFeatureError(f"Unsupported list method: {method_name}")
@@ -330,6 +335,7 @@ class PythonToCConverter:
 
         # Clear STC state for fresh conversion
         stc_type_mapper.used_containers.clear()
+        stc_type_mapper.container_metadata.clear()
 
         # First pass - process all statements to discover container types and assert usage
         uses_assert = False
@@ -797,19 +803,21 @@ class PythonToCConverter:
                 if (isinstance(node.value, ast.List) and len(node.value.elts) == 0) or \
                    (isinstance(node.value, ast.Dict) and len(node.value.keys) == 0) or \
                    (isinstance(node.value, ast.Set) and len(node.value.elts) == 0):
-                    # Empty container initialization using STC
+                    # Empty container initialization using STC - create declaration with initialization
                     if container_type == "list":
-                        init_code = stc_operation_mapper.map_list_operation(var_name, "init_empty")
+                        init_value = stc_operation_mapper.map_list_operation(var_type, "init_empty", variable_name=var_name)
                     elif container_type == "dict":
-                        init_code = stc_operation_mapper.map_dict_operation(var_name, "init_empty")
+                        init_value = stc_operation_mapper.map_dict_operation(var_name, "init_empty")
                     elif container_type == "set":
-                        init_code = stc_operation_mapper.map_set_operation(var_name, "init_empty")
+                        init_value = stc_operation_mapper.map_set_operation(var_name, "init_empty")
                     else:
-                        init_code = f"{var_name} = {{0}}"
+                        init_value = "{0}"
 
-                    decl_stmt = self.c_factory.statement(self.c_factory.declaration(variable))
-                    init_stmt = self.c_factory.statement(STCOperationElement(init_code))
-                    return [decl_stmt, init_stmt]
+                    # Create declaration with initialization: vec_int32 numbers = {0};
+                    init_expr = core.RawCode(init_value)
+                    declaration = self.c_factory.declaration(variable, init_expr)
+                    decl_stmt = self.c_factory.statement(declaration)
+                    return [decl_stmt]
                 else:
                     # Complex container initialization - convert value expression
                     value_expr = self._convert_expression(node.value)
@@ -846,7 +854,7 @@ class PythonToCConverter:
                 # Declaration without initialization - still need to initialize containers
                 decl_stmt = self.c_factory.statement(self.c_factory.declaration(variable))
                 if container_type == "list":
-                    init_code = stc_operation_mapper.map_list_operation(var_name, "init_empty")
+                    init_code = stc_operation_mapper.map_list_operation(var_type, "init_empty", variable_name=var_name)
                 elif container_type == "dict":
                     init_code = stc_operation_mapper.map_dict_operation(var_name, "init_empty")
                 elif container_type == "set":
@@ -918,7 +926,8 @@ class PythonToCConverter:
 
                     if container_type == "list":
                         # List element assignment: lst[i] = x
-                        operation_code = stc_operation_mapper.map_list_operation(container_name, "set", key_str, value_str)
+                        stc_type = container_info['stc_type']
+                        operation_code = stc_operation_mapper.map_list_operation(stc_type, "set", key_str, value_str, variable_name=container_name)
                         return self.c_factory.statement(STCOperationElement(operation_code))
                     elif container_type == "dict":
                         # Dict element assignment: dict[key] = value
@@ -1203,7 +1212,8 @@ class PythonToCConverter:
 
                     if container_type == "list":
                         # List indexing: lst[i] -> *lst_at(&lst, i)
-                        operation_code = stc_operation_mapper.map_list_operation(container_name, "get", key_str)
+                        stc_type = container_info['stc_type']
+                        operation_code = stc_operation_mapper.map_list_operation(stc_type, "get", key_str, variable_name=container_name)
                         return STCOperationElement(operation_code)
                     elif container_type == "dict":
                         # Dict access: dict[key] -> *dict_at(&dict, key)

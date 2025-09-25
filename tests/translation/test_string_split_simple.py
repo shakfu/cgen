@@ -6,3 +6,7 @@ def test_string_split_assignment():
     assert len(words) == 2
     assert words[0] == "hello"
     assert words[1] == "world"
+
+def main() -> int:
+    test_string_split_assignment()
+    return 0

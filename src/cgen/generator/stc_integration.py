@@ -26,6 +26,9 @@ class STCTypeMapper:
         # Track which STC containers we've seen (for declarations)
         self.used_containers: Set[str] = set()
 
+        # Track container metadata: container_name -> (container_type, element_types)
+        self.container_metadata: Dict[str, Tuple[str, List[str]]] = {}
+
     def python_type_to_stc(self, python_type: str) -> str:
         """Convert Python type to STC equivalent."""
         return self.type_mappings.get(python_type, python_type)
@@ -40,6 +43,7 @@ class STCTypeMapper:
             logger = log.config("STCTypeMapper.get_list")
             logger.debug(f"Registering list container: {container_name} for element_type: {element_type}")
             self.used_containers.add(container_name)
+            self.container_metadata[container_name] = ("list", [element_type])
         return container_name
 
     def get_dict_container_name(self, key_type: str, value_type: str, register_usage: bool = True) -> str:
@@ -49,6 +53,7 @@ class STCTypeMapper:
         container_name = f"hmap_{stc_key}_{stc_value}".replace('_t', '')
         if register_usage:
             self.used_containers.add(container_name)
+            self.container_metadata[container_name] = ("dict", [key_type, value_type])
         return container_name
 
     def get_set_container_name(self, element_type: str, register_usage: bool = True) -> str:
@@ -61,6 +66,7 @@ class STCTypeMapper:
             logger = log.config("STCTypeMapper.get_set")
             logger.debug(f"Registering set container: {container_name} for element_type: {element_type}")
             self.used_containers.add(container_name)
+            self.container_metadata[container_name] = ("set", [element_type])
         return container_name
 
     def register_container_usage(self, container_name: str) -> None:
@@ -83,52 +89,69 @@ class STCDeclarationGenerator:
     def generate_includes(self) -> List[core.Element]:
         """Generate necessary STC include statements."""
         includes = []
-        include_set = set()  # Track which headers we've already added
 
         # Only include stc/types.h if we actually have containers
         if self.type_mapper.used_containers:
             includes.append(core.IncludeDirective("stc/types.h", system=False))
-            include_set.add("stc/types.h")
 
-        # Include specific container headers based on usage (deduplicated)
-        for container in self.type_mapper.used_containers:
-            if container.startswith('vec_') and "stc/vec.h" not in include_set:
-                includes.append(core.IncludeDirective("stc/vec.h", system=False))
-                include_set.add("stc/vec.h")
-            elif container.startswith('hmap_') and "stc/hmap.h" not in include_set:
-                includes.append(core.IncludeDirective("stc/hmap.h", system=False))
-                include_set.add("stc/hmap.h")
-            elif container.startswith('hset_') and "stc/hset.h" not in include_set:
-                includes.append(core.IncludeDirective("stc/hset.h", system=False))
-                include_set.add("stc/hset.h")
-
+        # Note: specific container headers are included after declarations using #define T
         return includes
 
     def generate_declarations(self) -> List[str]:
-        """Generate STC container declarations."""
+        """Generate STC container declarations and implementations."""
         declarations = []
 
-        for container in self.type_mapper.used_containers:
-            if container.startswith('vec_'):
-                # Extract element type from container name
-                element_type = container[4:]  # Remove 'vec_' prefix
-                stc_type = self.type_mapper.python_type_to_stc(element_type)
-                declarations.append(f"declare_vec({container}, {stc_type});")
+        # Group containers by type for better organization
+        vec_containers = []
+        hmap_containers = []
+        hset_containers = []
 
-            elif container.startswith('hmap_'):
-                # Parse key and value types from container name
-                parts = container[5:].split('_', 1)  # Remove 'hmap_' prefix
-                if len(parts) == 2:
-                    key_type, value_type = parts
+        for container in self.type_mapper.used_containers:
+            if container in self.type_mapper.container_metadata:
+                container_type, element_types = self.type_mapper.container_metadata[container]
+                if container_type == "list":
+                    element_type = element_types[0]
+                    stc_type = self.type_mapper.python_type_to_stc(element_type)
+                    vec_containers.append((container, stc_type))
+                elif container_type == "dict":
+                    key_type, value_type = element_types
                     stc_key = self.type_mapper.python_type_to_stc(key_type)
                     stc_value = self.type_mapper.python_type_to_stc(value_type)
-                    declarations.append(f"declare_hmap({container}, {stc_key}, {stc_value});")
+                    hmap_containers.append((container, stc_key, stc_value))
+                elif container_type == "set":
+                    element_type = element_types[0]
+                    stc_type = self.type_mapper.python_type_to_stc(element_type)
+                    hset_containers.append((container, stc_type))
 
-            elif container.startswith('hset_'):
-                # Extract element type from container name
-                element_type = container[5:]  # Remove 'hset_' prefix
-                stc_type = self.type_mapper.python_type_to_stc(element_type)
-                declarations.append(f"declare_hset({container}, {stc_type});")
+        # Generate declare statements for all containers
+        for container, stc_type in vec_containers:
+            declarations.append(f"declare_vec({container}, {stc_type});")
+
+        for container, stc_key, stc_value in hmap_containers:
+            declarations.append(f"declare_hmap({container}, {stc_key}, {stc_value});")
+
+        for container, stc_type in hset_containers:
+            declarations.append(f"declare_hset({container}, {stc_type});")
+
+        # Add blank line before template instantiations
+        if declarations:
+            declarations.append("")
+
+        # Generate template instantiations using #define T + #include pattern
+        for container, stc_type in vec_containers:
+            declarations.append(f"#define T {container}, {stc_type}, (c_declared)")
+            declarations.append(f'#include "stc/vec.h"')
+            declarations.append("")  # Blank line after each instantiation
+
+        for container, stc_key, stc_value in hmap_containers:
+            declarations.append(f"#define T {container}, {stc_key}, {stc_value}, (c_declared)")
+            declarations.append(f'#include "stc/hmap.h"')
+            declarations.append("")
+
+        for container, stc_type in hset_containers:
+            declarations.append(f"#define T {container}, {stc_type}, (c_declared)")
+            declarations.append(f'#include "stc/hset.h"')
+            declarations.append("")
 
         return declarations
 
@@ -141,21 +164,25 @@ class STCOperationMapper:
         self.log = log.config(self.__class__.__name__)
         self.type_mapper = type_mapper
 
-    def map_list_operation(self, container_name: str, operation: str, *args) -> str:
+    def map_list_operation(self, stc_type: str, operation: str, *args, variable_name: str = None) -> str:
         """Map Python list operation to STC vec operation."""
+        # Use variable_name if provided, otherwise use stc_type
+        var_name = variable_name or stc_type
+
         # Register that this container is actually used
-        self.type_mapper.register_container_usage(container_name)
+        self.type_mapper.register_container_usage(var_name)
 
         if operation == "append":
-            return f"{container_name}_push(&{container_name}, {args[0]})"
+            return f"{stc_type}_push(&{var_name}, {args[0]})"
         elif operation == "len":
-            return f"{container_name}_size(&{container_name})"
+            return f"{stc_type}_size(&{var_name})"
         elif operation == "get":  # lst[i]
-            return f"*{container_name}_at(&{container_name}, {args[0]})"
+            return f"*{stc_type}_at(&{var_name}, {args[0]})"
         elif operation == "set":  # lst[i] = x
-            return f"*{container_name}_at(&{container_name}, {args[0]}) = {args[1]}"
+            return f"*{stc_type}_at(&{var_name}, {args[0]}) = {args[1]}"
         elif operation == "init_empty":
-            return f"{container_name} = {{0}}"
+            # For STC containers, return the initialization value that will be used in declaration
+            return "{0}"
         elif operation == "slice":  # lst[start:end]
             # For slicing, we need special handling - this should be handled differently
             # as it returns a new container rather than a single operation

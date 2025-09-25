@@ -37,3 +37,10 @@ def test_string_list_iteration() -> int:
         total_chars = total_chars + 1
 
     return total_chars
+
+def main() -> int:
+    # Test all iteration functions
+    assert test_list_iteration() == 60
+    assert test_set_iteration() == 3
+    assert test_string_list_iteration() == 3
+    return 0

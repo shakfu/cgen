@@ -195,3 +195,23 @@ def test_control_flow_with_variables() -> int:
             y *= 2
 
     return x + y
+
+def main() -> int:
+    # Test all control flow functions with assertions
+    assert test_simple_if_statement() == 1
+    assert test_if_else_statement() == 2
+    assert test_if_elif_else_chain() == 2
+    assert test_nested_if_statements() == 1
+    assert test_simple_while_loop() == 10
+    assert test_while_with_condition() == 3
+    assert test_for_range_loop() == 10
+    assert test_for_range_with_start_stop() == 20
+    assert test_for_range_with_step() == 20
+    assert test_for_with_condition() == 3
+    assert test_nested_for_loops() == 9
+    assert test_boolean_and_operation() == 1
+    assert test_boolean_or_operation() == 1
+    assert test_comparison_operators() == 31
+    assert test_early_return() == 2
+    assert test_control_flow_with_variables() == 22
+    return 0

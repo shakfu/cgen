@@ -7,3 +7,8 @@ def test_string_strip():
     text: str = "  hello world  "
     clean: str = text.strip()
     assert clean == "hello world"
+
+def main() -> int:
+    test_string_replace()
+    test_string_strip()
+    return 0

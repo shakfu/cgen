@@ -373,20 +373,24 @@ class CGenPipeline:
             c_file_path = Path(c_file)
 
             if self.config.build_mode == BuildMode.MAKEFILE:
-                # Generate Makefile
+                # Determine Makefile placement
+                if output_dir.name == "src" and output_dir.parent.name == "build":
+                    makefile_dir = output_dir.parent
+                else:
+                    makefile_dir = output_dir
+
+                # Generate Makefile with correct relative paths
                 makefile_gen = self.makefile_generator.create_for_generated_code(
                     c_file=str(c_file_path),
                     output_name=c_file_path.stem,
                     additional_flags=self.config.compiler_flags,
-                    additional_includes=self.config.include_dirs
+                    additional_includes=self.config.include_dirs,
+                    makefile_dir=str(makefile_dir)
                 )
                 makefile_content = makefile_gen.generate_makefile()
 
-                # Place Makefile in parent of source directory (build root)
-                if output_dir.name == "src" and output_dir.parent.name == "build":
-                    makefile_path = output_dir.parent / "Makefile"
-                else:
-                    makefile_path = output_dir / "Makefile"
+                # Place Makefile in determined directory
+                makefile_path = makefile_dir / "Makefile"
                 makefile_path.write_text(makefile_content)
 
                 result.makefile_content = makefile_content

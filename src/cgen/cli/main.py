@@ -21,6 +21,8 @@ from typing import Optional
 from ..pipeline import CGenPipeline, PipelineConfig, BuildMode, OptimizationLevel
 from ..common import log
 
+BUILD_DIR = "build"
+
 
 class SimpleCGenCLI:
     """Simple CLI for CGen pipeline operations."""
@@ -28,7 +30,7 @@ class SimpleCGenCLI:
     def __init__(self):
         """Initialize the CLI."""
         self.log = log.config(self.__class__.__name__)
-        self.default_build_dir = Path("build")
+        self.default_build_dir = Path(BUILD_DIR)
 
     def create_parser(self) -> argparse.ArgumentParser:
         """Create the argument parser."""
@@ -180,15 +182,30 @@ Build Directory Structure:
 
     def copy_stc_library(self, build_dir: Path) -> None:
         """Copy relevant STC library components to build directory."""
-        src_stc_dir = Path(__file__).parent.parent / "ext" / "stc" / "include"
-        if src_stc_dir.exists():
-            dest_stc_dir = build_dir / "src" / "stc"
+        src_stc_include_dir = Path(__file__).parent.parent / "ext" / "stc" / "include"
+        if src_stc_include_dir.exists():
+            # Copy the contents of /ext/stc/include/ to /build/src/ so that
+            # #include "stc/types.h" works with -I/build/src/
+            dest_base_dir = build_dir / "src"
+            dest_stc_dir = dest_base_dir / "stc"
+
             if dest_stc_dir.exists():
                 shutil.rmtree(dest_stc_dir)
-            shutil.copytree(src_stc_dir, dest_stc_dir)
-            self.log.debug(f"Copied STC library to: {dest_stc_dir}")
-            if self.verbose:
+
+            # Copy the stc directory from include/stc to src/stc
+            src_stc_headers = src_stc_include_dir / "stc"
+            if src_stc_headers.exists():
+                shutil.copytree(src_stc_headers, dest_stc_dir)
                 self.log.debug(f"Copied STC library to: {dest_stc_dir}")
+
+            # Also copy c11 if it exists
+            src_c11_headers = src_stc_include_dir / "c11"
+            dest_c11_dir = dest_base_dir / "c11"
+            if src_c11_headers.exists():
+                if dest_c11_dir.exists():
+                    shutil.rmtree(dest_c11_dir)
+                shutil.copytree(src_c11_headers, dest_c11_dir)
+                self.log.debug(f"Copied C11 library to: {dest_c11_dir}")
 
     def convert_command(self, args) -> int:
         """Execute convert command."""
@@ -207,6 +224,9 @@ Build Directory Structure:
             build_mode=BuildMode.NONE
         )
 
+        # Copy STC library first (needed for generated code)
+        self.copy_stc_library(build_dir)
+
         # Run pipeline
         pipeline = CGenPipeline(config)
         result = pipeline.convert(input_path)
@@ -216,9 +236,6 @@ Build Directory Structure:
             for error in result.errors:
                 self.log.error(f"Error: {error}")
             return 1
-
-        # Copy STC library
-        self.copy_stc_library(build_dir)
 
         self.log.info(f"Conversion successful! C source: {result.output_files.get('c_source', 'N/A')}")
         if result.warnings:
@@ -242,12 +259,16 @@ Build Directory Structure:
         else:
             build_mode = BuildMode.DIRECT
 
-        # Configure pipeline
+        # Copy STC library first (needed for build phase)
+        self.copy_stc_library(build_dir)
+
+        # Configure pipeline with STC include path
         config = PipelineConfig(
             optimization_level=self.get_optimization_level(args.optimization),
             output_dir=str(build_dir / "src"),
             build_mode=build_mode,
-            compiler=getattr(args, 'compiler', 'gcc')
+            compiler=getattr(args, 'compiler', 'gcc'),
+            include_dirs=[str(build_dir / "src")]  # Add STC include path
         )
 
         # Run pipeline
@@ -260,9 +281,6 @@ Build Directory Structure:
             for error in result.errors:
                 self.log.error(f"Error: {error}")
             return 1
-
-        # Copy STC library
-        self.copy_stc_library(build_dir)
 
         if args.makefile:
             # Makefile generation mode

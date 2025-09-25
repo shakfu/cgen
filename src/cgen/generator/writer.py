@@ -368,6 +368,9 @@ class Writer(Formatter):
             self._write(f'"{value}"')
         elif isinstance(value, core.DesignatedInitializer):
             self._write_element(value)
+        elif isinstance(value, core.RawCode):
+            # Write raw code without quotes for compound literals like {0}
+            self._write(value.code)
         else:
             raise NotImplementedError(str(type(value)))
 

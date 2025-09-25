@@ -10,3 +10,8 @@ def test_container_iteration() -> int:
         total = total + num
 
     return total
+
+def main() -> int:
+    result = test_container_iteration()
+    assert result == 60
+    return result

@@ -8,3 +8,8 @@ def test_string_membership() -> bool:
     not_has_xyz: bool = "xyz" not in text
 
     return has_hello and not has_xyz and not_has_xyz
+
+def main() -> int:
+    result = test_string_membership()
+    assert result == True
+    return 0

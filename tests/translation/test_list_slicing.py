@@ -32,3 +32,14 @@ def test_slice_with_end_only() -> list[int]:
     # Slice from start to index 2 (exclusive)
     subset: list[int] = numbers[:2]
     return subset
+
+def main() -> int:
+    result1 = test_list_slicing()
+    result2 = test_slice_with_start_only()
+    result3 = test_slice_with_end_only()
+
+    assert len(result1) == 2
+    assert len(result2) == 2
+    assert len(result3) == 2
+
+    return 0

@@ -35,3 +35,10 @@ def test_string_comparison() -> bool:
     different: bool = text1 != text3
 
     return same and different
+
+def main() -> int:
+    # Test string methods with assertions
+    assert test_string_methods() == 11
+    assert test_string_concatenation() == "Hello World"
+    assert test_string_comparison() == True
+    return 0
