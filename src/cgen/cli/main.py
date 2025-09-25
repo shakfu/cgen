@@ -102,7 +102,7 @@ Build Directory Structure:
             help="Batch translate all Python files in a directory",
             description="Translate all Python files in a directory to C code in build/src",
         )
-        batch_parser.add_argument("-s", "--source-dir", help="Directory containing Python files to translate")
+        batch_parser.add_argument("-s", "--source-dir", default=".", help="Directory containing Python files to translate (default: current directory)")
         batch_parser.add_argument(
             "-o",
             "--output-dir",
