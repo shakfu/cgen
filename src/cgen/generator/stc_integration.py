@@ -263,9 +263,11 @@ class STCOperationElement(core.Element):
 class STCForEachElement(core.Element):
     """Represents an STC foreach loop in the generated C code."""
 
-    def __init__(self, foreach_code: str, body_block):
+    def __init__(self, foreach_code: str, body_block, iterator_var: str = None, container_type: str = None):
         self.foreach_code = foreach_code  # e.g., "c_foreach (item, vec_int32, numbers)"
         self.body_block = body_block
+        self.iterator_var = iterator_var  # e.g., "num"
+        self.container_type = container_type  # e.g., "vec_int32"
 
 
 class STCSliceElement(core.Element):

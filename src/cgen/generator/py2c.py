@@ -416,8 +416,9 @@ class PythonToCConverter:
                 sequence.append(core.RawCode(decl))
             sequence.append(self.c_factory.blank())
 
-        # Add string split helpers if string methods are used
-        if uses_string_methods:
+        # Add string split helpers if string methods are used AND STC containers are present
+        # (The macro requires STC headers to be included)
+        if uses_string_methods and stc_declarations:
             sequence.append(core.RawCode("CGEN_IMPLEMENT_STRING_SPLIT_HELPERS()"))
             sequence.append(self.c_factory.blank())
 
@@ -1666,7 +1667,7 @@ class PythonToCConverter:
             self.iterator_variables[loop_var] = stc_container_type
 
             # Create a special foreach element that combines the foreach with the body
-            return STCForEachElement(foreach_code, body_block)
+            return STCForEachElement(foreach_code, body_block, loop_var, stc_container_type)
 
         else:
             raise UnsupportedFeatureError("Only range-based and container iteration for loops are currently supported")

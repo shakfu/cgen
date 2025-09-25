@@ -97,6 +97,8 @@ class Writer(Formatter):
         super().__init__(style.indent_width, style.indent_char)
         self.log = log.config(self.__class__.__name__)
         self.style = style
+        # Track iterator variables in STC foreach loops
+        self.iterator_variables = set()
         self.switcher_all = {
             "Type": self._write_base_type,
             "TypeDef": self._write_typedef_usage,
@@ -474,7 +476,11 @@ class Writer(Formatter):
 
     def _write_variable_usage(self, elem: core.Variable) -> None:
         """Writes variable usage."""
-        self._write(elem.name)
+        # If this is an iterator variable in an STC foreach loop, dereference it
+        if elem.name in self.iterator_variables:
+            self._write(f"*{elem.name}.ref")
+        else:
+            self._write(elem.name)
         self.last_element = ElementType.VARIABLE_USAGE
 
     def _write_variable_declaration(self, elem: core.Variable) -> None:
@@ -682,7 +688,11 @@ class Writer(Formatter):
 
     def _write_expression(self, elem: Any) -> None:
         if isinstance(elem, str):
-            self._write(elem)
+            # Check if this string is an iterator variable that needs dereferencing
+            if elem in self.iterator_variables:
+                self._write(f"*{elem}.ref")
+            else:
+                self._write(elem)
         else:
             self._write_element(elem)
 
@@ -744,6 +754,13 @@ class Writer(Formatter):
         self._eol()
         self._indent()
 
+        # Track iterator variable for dereferencing
+        iterator_was_tracked = False
+        if hasattr(elem, 'iterator_var') and elem.iterator_var:
+            if elem.iterator_var not in self.iterator_variables:
+                self.iterator_variables.add(elem.iterator_var)
+                iterator_was_tracked = True
+
         # Write the body statements directly without block braces
         # since we're already providing the braces for the foreach loop
         if hasattr(elem.body_block, "elements"):
@@ -766,6 +783,10 @@ class Writer(Formatter):
             # Fallback if it's not a sequence
             self._write(self.indentation_str)
             self._write_element(elem.body_block)
+
+        # Clean up iterator variable tracking
+        if iterator_was_tracked and hasattr(elem, 'iterator_var') and elem.iterator_var:
+            self.iterator_variables.discard(elem.iterator_var)
 
         self._dedent()
         self._write(self.indentation_str)
