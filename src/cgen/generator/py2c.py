@@ -38,6 +38,7 @@ from .stc_integration import (
     stc_operation_mapper,
     stc_type_mapper,
 )
+from .simple_emitter import SimpleEmitter
 from .style import StyleOptions
 from .writer import Writer
 
@@ -300,8 +301,18 @@ class PythonToCConverter:
         self.module_resolver = ModuleResolver()
         self.import_handler = ImportHandler(self.module_resolver)
 
-        # Initialize type inference engine
-        self.type_inference = TypeInferenceEngine()
+        # Initialize type inference engine with flow-sensitive analysis
+        self.type_inference = TypeInferenceEngine(enable_flow_sensitive=True)
+
+        # Initialize simple emitter for clean basic function generation
+        self.simple_emitter = SimpleEmitter()
+
+    def _extract_c_type(self, data_type: str) -> str:
+        """Extract clean C type from variable data type."""
+        # Handle both simple types and complex types
+        if isinstance(data_type, str):
+            return data_type.replace("*", "").strip()
+        return str(data_type)
 
     def _infer_element_type(self, expr: ast.expr) -> str:
         """Infer the C type of an expression for container elements."""
@@ -563,17 +574,49 @@ class PythonToCConverter:
 
     def _convert_function_def(self, node: ast.FunctionDef) -> List[core.Element]:
         """Convert Python function definition to C function."""
-        # Extract return type (speculative - doesn't create container usage)
-        return_type = self._extract_type_annotation(node.returns, register_usage=False) if node.returns else "void"
+        # Try enhanced type inference for better parameter and return type analysis
+        try:
+            type_results = self.type_inference.analyze_function_signature_enhanced(node)
+        except Exception as e:
+            self.log.warning(f"Enhanced type inference failed for function {node.name}: {e}")
+            type_results = {}
 
-        # Create function parameters
+        # Extract return type
+        if "__return__" in type_results and type_results["__return__"].confidence > 0.5:
+            return_type = type_results["__return__"].type_info.c_equivalent or "void"
+        else:
+            return_type = self._extract_type_annotation(node.returns, register_usage=False) if node.returns else "void"
+
+        # Create function parameters with enhanced inference
         params = []
         for arg in node.args.args:
-            if not arg.annotation:
-                raise TypeMappingError(f"Parameter '{arg.arg}' must have type annotation")
-            param_type = self._extract_type_annotation(arg.annotation)
+            if arg.annotation:
+                # Use explicit annotation
+                param_type = self._extract_type_annotation(arg.annotation)
+            elif arg.arg in type_results and type_results[arg.arg].confidence > 0.6:
+                # Use inferred type from flow-sensitive analysis
+                inferred_type = type_results[arg.arg].type_info.c_equivalent or "int"
+                param_type = inferred_type
+                self.log.info(f"Inferred type for parameter '{arg.arg}': {param_type}")
+            else:
+                # Fallback to error (maintain backward compatibility)
+                raise TypeMappingError(f"Parameter '{arg.arg}' must have type annotation or be inferrable from usage")
+
             param = self.c_factory.variable(arg.arg, param_type)
             params.append(param)
+
+        # Smart emission selection: use SimpleEmitter for basic functions
+        type_context = {arg.arg: self._extract_c_type(params[i].data_type) for i, arg in enumerate(node.args.args)}
+        type_context["__return__"] = return_type
+
+        if self.simple_emitter.can_use_simple_emission(node, type_context):
+            # Use simple emitter for clean, basic function generation
+            simple_c_code = self.simple_emitter.emit_function(node, type_context)
+            self.log.info(f"Using simple emission for function: {node.name}")
+            return [core.RawCode(simple_c_code), self.c_factory.blank()]
+
+        # Fall back to complex STC-enabled emission
+        self.log.debug(f"Using complex STC emission for function: {node.name}")
 
         # Create function
         function = self.c_factory.function(node.name, return_type, params=params)

@@ -15,6 +15,73 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 
 ---
 
+## [0.1.18]
+
+### Added
+
+#### Mini_py2c Pattern Integration - Advanced Type Inference and Smart Code Generation
+
+- **Flow-Sensitive Type Inference System**: Revolutionary enhancement based on mini_py2c_module_fixed.py patterns
+  - **FlowSensitiveInferencer**: New constraint-based type inference engine with environment tracking
+    - **Parameter Type Inference**: Automatically infers parameter types from usage patterns (arithmetic + comparison operations)
+    - **TypeUnifier**: Advanced type unification algebra for mixed-type operations (int→float promotion, bool→int coercion)
+    - **Comparison-Driven Propagation**: Infers numeric types when variables are used in comparisons and arithmetic
+    - **90% Confidence Scores**: High-confidence type inference with detailed evidence tracking
+  - **Enhanced TypeInferenceEngine**: Added `analyze_function_signature_enhanced()` method with backward compatibility
+  - **Integration**: Seamlessly integrated with existing type inference while maintaining strict validation
+
+- **Smart Emission Selection System**: Intelligent C code generation strategy selection
+  - **SimpleEmitter**: Clean C code generator for basic functions (inspired by mini_py2c patterns)
+    - **Optimized Output**: Generates clean, readable C code without STC overhead for simple functions
+    - **Expression Formatting**: Improved expression generation with minimal parentheses and proper operator precedence
+    - **Function Signatures**: Correct C function signature generation (`void func(void)` for parameter-less functions)
+  - **Automatic Detection**: Functions automatically routed to SimpleEmitter or complex STC emission based on requirements
+  - **Selection Criteria**: Smart detection of functions suitable for simple emission (basic int/float/bool arithmetic only)
+
+- **Enhanced Type System Rules**: Updated and documented comprehensive type system
+  - **Local Variable Inference**: Local variables can now be inferred through flow-sensitive analysis
+  - **Strict Function Annotations**: Functions and parameters still require explicit type annotations
+  - **Container Type Support**: Full support for `list[T]`, `dict[K,V]`, `set[T]` with fixed type parameters
+  - **Runtime Constraints**: Clear rules for immutable globals, no dynamic attributes, final classes
+  - **Documentation**: Added comprehensive type system documentation to CLAUDE.md
+
+### Changed
+
+#### Type System Modernization
+
+- **Relaxed Local Variable Requirements**: Local variables can now be inferred when type can be determined from assignment context
+- **Maintained Strict Validation**: Functions, parameters, and public fields still require explicit annotations
+- **Enhanced Error Messages**: Better error reporting for type annotation requirements
+- **Smart Emission Integration**: Functions automatically use optimal code generation strategy
+
+#### Test Suite Enhancement
+
+- **Pytest Integration**: Converted standalone integration tests to professional pytest test suite
+  - **TestFlowSensitiveInference**: Comprehensive tests for parameter inference and type propagation
+  - **TestSimpleEmitter**: Tests for clean C code generation and emission detection
+  - **TestSmartEmissionSelection**: Integration tests for automatic emission strategy selection
+  - **TestTypeUnification**: Tests for mixed-type operation handling
+  - **TestIntegrationValidation**: End-to-end pipeline validation tests
+- **Updated Test Expectations**: Modified tests to reflect new type system capabilities
+- **Zero Test Regressions**: All 664 tests passing with enhanced functionality
+
+### Fixed
+
+#### Expression and Code Generation Quality
+
+- **Boolean Literal Generation**: Fixed SimpleEmitter to generate `true`/`false` instead of `1`/`0` for boolean values
+- **Function Signature Formatting**: Corrected void function signatures to use `func(void)` format
+- **Expression Parentheses**: Reduced unnecessary parentheses in generated expressions for cleaner C code
+- **Assert Statement Handling**: Proper assert statement generation in SimpleEmitter
+- **Type Mapping Consistency**: Consistent type mapping between simple and complex emission strategies
+
+#### Test System Modernization
+
+- **Variable Assignment Tests**: Updated tests to reflect new local variable inference capabilities
+- **Parameter Validation Tests**: Enhanced tests for parameter annotation requirements
+- **Integration Test Structure**: Professional pytest organization with proper assertions
+- **Backward Compatibility**: Ensured all enhancements maintain full backward compatibility
+
 ## [0.1.17]
 
 ### Fixed

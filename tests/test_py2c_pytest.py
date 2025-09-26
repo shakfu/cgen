@@ -148,13 +148,24 @@ def bad_function(x: dict) -> dict:
             convert_python_to_c(python_code)
 
     def test_variable_assignment_without_declaration(self, py2c_converter):
-        """Test error when assigning to undeclared variable."""
+        """Test that local variables can now be inferred (updated for new type system)."""
         python_code = """
-def bad_function() -> int:
-    x = 5
+def good_function() -> int:
+    x = 5  # Local variables can now be inferred
     return x
 """
-        with pytest.raises(TypeMappingError, match="Variable 'x' must be declared with type annotation first"):
+        # This should now succeed with the new type inference system
+        c_code = convert_python_to_c(python_code)
+        assert "int good_function(void)" in c_code
+        assert "x = 5;" in c_code
+
+    def test_parameter_without_annotation_error(self, py2c_converter):
+        """Test error when parameter lacks type annotation (still required)."""
+        python_code = """
+def bad_function(x) -> int:  # Parameter 'x' missing annotation
+    return x
+"""
+        with pytest.raises(TypeMappingError, match="Parameter 'x' must have type annotation"):
             convert_python_to_c(python_code)
 
 

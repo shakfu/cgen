@@ -51,10 +51,14 @@ class TypeConstraint:
 class TypeInferenceEngine:
     """Advanced type inference engine for static Python code."""
 
-    def __init__(self):
+    def __init__(self, enable_flow_sensitive: bool = True):
         self.log = log.config(self.__class__.__name__)
         self.inferred_types: Dict[str, InferenceResult] = {}
         self.constraints: List[TypeConstraint] = []
+        self.enable_flow_sensitive = enable_flow_sensitive
+
+        # Lazy import to avoid circular dependency
+        self._flow_sensitive_inferencer = None
         self.binary_op_result_types = {
             # (left_type, operator, right_type) -> result_type
             ("int", ast.Add, "int"): "int",
@@ -357,6 +361,30 @@ class TypeInferenceEngine:
             results["__return__"] = return_result
 
         return results
+
+    def analyze_function_signature_enhanced(self, func_node: ast.FunctionDef) -> Dict[str, InferenceResult]:
+        """Enhanced function analysis with optional flow-sensitive inference."""
+        if self.enable_flow_sensitive:
+            return self._get_flow_sensitive_results(func_node)
+        else:
+            return self.analyze_function_signature(func_node)
+
+    def _get_flow_sensitive_results(self, func_node: ast.FunctionDef) -> Dict[str, InferenceResult]:
+        """Get results from flow-sensitive analysis."""
+        if self._flow_sensitive_inferencer is None:
+            # Lazy import to avoid circular dependency
+            from .flow_sensitive_inference import FlowSensitiveInferencer
+            self._flow_sensitive_inferencer = FlowSensitiveInferencer(self)
+
+        try:
+            # Try flow-sensitive analysis first
+            flow_results = self._flow_sensitive_inferencer.analyze_function_flow(func_node)
+            self.log.debug(f"Flow-sensitive analysis completed for {func_node.name}")
+            return flow_results
+        except Exception as e:
+            # Fall back to regular analysis if flow-sensitive fails
+            self.log.warning(f"Flow-sensitive analysis failed for {func_node.name}: {e}")
+            return self.analyze_function_signature(func_node)
 
     def _extract_type_from_annotation(self, annotation: ast.expr) -> TypeInfo:
         """Extract TypeInfo from AST annotation node."""
