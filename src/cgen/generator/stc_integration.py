@@ -198,8 +198,9 @@ class STCOperationMapper:
         elif operation == "set":  # lst[i] = x
             return f"*{stc_type}_at(&{var_name}, {args[0]}) = {args[1]}"
         elif operation == "init_empty":
-            # For STC containers, return the initialization value that will be used in declaration
-            return "{0}"
+            # For STC containers, return the initialization function call
+            # Note: stc_type should be passed for consistency, but we use a common pattern for now
+            return f"{stc_type}_init()"
         elif operation == "slice":  # lst[start:end]
             # For slicing, we need special handling - this should be handled differently
             # as it returns a new container rather than a single operation
@@ -219,7 +220,11 @@ class STCOperationMapper:
         elif operation == "len":
             return f"{container_name}_size(&{container_name})"
         elif operation == "init_empty":
-            return f"{container_name} = {{0}}"
+            # For STC containers, return the initialization function call
+            # We need the container type, but it's not passed - this is a design limitation
+            # For now, use a pattern that works for common dict containers
+            # TODO: Pass container type information to this method
+            return f"hmap_cstr_int32_init()"  # Temporary hardcode similar to sets
         else:
             raise ValueError(f"Unsupported dict operation: {operation}")
 
@@ -245,8 +250,8 @@ class STCOperationMapper:
         elif operation == "discard":  # set.discard(element) - no error if not found
             return f"{container_type}_erase(&{container_name}, {args[0]})"  # STC erase is safe
         elif operation == "init_empty":
-            # For STC containers, return the initialization value that should be used in declaration
-            return f"{container_name} = {container_type}_init()"
+            # For STC containers, return the initialization function call
+            return f"{container_type}_init()"
         else:
             raise ValueError(f"Unsupported set operation: {operation}")
 

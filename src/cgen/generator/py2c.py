@@ -881,6 +881,8 @@ class PythonToCConverter:
                     (isinstance(node.value, ast.List) and len(node.value.elts) == 0)
                     or (isinstance(node.value, ast.Dict) and len(node.value.keys) == 0)
                     or (isinstance(node.value, ast.Set) and len(node.value.elts) == 0)
+                    or (isinstance(node.value, ast.Call) and isinstance(node.value.func, ast.Name)
+                        and node.value.func.id in ("set", "list", "dict") and len(node.value.args) == 0)
                 ):
                     # Empty container initialization using STC - create declaration with initialization
                     if container_type == "list":
@@ -913,7 +915,9 @@ class PythonToCConverter:
                     # Check if this is a comprehension
                     elif isinstance(value_expr, ComprehensionElement):
                         # Handle comprehension assignment: result: list[int] = [x * 2 for x in range(5)]
-                        decl_stmt = self.c_factory.statement(self.c_factory.declaration(variable))
+                        # Initialize the target variable since we'll remove the temp variable initialization
+                        init_expr = core.RawCode(f"{value_expr.container_type}_init()")
+                        decl_stmt = self.c_factory.statement(self.c_factory.declaration(variable, init_expr))
 
                         # Replace the temporary variable with our actual variable
                         # Remove the temporary variable declaration from the comprehension code
@@ -926,9 +930,8 @@ class PythonToCConverter:
                             if not (
                                 value_expr.temp_var in line
                                 and ";" in line
-                                and "init(" not in line
-                                and "push_back(" not in line
-                                and "insert(" not in line
+                                and ("hset_" in line or "vec_" in line or "hmap_" in line)  # Declaration lines
+                                and "=" in line  # Assignment-style declaration
                             )
                         ]
                         comp_code = "\n".join(lines)
@@ -942,18 +945,21 @@ class PythonToCConverter:
                         assign_stmt = self.c_factory.statement(self.c_factory.assignment(variable, value_expr))
                         return [decl_stmt, assign_stmt]
             else:
-                # Declaration without initialization - still need to initialize containers
-                decl_stmt = self.c_factory.statement(self.c_factory.declaration(variable))
+                # Declaration without initialization - for containers, use assignment initialization
                 if container_type == "list":
-                    init_code = stc_operation_mapper.map_list_operation(var_type, "init_empty", variable_name=var_name)
+                    init_value = stc_operation_mapper.map_list_operation(var_type, "init_empty", variable_name=var_name)
                 elif container_type == "dict":
-                    init_code = stc_operation_mapper.map_dict_operation(var_name, "init_empty")
+                    init_value = stc_operation_mapper.map_dict_operation(var_name, "init_empty")
                 elif container_type == "set":
-                    init_code = stc_operation_mapper.map_set_operation(var_name, "init_empty")
+                    init_value = stc_operation_mapper.map_set_operation(var_name, "init_empty")
                 else:
-                    init_code = f"{var_name} = {{0}}"
-                init_stmt = self.c_factory.statement(STCOperationElement(init_code))
-                return [decl_stmt, init_stmt]
+                    init_value = "{0}"
+
+                # Use assignment initialization for containers
+                init_expr = core.RawCode(init_value)
+                declaration = self.c_factory.declaration(variable, init_expr)
+                decl_stmt = self.c_factory.statement(declaration)
+                return [decl_stmt]
         else:
             # Regular variable handling
             variable = self.c_factory.variable(var_name, var_type)
@@ -1925,9 +1931,8 @@ class PythonToCConverter:
         element_type = self._infer_element_type(node.elt)
         result_container_type = f"hset_{element_type}"
 
-        # Create initialization code
-        init_code = f"{result_container_type} {temp_var};\n"
-        init_code += f"{result_container_type}_init(&{temp_var});"
+        # Create initialization code using proper STC assignment pattern
+        init_code = f"{result_container_type} {temp_var} = {result_container_type}_init();"
 
         # Process the single generator (similar to list comprehension)
         if len(node.generators) != 1:
@@ -1982,8 +1987,8 @@ class PythonToCConverter:
         expr = self._convert_expression(node.elt)
         expr_str = self._expression_to_string(expr)
 
-        # Generate insert operation (no semicolon - will be added by statement handler)
-        insert_code = f"{result_container_type}_insert(&{temp_var}, {expr_str})"
+        # Generate insert operation with semicolon
+        insert_code = f"{result_container_type}_insert(&{temp_var}, {expr_str});"
 
         # Combine all parts
         full_code = init_code + "\n" + loop_code + condition_code + insert_code + close_condition + "}"
@@ -2017,9 +2022,8 @@ class PythonToCConverter:
             element_type = "int32"  # fallback for empty set literal
         result_container_type = f"hset_{element_type}"
 
-        # Create initialization code (each line needs semicolon except the last)
-        init_code = f"{result_container_type} {temp_var};\n"
-        init_code += f"{result_container_type}_init(&{temp_var});"
+        # Create initialization code using proper STC assignment pattern
+        init_code = f"{result_container_type} {temp_var} = {result_container_type}_init();"
 
         # Add elements to set (all but last insert need semicolons)
         insert_code = ""
