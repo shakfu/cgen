@@ -19,9 +19,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 
 ### Added
 
-#### Mini_py2c Pattern Integration - Advanced Type Inference and Smart Code Generation
+#### Type Inference Integration - Advanced Type Inference and Smart Code Generation
 
-- **Flow-Sensitive Type Inference System**: Revolutionary enhancement based on mini_py2c_module_fixed.py patterns
+- **Flow-Sensitive Type Inference System Enhancement** (see `tests/mini` experiments)
   - **FlowSensitiveInferencer**: New constraint-based type inference engine with environment tracking
     - **Parameter Type Inference**: Automatically infers parameter types from usage patterns (arithmetic + comparison operations)
     - **TypeUnifier**: Advanced type unification algebra for mixed-type operations (int→float promotion, bool→int coercion)
